@@ -46,9 +46,15 @@ void PiecewiseFunRestore(PiecewisePoissonLossLog&fun, const void *src){
 }
 
 int main(int argc, char *argv[]){//data_count x 2
-  if(argc != 3){
-    std::cout << "usage: " << argv[0] << " data.bedGraph penalty\n";
+  if(argc < 3 || 4 < argc){
+    std::cout << "usage: " << argv[0] << " data.bedGraph penalty [tmp.db]\n";
     return 1;
+  }
+  std::string db_file;
+  if(argc==4){
+    db_file = argv[3];
+  }else{
+    db_file = "tmp.db";
   }
   double penalty = atof(argv[2]);
   std::ifstream bedGraph_file(argv[1]);
@@ -85,7 +91,26 @@ int main(int argc, char *argv[]){//data_count x 2
   funTraits->set_size_function(PiecewiseFunSize);
   funTraits->set_copy_function(PiecewiseFunCopy);
   funTraits->set_restore_function(PiecewiseFunRestore);
-  dbstl::db_vector<PiecewisePoissonLossLog> cost_model_mat(data_count * 2);
+  // DbEnv *env = dbstl::open_env
+  //   ("env",
+  //    DB_CXX_NO_EXCEPTIONS,
+  //    DB_CREATE|DB_INIT_MPOOL,
+  //    4*1024*1024,
+  //    0777,
+  //    0);
+  // DbEnv *env = new DbEnv(DB_CXX_NO_EXCEPTIONS);		// (2)
+  // env->open("dbenv", 
+  //   DB_CREATE | DB_INIT_MPOOL | DB_PRIVATE, 0777); 	// (3)
+  // Db *db = dbstl::open_db(env, "vector2.db", 
+  //   DB_RECNO, DB_CREATE, 0);				// (4)
+  DbEnv *env = NULL;
+  Db *db = dbstl::open_db(env, db_file.c_str(), DB_RECNO, DB_CREATE, 0);
+  dbstl::db_vector<PiecewisePoissonLossLog> cost_model_mat(db, env);
+  PiecewisePoissonLossLog foo;
+  for(int i=0; i<data_count*2; i++){
+    cost_model_mat.push_back(foo);
+  }
+  //dbstl::db_vector<PiecewisePoissonLossLog> cost_model_mat(data_count * 2);
   //std::vector<PiecewisePoissonLossLog> cost_model_mat(data_count * 2);
   PiecewisePoissonLossLog up_cost, down_cost, up_cost_prev, down_cost_prev;
   PiecewisePoissonLossLog min_prev_cost;
