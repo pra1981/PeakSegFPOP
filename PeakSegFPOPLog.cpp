@@ -86,32 +86,32 @@ int main(int argc, char *argv[]){//data_count x 2
   //return 0;
   bedGraph_file.clear();
   bedGraph_file.seekg(0, std::ios::beg);
+
+  // Both Berkeley DB Backends need to know how to serialize
+  // the FPOP solver classes:
   dbstl::DbstlElemTraits<PiecewisePoissonLossLog> *funTraits =
     dbstl::DbstlElemTraits<PiecewisePoissonLossLog>::instance();
   funTraits->set_size_function(PiecewiseFunSize);
   funTraits->set_copy_function(PiecewiseFunCopy);
   funTraits->set_restore_function(PiecewiseFunRestore);
-  // DbEnv *env = dbstl::open_env
-  //   ("env",
-  //    DB_CXX_NO_EXCEPTIONS,
-  //    DB_CREATE|DB_INIT_MPOOL,
-  //    4*1024*1024,
-  //    0777,
-  //    0);
-  // DbEnv *env = new DbEnv(DB_CXX_NO_EXCEPTIONS);		// (2)
-  // env->open("dbenv", 
-  //   DB_CREATE | DB_INIT_MPOOL | DB_PRIVATE, 0777); 	// (3)
-  // Db *db = dbstl::open_db(env, "vector2.db", 
-  //   DB_RECNO, DB_CREATE, 0);				// (4)
+
+  //Berkeley DB filesystem Backend:
   DbEnv *env = NULL;
   Db *db = dbstl::open_db(env, db_file.c_str(), DB_RECNO, DB_CREATE, 0);
   dbstl::db_vector<PiecewisePoissonLossLog> cost_model_mat(db, env);
+
+  //Berkeley DB in-memory backend:
+  //dbstl::db_vector<PiecewisePoissonLossLog> cost_model_mat;
+
+  //STL in-memory backend:
+  //std::vector<PiecewisePoissonLossLog> cost_model_mat;
+
+  //Initialization of empty function pieces.
   PiecewisePoissonLossLog foo;
   for(int i=0; i<data_count*2; i++){
     cost_model_mat.push_back(foo);
   }
-  //dbstl::db_vector<PiecewisePoissonLossLog> cost_model_mat(data_count * 2);
-  //std::vector<PiecewisePoissonLossLog> cost_model_mat(data_count * 2);
+  
   PiecewisePoissonLossLog up_cost, down_cost, up_cost_prev, down_cost_prev;
   PiecewisePoissonLossLog min_prev_cost;
   int verbose=0;
