@@ -242,15 +242,15 @@ double PoissonLossPieceLog::getDeriv(double log_mean){
 }
 
 void PiecewisePoissonLossLog::set_to_min_less_of
-(PiecewisePoissonLossLog *input, int verbose){
+(PiecewisePoissonLossLog &input, int verbose){
   int prev_data_i = -2;
   piece_list.clear();
-  PoissonLossPieceListLog::iterator it = input->piece_list.begin();
+  PoissonLossPieceListLog::iterator it = input.piece_list.begin();
   PoissonLossPieceListLog::iterator next_it;
   double prev_min_cost = INFINITY;
   double prev_min_log_mean = it->min_log_mean;
   double prev_best_log_mean;
-  while(it != input->piece_list.end()){
+  while(it != input.piece_list.end()){
     double left_cost = it->getCost(it->min_log_mean);
     double right_cost = it->getCost(it->max_log_mean);
     if(prev_min_cost == INFINITY){
@@ -303,7 +303,7 @@ void PiecewisePoissonLossLog::set_to_min_less_of
 	next_it = it;
 	next_it++;
 	double next_cost = next_it->getCost(next_it->min_log_mean);
-	if(next_it == input->piece_list.end()){
+	if(next_it == input.piece_list.end()){
 	  next_ok = true;
 	}else{
 	  next_ok = NEWTON_EPSILON < next_cost-mu_cost;
@@ -427,10 +427,10 @@ void PiecewisePoissonLossLog::set_to_min_less_of
 }
 
 void PiecewisePoissonLossLog::set_to_min_more_of
-(PiecewisePoissonLossLog *input, int verbose){
+(PiecewisePoissonLossLog &input, int verbose){
   int prev_data_i = -2;
   piece_list.clear();
-  PoissonLossPieceListLog::iterator it = input->piece_list.end();
+  PoissonLossPieceListLog::iterator it = input.piece_list.end();
   PoissonLossPieceListLog::iterator prev_it;
   it--;
   double prev_min_cost = INFINITY;
@@ -438,7 +438,7 @@ void PiecewisePoissonLossLog::set_to_min_more_of
   double prev_best_log_mean;
   it++;
   if(verbose)print();
-  while(it != input->piece_list.begin()){
+  while(it != input.piece_list.begin()){
     it--;
     if(prev_min_cost == INFINITY){
       // Look for min achieved in this interval.
@@ -463,7 +463,7 @@ void PiecewisePoissonLossLog::set_to_min_more_of
 	// left), to check if the minimum is really a minimum. This is
 	// necessary because sometimes there are numerical issues.
 	bool prev_ok;
-	if(it == input->piece_list.begin()){
+	if(it == input.piece_list.begin()){
 	  prev_ok = true;
 	}else{
 	  prev_it = it;
@@ -675,7 +675,7 @@ void PiecewisePoissonLossLog::Minimize
 
 // check that this function is the minimum on all pieces.
 int PiecewisePoissonLossLog::check_min_of
-(PiecewisePoissonLossLog *prev, PiecewisePoissonLossLog *model){
+(PiecewisePoissonLossLog &prev, PiecewisePoissonLossLog &model){
   PoissonLossPieceListLog::iterator it;
   int verbose = 0;
   for(it = piece_list.begin(); it != piece_list.end(); it++){
@@ -693,25 +693,25 @@ int PiecewisePoissonLossLog::check_min_of
     }
     double mid_mean = (it->min_log_mean + it->max_log_mean)/2;
     double cost_min = it->getCost(mid_mean);
-    double cost_prev = prev->findCost(mid_mean);
+    double cost_prev = prev.findCost(mid_mean);
     if(cost_prev+1e-6 < cost_min){
       printf("prev(%f)=%f\n", mid_mean, cost_prev);
-      prev->print();
+      prev.print();
       printf("min(%f)=%f\n", mid_mean, cost_min);
       print();
       return 1;
     }
-    double cost_model = model->findCost(mid_mean);
+    double cost_model = model.findCost(mid_mean);
     if(cost_model+1e-6 < cost_min){
       printf("model(%f)=%f\n", mid_mean, cost_model);
-      model->print();
+      model.print();
       printf("min(%f)=%f\n", mid_mean, cost_min);
       print();
       return 1;
     }
   }
-  for(it = prev->piece_list.begin(); it != prev->piece_list.end(); it++){
-    if(it != prev->piece_list.begin()){
+  for(it = prev.piece_list.begin(); it != prev.piece_list.end(); it++){
+    if(it != prev.piece_list.begin()){
       PoissonLossPieceListLog::iterator pit = it;
       pit--;
       if(pit->max_log_mean != it->min_log_mean){
@@ -728,14 +728,14 @@ int PiecewisePoissonLossLog::check_min_of
     double cost_min = findCost(mid_mean);
     if(cost_prev+1e-6 < cost_min){
       printf("prev(%f)=%f\n", mid_mean, cost_prev);
-      prev->print();
+      prev.print();
       printf("min(%f)=%f\n", mid_mean, cost_min);
       print();
       return 1;
     }
   }
-  for(it = model->piece_list.begin(); it != model->piece_list.end(); it++){
-    if(it != model->piece_list.begin()){
+  for(it = model.piece_list.begin(); it != model.piece_list.end(); it++){
+    if(it != model.piece_list.begin()){
       PoissonLossPieceListLog::iterator pit = it;
       pit--;
       if(pit->max_log_mean != it->min_log_mean){
@@ -752,7 +752,7 @@ int PiecewisePoissonLossLog::check_min_of
     double cost_min = findCost(mid_mean);
     if(cost_model+1e-6 < cost_min){
       printf("model(%f)=%f\n", mid_mean, cost_model);
-      model->print();
+      model.print();
       printf("min(%f)=%f\n", mid_mean, cost_min);
       print();
       return 1;
@@ -762,13 +762,13 @@ int PiecewisePoissonLossLog::check_min_of
 }
 
 void PiecewisePoissonLossLog::set_to_min_env_of
-(PiecewisePoissonLossLog *fun1, PiecewisePoissonLossLog *fun2, int verbose){
+(PiecewisePoissonLossLog &fun1, PiecewisePoissonLossLog &fun2, int verbose){
   PoissonLossPieceListLog::iterator
-    it1 = fun1->piece_list.begin(),
-    it2 = fun2->piece_list.begin();
+    it1 = fun1.piece_list.begin(),
+    it2 = fun2.piece_list.begin();
   piece_list.clear();
-  while(it1 != fun1->piece_list.end() &&
-	it2 != fun2->piece_list.end()){
+  while(it1 != fun1.piece_list.end() &&
+	it2 != fun2.piece_list.end()){
     push_min_pieces(fun1, fun2, it1, it2, verbose);
     if(verbose){
       print();
@@ -793,8 +793,8 @@ bool sameFuns
 }
 
 void PiecewisePoissonLossLog::push_min_pieces
-(PiecewisePoissonLossLog *fun1,
- PiecewisePoissonLossLog *fun2,
+(PiecewisePoissonLossLog &fun1,
+ PiecewisePoissonLossLog &fun2,
  PoissonLossPieceListLog::iterator it1,
  PoissonLossPieceListLog::iterator it2,
  int verbose){
@@ -816,8 +816,8 @@ void PiecewisePoissonLossLog::push_min_pieces
       same_at_left = sameFuns(prev1, it2);
     }else{
       //it1 and it2 start at the same min_log_mean value.
-      if(it1==fun1->piece_list.begin() &&
-	 it2==fun2->piece_list.begin()){
+      if(it1==fun1.piece_list.begin() &&
+	 it2==fun2.piece_list.begin()){
 	same_at_left = false;
       }else{
 	same_at_left = sameFuns(prev1, prev2);
@@ -840,8 +840,8 @@ void PiecewisePoissonLossLog::push_min_pieces
       // it2 function piece ends before it1.
       same_at_right = sameFuns(it1, next2);
     }else{
-      if(next1==fun1->piece_list.end() &&
-	 next2==fun2->piece_list.end()){
+      if(next1==fun1.piece_list.end() &&
+	 next2==fun2.piece_list.end()){
 	same_at_right = false;
       }else{
 	same_at_right = sameFuns(next1, next2);
@@ -853,9 +853,9 @@ void PiecewisePoissonLossLog::push_min_pieces
     // store this interval.
     if(verbose){
       printf("prev\n");
-      fun1->print();
+      fun1.print();
       printf("model\n");
-      fun2->print();
+      fun2.print();
       printf("interval size 0!-----------------\n");
     }
     return;
