@@ -7,4 +7,20 @@ partitioning algorithm.
 
 #+BEGIN_SRC shell-script
 sudo aptitude install libdb6.0++-dev libdb6.0-stl-dev
+make
 #+END_SRC
+
+** Usage
+
+#+BEGIN_SRC shell-script
+PeakSegFPOP coverage.bedGraph penalty [tmp.db]
+#+END_SRC
+
+The first argument =coverage.bedGraph= is a plain text file with 3
+columns: chromStart, chromEnd, coverage (all integers).
+
+The second argument =penalty= is a non-negative penalty value, for
+example 0.1 or 100.
+
+The third argument =tmp.db= is optional. It is the path for a
+temporary file which takes O(N log N) disk space.
