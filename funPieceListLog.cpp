@@ -8,6 +8,16 @@
 
 #define ABS(x) ((x)<0 ? -(x) : (x))
 
+PoissonLossPieceLog::PoissonLossPieceLog(){
+  Linear = INFINITY;
+  Log = INFINITY;
+  Constant = INFINITY;
+  min_log_mean = INFINITY;
+  max_log_mean = INFINITY;
+  data_i = -1;
+  prev_log_mean = INFINITY;
+}
+
 PoissonLossPieceLog::PoissonLossPieceLog
 (double li, double lo, double co, double m, double M, int i, double prev){
   Linear = li;

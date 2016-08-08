@@ -6,6 +6,7 @@
 #include <string>
 // http://docs.oracle.com/cd/E17076_05/html/programmer_reference/arch_apis.html
 #include <dbstl_vector.h>
+#include <db_cxx.h>
 
 #include "funPieceListLog.h"
 
@@ -14,11 +15,42 @@
 // https://docs.oracle.com/cd/E17276_01/html/programmer_reference/stl.html
 // https://docs.oracle.com/cd/E17076_04/html/api_reference/STL/frame_main.html
 
+u_int32_t PiecewiseFunSize(const PiecewisePoissonLossLog&fun){
+  return sizeof(PoissonLossPieceLog)*fun.piece_list.size() +
+    sizeof(int);
+}
+
+void PiecewiseFunCopy(void *dest, const PiecewisePoissonLossLog&fun){
+  char *p = (char*)dest;
+  int n_pieces = fun.piece_list.size();
+  memcpy(p, &n_pieces, sizeof(int));
+  p += sizeof(int);
+  for(PoissonLossPieceListLog::const_iterator it = fun.piece_list.begin();
+      it != fun.piece_list.end(); it++){
+    memcpy(p, &(*it), sizeof(PoissonLossPieceLog));
+    p += sizeof(PoissonLossPieceLog);
+  }
+}
+
+void PiecewiseFunRestore(PiecewisePoissonLossLog&fun, const void *src){
+  int n_pieces;
+  char *p = (char*)src;
+  PoissonLossPieceLog piece;
+  memcpy(&n_pieces, p, sizeof(int));
+  p += sizeof(int);
+  for(int piece_i=0; piece_i < n_pieces; piece_i++){
+    memcpy(&piece, p, sizeof(PoissonLossPieceLog));
+    p += sizeof(PoissonLossPieceLog);
+    fun.piece_list.push_back(piece);
+  }
+}
+
 int main(int argc, char *argv[]){//data_count x 2
   if(argc != 3){
     std::cout << "usage: " << argv[0] << " data.bedGraph penalty\n";
     return 1;
   }
+  double penalty = atof(argv[2]);
   std::ifstream bedGraph_file(argv[1]);
   if(!bedGraph_file.is_open()){
     std::cout << "Could not open data file\n";
@@ -30,6 +62,11 @@ int main(int argc, char *argv[]){//data_count x 2
   while(std::getline(bedGraph_file, line)){
     line_i++;
     items = sscanf(line.c_str(), "%d %d %d\n", &chromStart, &chromEnd, &coverage);
+    if(items!=3){
+      printf("error: expected '%%d %%d %%d\\n' on line %d\n", line_i);
+      std::cout << line;
+      return 3;
+    }
     log_data = log(coverage);
     if(log_data < min_log_mean){
       min_log_mean = log_data;
@@ -37,39 +74,35 @@ int main(int argc, char *argv[]){//data_count x 2
     if(max_log_mean < log_data){
       max_log_mean = log_data;
     }
-    if(items!=3){
-      printf("error: unrecognized data on line %d\n", line_i);
-      std::cout << line;
-      return 3;
-    }
   }
-  printf("min_log_mean=%f max_log_mean=%f\n", min_log_mean, max_log_mean);
-  return 0;
-  double penalty;
-  double *data_vec, *weight_vec, *mean_vec;
-  int data_count;
-  int *end_vec;
-  //
-  for(int data_i=1; data_i<data_count; data_i++){
-    double log_data = log(data_vec[data_i]);
-    if(log_data < min_log_mean){
-      min_log_mean = log_data;
-    }
-    if(max_log_mean < log_data){
-      max_log_mean = log_data;
-    }
-  }
+  int data_count = line_i;
+  printf("data_count=%d min_log_mean=%f max_log_mean=%f\n", data_count, min_log_mean, max_log_mean);
+  //return 0;
+  bedGraph_file.clear();
+  bedGraph_file.seekg(0, std::ios::beg);
+  dbstl::DbstlElemTraits<PiecewisePoissonLossLog> *funTraits =
+    dbstl::DbstlElemTraits<PiecewisePoissonLossLog>::instance();
+  funTraits->set_size_function(PiecewiseFunSize);
+  funTraits->set_copy_function(PiecewiseFunCopy);
+  funTraits->set_restore_function(PiecewiseFunRestore);
   dbstl::db_vector<PiecewisePoissonLossLog> cost_model_mat(data_count * 2);
+  //std::vector<PiecewisePoissonLossLog> cost_model_mat(data_count * 2);
   PiecewisePoissonLossLog up_cost, down_cost, up_cost_prev, down_cost_prev;
   PiecewisePoissonLossLog min_prev_cost;
   int verbose=0;
   double cum_weight_i = 0.0, cum_weight_prev_i;
-  for(int data_i=0; data_i<data_count; data_i++){
-    cum_weight_i += weight_vec[data_i];
+  int data_i = 0;
+  double weight;
+  while(std::getline(bedGraph_file, line)){
+    items = sscanf(line.c_str(), "%d\t%d\t%d\n", &chromStart, &chromEnd, &coverage);
+    //if(items != 3)break;
+    weight = chromEnd-chromStart;
+    //printf("data_i=%d weight=%f coverage=%d\n", data_i, weight, coverage);
+    cum_weight_i += weight;
     if(data_i==0){
       // initialization Cdown_1(m)=gamma_1(m)/w_1
       down_cost.piece_list.emplace_back
-	(1.0, -data_vec[0], 0.0,
+	(1.0, -coverage, 0.0,
 	 min_log_mean, max_log_mean, -1, false);
     }else{
       // if data_i is up, it could have come from down_cost_prev.
@@ -117,10 +150,11 @@ int main(int argc, char *argv[]){//data_count x 2
       }
       up_cost.multiply(cum_weight_prev_i);
       up_cost.add
-	(weight_vec[data_i],
-	 -data_vec[data_i]*weight_vec[data_i],
+	(weight,
+	 -coverage*weight,
 	 0.0);
       up_cost.multiply(1/cum_weight_i);
+      //printf("computing down cost\n");
       // compute down_cost.
       if(data_i==1){
 	//for second data point, the cost is only a function of the
@@ -157,17 +191,20 @@ int main(int argc, char *argv[]){//data_count x 2
       }
       down_cost.multiply(cum_weight_prev_i);
       down_cost.add
-	(weight_vec[data_i],
-	 -data_vec[data_i]*weight_vec[data_i],
+	(weight,
+	 -coverage*weight,
 	 0.0);
       down_cost.multiply(1/cum_weight_i);
     }//if(data_i initialization else update
     cum_weight_prev_i = cum_weight_i;
     up_cost_prev = up_cost;
     down_cost_prev = down_cost;
+    //printf("data_i=%d data_i+data_count=%d\n", data_i, data_i+data_count);
     cost_model_mat[data_i] = up_cost;
     cost_model_mat[data_i + data_count] = down_cost;
+    data_i++;
   }
+  //printf("AFTER\n");
   // Decoding the cost_model_vec, and writing to the output matrices.
   double best_cost, best_log_mean, prev_log_mean;
   int prev_seg_end;
@@ -178,13 +215,14 @@ int main(int argc, char *argv[]){//data_count x 2
   down_cost.Minimize
     (&best_cost, &best_log_mean,
      &prev_seg_end, &prev_log_mean);
-  mean_vec[0] = exp(best_log_mean);
-  end_vec[0] = prev_seg_end;
+  printf("mean=%f end=%d\n", exp(best_log_mean), prev_seg_end);
+  // mean_vec[0] = exp(best_log_mean);
+  // end_vec[0] = prev_seg_end;
   int out_i=1;
   while(0 <= prev_seg_end){
     // up_cost is actually either an up or down cost.
     up_cost = cost_model_mat[prev_seg_offset + prev_seg_end];
-    //printf("decoding out_i=%d prev_seg_end=%d prev_seg_offset=%d\n", out_i, prev_seg_end, prev_seg_offset);
+    printf("decoding out_i=%d prev_seg_end=%d prev_seg_offset=%d\n", out_i, prev_seg_end, prev_seg_offset);
     //up_cost.print();
     if(prev_log_mean != INFINITY){
       //equality constraint inactive
@@ -192,8 +230,9 @@ int main(int argc, char *argv[]){//data_count x 2
     }
     up_cost.findMean
       (best_log_mean, &prev_seg_end, &prev_log_mean);
-    mean_vec[out_i] = exp(best_log_mean);
-    end_vec[out_i] = prev_seg_end;
+    printf("mean=%f end=%d\n", exp(best_log_mean), prev_seg_end);
+    // mean_vec[out_i] = exp(best_log_mean);
+    // end_vec[out_i] = prev_seg_end;
     // change prev_seg_offset and out_i for next iteration.
     if(prev_seg_offset==0){
       //up_cost is actually up
