@@ -24,3 +24,17 @@ example 0.1 or 100.
 
 The third argument =tmp.db= is optional. It is the path for a
 temporary file which takes O(N log N) disk space.
+
+** Related work
+
+An in-memory implementation of PeakSegFPOP is available in the [[https://github.com/tdhock/coseg][coseg]] R
+package. 
+
+| implementation | time       | memory     | disk       |
+|----------------+------------+------------+------------|
+| command line   | O(N log N) | O(1)       | O(N log N) |
+| R pkg coseg    | O(N log N) | O(N log N) | 0          |
+
+Note that although both implementations are O(N log N) time complexity
+for N data points, the command line program is slower due to disk
+read/write overhead.
