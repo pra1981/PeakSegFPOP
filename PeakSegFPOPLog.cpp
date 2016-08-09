@@ -290,7 +290,7 @@ int main(int argc, char *argv[]){//data_count x 2
       (best_log_mean, &prev_seg_end, &prev_log_mean);
     //printf("mean=%f end=%d chromEnd=%d\n", exp(best_log_mean), prev_seg_end, up_cost.chromEnd);
   }//for(data_i
-  out_file << chrom << "\t" << up_cost.chromEnd << "\t" << prev_chromEnd << "\tbackground\t" << exp(best_log_mean) << "\n";
+  out_file << chrom << "\t" << first_chromStart << "\t" << prev_chromEnd << "\tbackground\t" << exp(best_log_mean) << "\n";
   out_file.close();
   //printf("feasible=%d\n", feasible);
   std::cout << "wrote ";
