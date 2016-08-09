@@ -17,13 +17,15 @@
 
 u_int32_t PiecewiseFunSize(const PiecewisePoissonLossLog&fun){
   return sizeof(PoissonLossPieceLog)*fun.piece_list.size() +
-    sizeof(int);
+    sizeof(int)*2;
 }
 
 void PiecewiseFunCopy(void *dest, const PiecewisePoissonLossLog&fun){
   char *p = (char*)dest;
   int n_pieces = fun.piece_list.size();
   memcpy(p, &n_pieces, sizeof(int));
+  p += sizeof(int);
+  memcpy(p, &(fun.chromEnd), sizeof(int));
   p += sizeof(int);
   for(PoissonLossPieceListLog::const_iterator it = fun.piece_list.begin();
       it != fun.piece_list.end(); it++){
@@ -37,6 +39,8 @@ void PiecewiseFunRestore(PiecewisePoissonLossLog&fun, const void *src){
   char *p = (char*)src;
   PoissonLossPieceLog piece;
   memcpy(&n_pieces, p, sizeof(int));
+  p += sizeof(int);
+  memcpy(&(fun.chromEnd), p, sizeof(int));
   p += sizeof(int);
   for(int piece_i=0; piece_i < n_pieces; piece_i++){
     memcpy(&piece, p, sizeof(PoissonLossPieceLog));
@@ -64,13 +68,14 @@ int main(int argc, char *argv[]){//data_count x 2
   }
   std::string line;
   int chromStart, chromEnd, coverage, items, line_i=0;
+  char chrom[100];
   double min_log_mean=INFINITY, max_log_mean=-INFINITY, log_data;
   while(std::getline(bedGraph_file, line)){
     line_i++;
-    items = sscanf(line.c_str(), "%d %d %d\n", &chromStart, &chromEnd, &coverage);
-    if(items!=3){
-      printf("error: expected '%%d %%d %%d\\n' on line %d\n", line_i);
-      std::cout << line;
+    items = sscanf(line.c_str(), "%s %d %d %d\n", chrom, &chromStart, &chromEnd, &coverage);
+    if(items!=4){
+      printf("error: expected '%%s %%d %%d %%d\\n' on line %d\n", line_i);
+      std::cout << line << "\n";
       return 3;
     }
     log_data = log(coverage);
@@ -82,7 +87,7 @@ int main(int argc, char *argv[]){//data_count x 2
     }
   }
   int data_count = line_i;
-  printf("data_count=%d min_log_mean=%f max_log_mean=%f\n", data_count, min_log_mean, max_log_mean);
+  //printf("data_count=%d min_log_mean=%f max_log_mean=%f\n", data_count, min_log_mean, max_log_mean);
   //return 0;
   bedGraph_file.clear();
   bedGraph_file.seekg(0, std::ios::beg);
@@ -118,9 +123,12 @@ int main(int argc, char *argv[]){//data_count x 2
   double cum_weight_i = 0.0, cum_weight_prev_i;
   int data_i = 0;
   double weight;
+  int first_chromStart;
   while(std::getline(bedGraph_file, line)){
-    items = sscanf(line.c_str(), "%d\t%d\t%d\n", &chromStart, &chromEnd, &coverage);
-    //if(items != 3)break;
+    items = sscanf(line.c_str(), "%*s\t%d\t%d\t%d\n", &chromStart, &chromEnd, &coverage);
+    if(data_i==0){
+      first_chromStart = chromStart;
+    }
     weight = chromEnd-chromStart;
     //printf("data_i=%d weight=%f coverage=%d\n", data_i, weight, coverage);
     cum_weight_i += weight;
@@ -225,7 +233,9 @@ int main(int argc, char *argv[]){//data_count x 2
     up_cost_prev = up_cost;
     down_cost_prev = down_cost;
     //printf("data_i=%d data_i+data_count=%d\n", data_i, data_i+data_count);
+    up_cost.chromEnd = chromEnd;
     cost_model_mat[data_i] = up_cost;
+    down_cost.chromEnd = chromEnd;
     cost_model_mat[data_i + data_count] = down_cost;
     data_i++;
   }
@@ -240,33 +250,60 @@ int main(int argc, char *argv[]){//data_count x 2
   down_cost.Minimize
     (&best_cost, &best_log_mean,
      &prev_seg_end, &prev_log_mean);
-  printf("mean=%f end=%d\n", exp(best_log_mean), prev_seg_end);
+  //printf("mean=%f end_i=%d chromEnd=%d\n", exp(best_log_mean), prev_seg_end, down_cost.chromEnd);
+  int prev_chromEnd = down_cost.chromEnd;
   // mean_vec[0] = exp(best_log_mean);
   // end_vec[0] = prev_seg_end;
-  int out_i=1;
+  bool feasible = true;
+  std::string out_file_name(argv[1]);
+  out_file_name += "_penalty=";
+  out_file_name += argv[2];
+  out_file_name += "_segments.bed";
+  std::ofstream out_file;
+  out_file.open(out_file_name);
+  line_i=1;
   while(0 <= prev_seg_end){
+    line_i++;
     // up_cost is actually either an up or down cost.
     up_cost = cost_model_mat[prev_seg_offset + prev_seg_end];
-    printf("decoding out_i=%d prev_seg_end=%d prev_seg_offset=%d\n", out_i, prev_seg_end, prev_seg_offset);
-    //up_cost.print();
-    if(prev_log_mean != INFINITY){
-      //equality constraint inactive
-      best_log_mean = prev_log_mean;
-    }
-    up_cost.findMean
-      (best_log_mean, &prev_seg_end, &prev_log_mean);
-    printf("mean=%f end=%d\n", exp(best_log_mean), prev_seg_end);
-    // mean_vec[out_i] = exp(best_log_mean);
-    // end_vec[out_i] = prev_seg_end;
-    // change prev_seg_offset and out_i for next iteration.
+    //printf("decoding prev_seg_end=%d prev_seg_offset=%d\n", prev_seg_end, prev_seg_offset);
+    out_file << chrom << "\t" << up_cost.chromEnd << "\t" << prev_chromEnd << "\t";
+    // change prev_seg_offset for next iteration.
     if(prev_seg_offset==0){
       //up_cost is actually up
       prev_seg_offset = data_count;
+      out_file << "background"; // prev segment is down.
     }else{
       //up_cost is actually down
       prev_seg_offset = 0;
+      out_file << "peak";
     }
-    out_i++;
+    out_file << "\t" << exp(best_log_mean) << "\n";
+    prev_chromEnd = up_cost.chromEnd;
+    if(prev_log_mean != INFINITY){
+      //equality constraint inactive
+      best_log_mean = prev_log_mean;
+    }else{
+      feasible = false;
+    }
+    up_cost.findMean
+      (best_log_mean, &prev_seg_end, &prev_log_mean);
+    //printf("mean=%f end=%d chromEnd=%d\n", exp(best_log_mean), prev_seg_end, up_cost.chromEnd);
   }//for(data_i
+  out_file << chrom << "\t" << up_cost.chromEnd << "\t" << prev_chromEnd << "\tbackground\t" << exp(best_log_mean) << "\n";
+  out_file.close();
+  //printf("feasible=%d\n", feasible);
+  std::cout << "wrote ";
+  if(feasible){
+    std::cout << "feasible";
+  }else{
+    std::cout << "infeasible";
+  }
+  std::cout << " model with " << line_i << " segment";
+  if(1 < line_i){
+    std::cout << "s";
+  }
+  std::cout << " to " << out_file_name << "\n";
+  return 0;
 }
 
