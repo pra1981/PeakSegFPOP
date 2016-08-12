@@ -23,7 +23,18 @@ The second argument =penalty= is a non-negative penalty value, for
 example 0.1 or 100.
 
 The third argument =tmp.db= is optional. It is the path for a
-temporary file which takes O(N log N) disk space.
+temporary file which takes O(N log N) disk space (N = number of lines
+in coverage.bedGraph). In practice you can expect the size of the
+temporary file and the computation time to be as in the table
+below. Min and max values show the variation over several values of
+the penalty parameter, on an Intel(R) Core(TM) i7 CPU 930 @ 2.80GHz.
+
+|       N | min(MB) | max(MB) | min(time) | max(time) |
+|---------+---------+---------+-----------+-----------|
+|   10000 |      12 |      43 | 1 sec     | 2 sec     |
+|  100000 |     189 |     627 | 12 sec    | 25 sec    |
+| 1000000 |    3462 |    7148 | 3 min     | 5 min     |
+| 4485563 |   20391 |   32930 | 17 min    | 29 min    |
 
 ** Related work
 
