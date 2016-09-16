@@ -139,8 +139,8 @@ int main(int argc, char *argv[]){//data_count x 2
 	 min_log_mean, max_log_mean, -1, false);
     }else{
       // if data_i is up, it could have come from down_cost_prev.
-      min_prev_cost.set_to_min_less_of(down_cost_prev, verbose);
-      int status = min_prev_cost.check_min_of(down_cost_prev, down_cost_prev);
+      min_prev_cost.set_to_min_less_of(&down_cost_prev, verbose);
+      int status = min_prev_cost.check_min_of(&down_cost_prev, &down_cost_prev);
       if(status){
 	printf("BAD MIN LESS CHECK data_i=%d status=%d\n", data_i, status);
 	printf("=prev down cost\n");
@@ -166,8 +166,8 @@ int main(int argc, char *argv[]){//data_count x 2
       if(data_i==1){
 	up_cost = min_prev_cost;
       }else{
-	up_cost.set_to_min_env_of(min_prev_cost, up_cost_prev, verbose);
-	status = up_cost.check_min_of(min_prev_cost, up_cost_prev);
+	up_cost.set_to_min_env_of(&min_prev_cost, &up_cost_prev, verbose);
+	status = up_cost.check_min_of(&min_prev_cost, &up_cost_prev);
 	if(status){
 	  printf("BAD MIN ENV CHECK data_i=%d status=%d\n", data_i, status);
 	  printf("=prev down cost\n");
@@ -195,8 +195,8 @@ int main(int argc, char *argv[]){//data_count x 2
 	down_cost = down_cost_prev;
       }else{
 	// if data_i is down, it could have come from up_cost_prev.
-	min_prev_cost.set_to_min_more_of(up_cost_prev, verbose);
-	status = min_prev_cost.check_min_of(up_cost_prev, up_cost_prev);
+	min_prev_cost.set_to_min_more_of(&up_cost_prev, verbose);
+	status = min_prev_cost.check_min_of(&up_cost_prev, &up_cost_prev);
 	if(status){
 	  printf("BAD MIN MORE CHECK data_i=%d status=%d\n", data_i, status);
 	  printf("=prev up cost\n");
@@ -207,8 +207,8 @@ int main(int argc, char *argv[]){//data_count x 2
 	}
 	min_prev_cost.set_prev_seg_end(data_i-1);
 	//NO PENALTY FOR DOWN CHANGE
-	down_cost.set_to_min_env_of(min_prev_cost, down_cost_prev, verbose);
-	status = down_cost.check_min_of(min_prev_cost, down_cost_prev);
+	down_cost.set_to_min_env_of(&min_prev_cost, &down_cost_prev, verbose);
+	status = down_cost.check_min_of(&min_prev_cost, &down_cost_prev);
 	if(status){
 	  printf("BAD MIN ENV CHECK data_i=%d status=%d\n", data_i, status);
 	  printf("=prev up cost\n");

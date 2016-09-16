@@ -1,3 +1,5 @@
+/* -*- compile-command: "R CMD INSTALL .." -*- */
+
 #include <list>
 
 // NOTE: please only define prototypes in this file (do not define
@@ -15,7 +17,6 @@ class PoissonLossPieceLog {
   double max_log_mean;
   int data_i;
   double prev_log_mean;
-  
   bool equality_constraint_active();
   PoissonLossPieceLog();
   PoissonLossPieceLog
@@ -38,13 +39,13 @@ class PiecewisePoissonLossLog {
  public:
   PoissonLossPieceListLog piece_list;
   int chromEnd;
-  void set_to_min_less_of(PiecewisePoissonLossLog &, int);
-  void set_to_min_more_of(PiecewisePoissonLossLog &, int);
+  void set_to_min_less_of(PiecewisePoissonLossLog *, int);
+  void set_to_min_more_of(PiecewisePoissonLossLog *, int);
   void set_to_min_env_of
-    (PiecewisePoissonLossLog &, PiecewisePoissonLossLog &, int);
-  int check_min_of(PiecewisePoissonLossLog &, PiecewisePoissonLossLog &);
+    (PiecewisePoissonLossLog *, PiecewisePoissonLossLog *, int);
+  int check_min_of(PiecewisePoissonLossLog *, PiecewisePoissonLossLog *);
   void push_min_pieces
-    (PiecewisePoissonLossLog &, PiecewisePoissonLossLog &,
+    (PiecewisePoissonLossLog *, PiecewisePoissonLossLog *,
      PoissonLossPieceListLog::iterator, PoissonLossPieceListLog::iterator, int);
   void push_piece(PoissonLossPieceListLog::iterator, double, double);
   void add(double Linear, double Log, double Constant);
