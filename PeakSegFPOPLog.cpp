@@ -255,30 +255,30 @@ int main(int argc, char *argv[]){//data_count x 2
   // mean_vec[0] = exp(best_log_mean);
   // end_vec[0] = prev_seg_end;
   bool feasible = true;
-  std::string out_file_name(argv[1]);
-  out_file_name += "_penalty=";
-  out_file_name += argv[2];
-  out_file_name += "_segments.bed";
-  std::ofstream out_file;
-  out_file.open(out_file_name);
+  std::string segments_file_name(argv[1]);
+  segments_file_name += "_penalty=";
+  segments_file_name += argv[2];
+  segments_file_name += "_segments.bed";
+  std::ofstream segments_file;
+  segments_file.open(segments_file_name);
   line_i=1;
   while(0 <= prev_seg_end){
     line_i++;
     // up_cost is actually either an up or down cost.
     up_cost = cost_model_mat[prev_seg_offset + prev_seg_end];
     //printf("decoding prev_seg_end=%d prev_seg_offset=%d\n", prev_seg_end, prev_seg_offset);
-    out_file << chrom << "\t" << up_cost.chromEnd << "\t" << prev_chromEnd << "\t";
+    segments_file << chrom << "\t" << up_cost.chromEnd << "\t" << prev_chromEnd << "\t";
     // change prev_seg_offset for next iteration.
     if(prev_seg_offset==0){
       //up_cost is actually up
       prev_seg_offset = data_count;
-      out_file << "background"; // prev segment is down.
+      segments_file << "background"; // prev segment is down.
     }else{
       //up_cost is actually down
       prev_seg_offset = 0;
-      out_file << "peak";
+      segments_file << "peak";
     }
-    out_file << "\t" << exp(best_log_mean) << "\n";
+    segments_file << "\t" << exp(best_log_mean) << "\n";
     prev_chromEnd = up_cost.chromEnd;
     if(prev_log_mean != INFINITY){
       //equality constraint inactive
@@ -290,8 +290,8 @@ int main(int argc, char *argv[]){//data_count x 2
       (best_log_mean, &prev_seg_end, &prev_log_mean);
     //printf("mean=%f end=%d chromEnd=%d\n", exp(best_log_mean), prev_seg_end, up_cost.chromEnd);
   }//for(data_i
-  out_file << chrom << "\t" << first_chromStart << "\t" << prev_chromEnd << "\tbackground\t" << exp(best_log_mean) << "\n";
-  out_file.close();
+  segments_file << chrom << "\t" << first_chromStart << "\t" << prev_chromEnd << "\tbackground\t" << exp(best_log_mean) << "\n";
+  segments_file.close();
   //printf("feasible=%d\n", feasible);
   std::cout << "wrote ";
   if(feasible){
@@ -303,7 +303,7 @@ int main(int argc, char *argv[]){//data_count x 2
   if(1 < line_i){
     std::cout << "s";
   }
-  std::cout << " to " << out_file_name << "\n";
+  std::cout << " to " << segments_file_name << "\n";
   return 0;
 }
 
