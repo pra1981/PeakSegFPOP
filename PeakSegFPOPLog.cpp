@@ -304,6 +304,22 @@ int main(int argc, char *argv[]){//data_count x 2
     std::cout << "s";
   }
   std::cout << " to " << segments_file_name << "\n";
+  // Also write loss file.
+  std::string loss_file_name(argv[1]);
+  loss_file_name += "_penalty=";
+  loss_file_name += argv[2];
+  loss_file_name += "_loss.tsv";
+  std::ofstream loss_file;
+  loss_file.open(loss_file_name);
+  int n_peaks = (line_i-1)/2;
+  loss_file << argv[2] << //penalty constant
+    "\t" << line_i << //segments
+    "\t" << n_peaks << //peaks
+    "\t" << cum_weight_i << //total bases
+    "\t" << best_cost << //mean penalized cost
+    "\t" << best_cost*cum_weight_i-penalty*n_peaks << //total un-penalized cost
+    "\n";
+  loss_file.close();
   return 0;
 }
 
