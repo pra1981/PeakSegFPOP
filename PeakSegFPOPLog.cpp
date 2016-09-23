@@ -130,8 +130,11 @@ int main(int argc, char *argv[]){//data_count x 2
       first_chromStart = chromStart;
     }
     weight = chromEnd-chromStart;
-    //printf("data_i=%d weight=%f coverage=%d\n", data_i, weight, coverage);
     cum_weight_i += weight;
+    // if(data_i < 10 || data_i > 1192280){
+    //   printf("data_i=%d weight=%f cum=%f coverage=%d\n",
+    // 	     data_i, weight, cum_weight_i, coverage);
+    // }
     if(data_i==0){
       // initialization Cdown_1(m)=gamma_1(m)/w_1
       down_cost.piece_list.emplace_back
@@ -315,10 +318,16 @@ int main(int argc, char *argv[]){//data_count x 2
   loss_file << argv[2] << //penalty constant
     "\t" << line_i << //segments
     "\t" << n_peaks << //peaks
-    "\t" << cum_weight_i << //total bases
+    "\t" << (int)cum_weight_i << //total bases
     "\t" << best_cost << //mean penalized cost
     "\t" << best_cost*cum_weight_i-penalty*n_peaks << //total un-penalized cost
-    "\n";
+    "\t"; 
+  if(feasible){
+    loss_file << "feasible";
+  }else{
+    loss_file << "infeasible";
+  }
+  loss_file << "\n";
   loss_file.close();
   return 0;
 }
