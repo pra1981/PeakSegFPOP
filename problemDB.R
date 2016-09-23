@@ -1,6 +1,7 @@
-library(coseg)
+## inputs: labels.bed, coverage.bedGraph, problems.bed
+
+## outputs: directories for each problem.
 library(data.table)
-library(PeakError)
 data("hg19.gap", package="cosegData")
 hg19.problems <- data.table(hg19.gap)[, data.table(
   problemStart=chromEnd[-.N],
