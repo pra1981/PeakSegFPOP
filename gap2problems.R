@@ -2,9 +2,11 @@
 
 ## outputs: problems.bed
 
-arg.vec <- c("hg19_gap.bed", "hg19_chromInfo.txt")
+arg.vec <- c("hg19_gap.bed", "hg19_chromInfo.txt", "hg19_problems.bed")
 arg.vec <- commandArgs(trailingOnly=TRUE)
-stopifnot(length(arg.vec)==3)
+if(length(arg.vec) != 3){
+  stop("usage: Rscript gap2problems.R gap.bed chromInfo.txt problems.bed")
+}
 
 library(data.table)
 
