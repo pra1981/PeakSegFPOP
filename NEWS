@@ -4,6 +4,23 @@ test cases.
 
 input data error checking.
 
+2016.09.23
+
+PeakSegFPOP exits quickly for the special case of penalty=Inf, which
+means 0 peaks (1 segment mean with no changes).
+
+New R scripts to help when running PeakSegFPOP on the whole genome.
+
+gap2problems.R inputs chrom sizes and gap info, and outputs a bed file
+for each separate segmentation problem.
+
+problemDB.R inputs a segmentation problem bed file and a labels bed
+file for one sample, and creates sub-directories for each labeled
+segmentation problem.
+
+computeTarget.R inputs a labeled segmentation problem directory, and
+runs PeakSegFPOP several times, until the target interval is found.
+
 2016.09.22
 
 output loss file.
