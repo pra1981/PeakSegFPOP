@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <string>
 // http://docs.oracle.com/cd/E17076_05/html/programmer_reference/arch_apis.html
@@ -61,10 +62,13 @@ int main(int argc, char *argv[]){//data_count x 2
     db_file = "tmp.db";
   }
   double penalty = atof(argv[2]);
+  //std::cout << penalty;
   if(penalty == INFINITY){
     //ok but maybe we should special case this, no need to run PDPA.
-  }else if(std::isfinite(penalty) && penalty < 0){
+  }else if(!std::isfinite(penalty)){
     return 4;
+  }else if(penalty < 0){
+    return 5;
   }
   std::ifstream bedGraph_file(argv[1]);
   if(!bedGraph_file.is_open()){
@@ -127,12 +131,12 @@ int main(int argc, char *argv[]){//data_count x 2
     segments_file.close();
     std::cout << "wrote trivial model with 1 segment to " <<
       segments_file_name << "\n";
-    loss_file << argv[2] << //penalty constant
+    loss_file << std::setprecision(20) << argv[2] << //penalty constant
       "\t" << 1 << //segments
       "\t" << 0 << //peaks
       "\t" << (int)cum_weight_i << //total bases
-      "\t" << best_cost << //mean penalized cost
-      "\t" << best_cost*cum_weight_i << //total un-penalized cost
+      "\t" << best_cost/cum_weight_i << //mean penalized cost
+      "\t" << best_cost << //total un-penalized cost
       "\t" << "feasible" <<
       "\n";
     loss_file.close();
@@ -346,7 +350,7 @@ int main(int argc, char *argv[]){//data_count x 2
   }
   std::cout << " to " << segments_file_name << "\n";
   int n_peaks = (line_i-1)/2;
-  loss_file << argv[2] << //penalty constant
+  loss_file << std::setprecision(20) << argv[2] << //penalty constant
     "\t" << line_i << //segments
     "\t" << n_peaks << //peaks
     "\t" << (int)cum_weight_i << //total bases

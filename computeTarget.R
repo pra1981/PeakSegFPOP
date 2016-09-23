@@ -2,6 +2,7 @@
 
 ## outputs: target.tsv
 arg.vec <- "labels/H3K36me3_TDH_immune/McGill0001/problems/chr10:18024675-38818835"
+arg.vec <- "labels/small/McGill0106/problems/chr1:17175658-29878082/"
 arg.vec <- commandArgs(trailingOnly=TRUE)
 if(length(arg.vec) != 1){
   stop("usage: Rscript computeTarget.R data_dir/sample_dir/problems/problem_dir")
@@ -12,28 +13,11 @@ library(data.table)
 library(PeakError)
 
 prob.lab.bed <- file.path(problem.dir, "labels.bed")
+prob.cov.bedGraph <- file.path(problem.dir, "coverage.bedGraph")
 problem.labels <- fread(prob.lab.bed)
 setnames(problem.labels, c("chrom", "chromStart", "chromEnd", "annotation"))
 
-prob.cov.bedGraph <- file.path(problem.dir, "coverage.bedGraph")
-problem.coverage <- fread(prob.cov.bedGraph)
-setnames(problem.coverage, c("chrom", "chromStart", "chromEnd", "count"))
-problem.coverage[, weight := chromEnd-chromStart]
-problem.mean <- problem.coverage[, sum(weight*count)/sum(weight)]
-lossInf <- problem.coverage[, PoissonLoss(count, problem.mean, weight)]
-bases <- sum(problem.coverage$weight)
-errorInf <- PeakErrorChrom(Peaks(), problem.labels)
-error.list <- list("Inf"=data.table(
-  penalty=Inf,
-  segments=1,
-  peaks=0,
-  bases,
-  mean.pen.cost=lossInf/bases,
-  total.cost=lossInf,
-  status="feasible",
-  fn=sum(errorInf$fn),
-  fp=sum(errorInf$fp)))
-
+error.list <- list()
 getError <- function(penalty.str){
   stopifnot(is.character(penalty.str))
   pre <- paste0(prob.cov.bedGraph, "_penalty=", penalty.str)
@@ -51,9 +35,9 @@ getError <- function(penalty.str){
   setnames(penalty.loss, c(
     "penalty", "segments", "peaks", "bases",
     "mean.pen.cost", "total.cost", "status"))
-  read.cmd <- paste("grep peak", penalty_segments.bed)
-  penalty.peaks <- fread(read.cmd, colClasses=list(NULL=4:5))
-  setnames(penalty.peaks, c("chrom","chromStart", "chromEnd"))
+  penalty.segs <- fread(penalty_segments.bed, colClasses=list(NULL=5))
+  setnames(penalty.segs, c("chrom","chromStart", "chromEnd", "status"))
+  penalty.peaks <- penalty.segs[status=="peak",]
   penalty.error <- PeakErrorChrom(penalty.peaks, problem.labels)
   error.list[[penalty.str]] <<- with(penalty.error, data.table(
     penalty.loss,
@@ -63,11 +47,13 @@ getError <- function(penalty.str){
 }
 
 error.dt <- getError("0")
+error.dt <- getError("Inf")
 min.fp <- error.list[["Inf"]]$fp
 min.fn <- error.list[["0"]]$fn
 
 ## mx+b = lossInf => x = (lossInf-b)/m
-next.pen <- with(error.list[["Inf"]], (lossInf-total.cost)/peaks)
+lossInf <- error.list[["Inf"]]$total.cost
+next.pen <- with(error.list[["0"]], (lossInf-total.cost)/peaks)
 while(!is.null(next.pen)){
   if(interactive()){
     gg <- ggplot()+
@@ -83,10 +69,6 @@ while(!is.null(next.pen)){
   error.dt <- getError(next.str)
   print(error.dt[,.(penalty, peaks, fp, fn)])
   peaks.tab <- table(error.dt$peaks)
-  if(any(1 < peaks.tab)){
-    print(peaks.tab)
-    stop("found two lambda which yield the same number of peaks")
-  }
   ## one sufficient condition for having found the lower limit is
   ## having found one (p,p+1) pair with fp values (0,>0)
   fp.above.min <- error.dt[min.fp < fp,]
@@ -94,6 +76,9 @@ while(!is.null(next.pen)){
   last.above <- fp.above.min[.N,]
   first.min <- fp.is.min[1,]
   fp.above.is.next <- first.min$peaks == last.above$peaks-1
+  fp.two.lambda <-
+    any(1 < peaks.tab[paste(c(last.above$peaks, first.min$peaks))])
+  fp.found <- fp.above.is.next || fp.two.lambda
   ## one sufficient condition for having found the upper limit is
   ## having found one (p,p+1) pair with fn values (>min.fn,min.fn)
   fn.above.min <- error.dt[min.fn < fn, ]
@@ -101,11 +86,14 @@ while(!is.null(next.pen)){
   last.min <- fn.is.min[.N, ]
   first.above <- fn.above.min[1, ]
   last.is.next <- last.min$peaks == first.above$peaks+1
-  next.pen <-if(!fp.above.is.next){
+  fn.two.lambda <-
+    any(1 < peaks.tab[paste(c(first.above$peaks, last.min$peaks))])
+  fn.found <- last.is.next || fn.two.lambda
+  next.pen <- if(!fp.found){
     ## m2*x + b2 = m3*x + b3 => x = (b3-b2)/(m2-m3)
     (last.above$total.cost-first.min$total.cost)/
       (first.min$peaks-last.above$peaks)
-  }else if(!last.is.next){
+  }else if(!fn.found){
     ## m2*x + b2 = m3*x + b3 => x = (b3-b2)/(m2-m3)
     (first.above$total.cost-last.min$total.cost)/
       (last.min$peaks-first.above$peaks)
@@ -114,7 +102,7 @@ while(!is.null(next.pen)){
   }
 }#while(!is.null(pen))
 
-error.sorted <- error.dt[order(peaks),]
+error.sorted <- error.dt[order(peaks), ][c(TRUE, diff(peaks) != 0),]
 path <- error.sorted[, exactModelSelection(total.cost, peaks, peaks)]
 setkey(error.sorted, peaks)
 path$errors <- error.sorted[J(path$peaks), fp+fn]
