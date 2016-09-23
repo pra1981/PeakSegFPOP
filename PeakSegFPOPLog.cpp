@@ -1,6 +1,6 @@
 #include <vector>
-#include <stdio.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -61,6 +61,11 @@ int main(int argc, char *argv[]){//data_count x 2
     db_file = "tmp.db";
   }
   double penalty = atof(argv[2]);
+  if(penalty == INFINITY){
+    //ok but maybe we should special case this, no need to run PDPA.
+  }else if(std::isfinite(penalty) && penalty < 0){
+    return 4;
+  }
   std::ifstream bedGraph_file(argv[1]);
   if(!bedGraph_file.is_open()){
     std::cout << "Could not open data file\n";
@@ -69,7 +74,11 @@ int main(int argc, char *argv[]){//data_count x 2
   std::string line;
   int chromStart, chromEnd, coverage, items, line_i=0;
   char chrom[100];
+  double cum_weight_i = 0.0, cum_weight_prev_i, cum_weighted_count;
   double min_log_mean=INFINITY, max_log_mean=-INFINITY, log_data;
+  int data_i = 0;
+  double weight;
+  int first_chromStart;
   while(std::getline(bedGraph_file, line)){
     line_i++;
     items = sscanf(line.c_str(), "%s %d %d %d\n", chrom, &chromStart, &chromEnd, &coverage);
@@ -78,6 +87,12 @@ int main(int argc, char *argv[]){//data_count x 2
       std::cout << line << "\n";
       return 3;
     }
+    weight = chromEnd-chromStart;
+    cum_weight_i += weight;
+    cum_weighted_count += weight*coverage;
+    if(data_i==0){
+      first_chromStart = chromStart;
+    }
     log_data = log(coverage);
     if(log_data < min_log_mean){
       min_log_mean = log_data;
@@ -85,6 +100,43 @@ int main(int argc, char *argv[]){//data_count x 2
     if(max_log_mean < log_data){
       max_log_mean = log_data;
     }
+  }
+  double best_cost, best_log_mean, prev_log_mean;
+  // open segments file for writing.
+  std::string segments_file_name(argv[1]);
+  segments_file_name += "_penalty=";
+  segments_file_name += argv[2];
+  segments_file_name += "_segments.bed";
+  std::ofstream segments_file;
+  segments_file.open(segments_file_name);
+  // Also write loss file.
+  std::string loss_file_name(argv[1]);
+  loss_file_name += "_penalty=";
+  loss_file_name += argv[2];
+  loss_file_name += "_loss.tsv";
+  std::ofstream loss_file;
+  loss_file.open(loss_file_name);
+  if(penalty == INFINITY){
+    if(cum_weighted_count != 0){
+      best_cost = cum_weighted_count *
+	(1 - log(cum_weighted_count) + log(cum_weight_i)); 
+    } else {
+      best_cost = 0;
+    }
+    segments_file << chrom << "\t" << first_chromStart << "\t" << chromEnd << "\tbackground\t" << cum_weighted_count/cum_weight_i << "\n";
+    segments_file.close();
+    std::cout << "wrote trivial model with 1 segment to " <<
+      segments_file_name << "\n";
+    loss_file << argv[2] << //penalty constant
+      "\t" << 1 << //segments
+      "\t" << 0 << //peaks
+      "\t" << (int)cum_weight_i << //total bases
+      "\t" << best_cost << //mean penalized cost
+      "\t" << best_cost*cum_weight_i << //total un-penalized cost
+      "\t" << "feasible" <<
+      "\n";
+    loss_file.close();
+    return 0;
   }
   int data_count = line_i;
   //printf("data_count=%d min_log_mean=%f max_log_mean=%f\n", data_count, min_log_mean, max_log_mean);
@@ -120,15 +172,8 @@ int main(int argc, char *argv[]){//data_count x 2
   PiecewisePoissonLossLog up_cost, down_cost, up_cost_prev, down_cost_prev;
   PiecewisePoissonLossLog min_prev_cost;
   int verbose=0;
-  double cum_weight_i = 0.0, cum_weight_prev_i;
-  int data_i = 0;
-  double weight;
-  int first_chromStart;
   while(std::getline(bedGraph_file, line)){
     items = sscanf(line.c_str(), "%*s\t%d\t%d\t%d\n", &chromStart, &chromEnd, &coverage);
-    if(data_i==0){
-      first_chromStart = chromStart;
-    }
     weight = chromEnd-chromStart;
     cum_weight_i += weight;
     // if(data_i < 10 || data_i > 1192280){
@@ -244,7 +289,6 @@ int main(int argc, char *argv[]){//data_count x 2
   }
   //printf("AFTER\n");
   // Decoding the cost_model_vec, and writing to the output matrices.
-  double best_cost, best_log_mean, prev_log_mean;
   int prev_seg_end;
   int prev_seg_offset = 0;
   // last segment is down (offset N) so the second to last segment is
@@ -258,12 +302,6 @@ int main(int argc, char *argv[]){//data_count x 2
   // mean_vec[0] = exp(best_log_mean);
   // end_vec[0] = prev_seg_end;
   bool feasible = true;
-  std::string segments_file_name(argv[1]);
-  segments_file_name += "_penalty=";
-  segments_file_name += argv[2];
-  segments_file_name += "_segments.bed";
-  std::ofstream segments_file;
-  segments_file.open(segments_file_name);
   line_i=1;
   while(0 <= prev_seg_end){
     line_i++;
@@ -307,13 +345,6 @@ int main(int argc, char *argv[]){//data_count x 2
     std::cout << "s";
   }
   std::cout << " to " << segments_file_name << "\n";
-  // Also write loss file.
-  std::string loss_file_name(argv[1]);
-  loss_file_name += "_penalty=";
-  loss_file_name += argv[2];
-  loss_file_name += "_loss.tsv";
-  std::ofstream loss_file;
-  loss_file.open(loss_file_name);
   int n_peaks = (line_i-1)/2;
   loss_file << argv[2] << //penalty constant
     "\t" << line_i << //segments

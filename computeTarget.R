@@ -1,34 +1,39 @@
 ## inputs: problem directory with coverage.bedGraph and labels.bed
 
 ## outputs: target.tsv
-arg.vec <- "labels/H3K36me3_TDH_immune/chr10:18024675-38818835/labels.bed"
+arg.vec <- "labels/H3K36me3_TDH_immune/McGill0001/problems/chr10:18024675-38818835"
 arg.vec <- commandArgs(trailingOnly=TRUE)
-stopifnot(length(arg.vec)==1)
-labels.bed <- arg.vec[1]
+if(length(arg.vec) != 1){
+  stop("usage: Rscript computeTarget.R data_dir/sample_dir/problems/problem_dir")
+}
+problem.dir <- arg.vec[1]
 library(coseg)
 library(data.table)
 library(PeakError)
 
-pname <- names(labels.by.problem)[[problem.i]]
-problem <- hg19.problems[pname,]
-problem.dir <- file.path("labels", sname, pname)
-problem.labels <- labels.by.problem[[problem.i]]
-dir.create(problem.dir, showWarnings=FALSE, recursive=TRUE)
-problem.bed <- file.path(problem.dir, "problem.bed")
-write.table(
-  problem, problem.bed,
-  quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
+prob.lab.bed <- file.path(problem.dir, "labels.bed")
+problem.labels <- fread(prob.lab.bed)
+setnames(problem.labels, c("chrom", "chromStart", "chromEnd", "annotation"))
+
 prob.cov.bedGraph <- file.path(problem.dir, "coverage.bedGraph")
-if(!file.exists(prob.cov.bedGraph)){
-  ## Use intersectBed to avoid memory problems.
-  cmd <- paste(
-    "intersectBed -sorted",
-    "-a", coverage.bedGraph,
-    "-b", problem.bed,
-    ">", prob.cov.bedGraph)
-  system(cmd)
-}
-error.list <- list()
+problem.coverage <- fread(prob.cov.bedGraph)
+setnames(problem.coverage, c("chrom", "chromStart", "chromEnd", "count"))
+problem.coverage[, weight := chromEnd-chromStart]
+problem.mean <- problem.coverage[, sum(weight*count)/sum(weight)]
+lossInf <- problem.coverage[, PoissonLoss(count, problem.mean, weight)]
+bases <- sum(problem.coverage$weight)
+errorInf <- PeakErrorChrom(Peaks(), problem.labels)
+error.list <- list("Inf"=data.table(
+  penalty=Inf,
+  segments=1,
+  peaks=0,
+  bases,
+  mean.pen.cost=lossInf/bases,
+  total.cost=lossInf,
+  status="feasible",
+  fn=sum(errorInf$fn),
+  fp=sum(errorInf$fp)))
+
 getError <- function(penalty.str){
   stopifnot(is.character(penalty.str))
   pre <- paste0(prob.cov.bedGraph, "_penalty=", penalty.str)
@@ -37,6 +42,7 @@ getError <- function(penalty.str){
     penalty.db <- paste0(pre, ".db")
     fpop.cmd <- paste(
       "./PeakSegFPOP", prob.cov.bedGraph, penalty.str, penalty.db)
+    cat(fpop.cmd, "\n")
     system(fpop.cmd)
     unlink(penalty.db)
   }
@@ -53,32 +59,29 @@ getError <- function(penalty.str){
     penalty.loss,
     fn=sum(fn),
     fp=sum(fp)))
+  do.call(rbind, error.list)[order(penalty),]
 }
-getError("0")
-problem.coverage <- fread(prob.cov.bedGraph)
-setnames(problem.coverage, c("chrom", "chromStart", "chromEnd", "count"))
-problem.coverage[, weight := chromEnd-chromStart]
-problem.mean <- problem.coverage[, sum(weight*count)/sum(weight)]
-lossInf <- problem.coverage[, PoissonLoss(count, problem.mean, weight)]
-bases <- sum(problem.coverage$weight)
-errorInf <- PeakErrorChrom(Peaks(), problem.labels)
-error.list[["Inf"]] <- eInf <- data.table(
-  penalty=Inf,
-  segments=1,
-  peaks=0,
-  bases,
-  mean.pen.cost=lossInf/bases,
-  total.cost=lossInf,
-  status="feasible",
-  fn=sum(errorInf$fn),
-  fp=sum(errorInf$fp))
-min.fp <- eInf$fp
-error.dt <- do.call(rbind, error.list)
-e0 <- error.list[["0"]]
-min.fn <- e0$fn
-done <- FALSE
-while(!done){
-  error.dt <- do.call(rbind, error.list)[order(penalty),]
+
+error.dt <- getError("0")
+min.fp <- error.list[["Inf"]]$fp
+min.fn <- error.list[["0"]]$fn
+
+## mx+b = lossInf => x = (lossInf-b)/m
+next.pen <- with(error.list[["Inf"]], (lossInf-total.cost)/peaks)
+while(!is.null(next.pen)){
+  if(interactive()){
+    gg <- ggplot()+
+      geom_abline(aes(slope=peaks, intercept=total.cost),
+                  data=error.dt)+
+      geom_vline(aes(xintercept=penalty),
+                 data=data.table(penalty=next.pen))+
+      geom_point(aes(penalty, mean.pen.cost*bases),
+                 data=error.dt)
+    print(gg)
+  }
+  next.str <- paste(next.pen)
+  error.dt <- getError(next.str)
+  print(error.dt[,.(penalty, peaks, fp, fn)])
   peaks.tab <- table(error.dt$peaks)
   if(any(1 < peaks.tab)){
     print(peaks.tab)
@@ -98,38 +101,19 @@ while(!done){
   last.min <- fn.is.min[.N, ]
   first.above <- fn.above.min[1, ]
   last.is.next <- last.min$peaks == first.above$peaks+1
-  if(!fp.above.is.next){
+  next.pen <-if(!fp.above.is.next){
     ## m2*x + b2 = m3*x + b3 => x = (b3-b2)/(m2-m3)
-    next.pen <-
-      (last.above$total.cost-first.min$total.cost)/
+    (last.above$total.cost-first.min$total.cost)/
       (first.min$peaks-last.above$peaks)
-    next.dt <- data.table(
-      penalty=next.pen,
-      cost=first.min[, total.cost + peaks*next.pen])
   }else if(!last.is.next){
     ## m2*x + b2 = m3*x + b3 => x = (b3-b2)/(m2-m3)
-    next.pen <-
-      (first.above$total.cost-last.min$total.cost)/
+    (first.above$total.cost-last.min$total.cost)/
       (last.min$peaks-first.above$peaks)
-    next.dt <- data.table(
-      penalty=next.pen,
-      cost=first.above[, total.cost + peaks*next.pen])
   }else{
-    done <- TRUE
+    NULL
   }
-  if(!done){
-    ggplot()+
-      geom_abline(aes(slope=peaks, intercept=total.cost),
-                  data=error.dt)+
-      geom_vline(aes(xintercept=penalty),
-                 data=next.dt)+
-      geom_point(aes(penalty, mean.pen.cost*bases),
-                 data=error.dt)
-    next.str <- paste(next.pen)
-    getError(next.str)
-  }
-}#while(!done)
-error.dt[,.(penalty, peaks, fp, fn)]
+}#while(!is.null(pen))
+
 error.sorted <- error.dt[order(peaks),]
 path <- error.sorted[, exactModelSelection(total.cost, peaks, peaks)]
 setkey(error.sorted, peaks)

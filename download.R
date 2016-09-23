@@ -2,7 +2,7 @@ bed <- read.table("http://hubs.hpc.mcgill.ca/~thocking/bed/index.txt", header=TR
 "http://hubs.hpc.mcgill.ca/~thocking/genomecov/H3K36me3/McGill0001.bedGraph"
 pre <- "http://hubs.hpc.mcgill.ca/~thocking/genomecov/"
 
-bed.file.vec <- bed$file[1]
+bed.file.vec <- paste(bed$file)
 for(bed.file.i in seq_along(bed.file.vec)){
   bed.file <- bed.file.vec[[bed.file.i]]
   sample.id <- dirname(paste(bed.file))
@@ -15,7 +15,7 @@ for(bed.file.i in seq_along(bed.file.vec)){
       "%4d / %4d %s -> %s\n",
       bed.file.i, length(bed.file.vec),
       bed.url, bedGraph.path))
-    dir.create(dirname(bed.path), showWarnings=FALSE, recursive=TRUE)
+    dir.create(dirname(bedGraph.path), showWarnings=FALSE, recursive=TRUE)
     download.file(bed.url, bedGraph.path)
   }
 }

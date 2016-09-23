@@ -45,6 +45,11 @@ makeProblem <- function(problem.i){
   write.table(
     problem, problem.bed,
     quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
+  prob.lab.bed <- file.path(problem.dir, "labels.bed")
+  write.table(
+    problem.labels[, c("chrom", "chromStart", "chromEnd", "annotation")],
+    prob.lab.bed,
+    quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
   cat(sprintf(
     "%4d / %4d %s\n",
     problem.i, length(labels.by.problem), problem.dir))
