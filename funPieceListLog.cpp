@@ -407,7 +407,7 @@ void PiecewisePoissonLossLog::set_to_min_less_of
 	       prev_data_i,
 	       prev_best_log_mean);
 	    prev_min_cost = INFINITY;
-	    prev_max_log_mean = it->max_log_mean;
+	    prev_min_log_mean = it->max_log_mean;
 	  }
 	}
       }//if(Log is zero
