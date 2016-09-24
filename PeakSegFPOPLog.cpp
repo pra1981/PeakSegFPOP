@@ -7,7 +7,7 @@
 #include <string>
 // http://docs.oracle.com/cd/E17076_05/html/programmer_reference/arch_apis.html
 #include <dbstl_vector.h>
-#include <db_cxx.h>
+//#include <db_cxx.h>
 
 #include "funPieceListLog.h"
 
@@ -209,12 +209,6 @@ int main(int argc, char *argv[]){//data_count x 2
       // and add that to the min-less-ified function, before applying the min-env.
       min_prev_cost.set_prev_seg_end(data_i-1);
       min_prev_cost.add(0.0, 0.0, penalty/cum_weight_prev_i);
-      // if(data_i==2){
-      // 	printf("computing cost data_i=%d\n", data_i);
-      // 	verbose=1;
-      // }else{
-      // 	verbose=0;
-      // }
       if(data_i==1){
 	up_cost = min_prev_cost;
       }else{
@@ -247,7 +241,14 @@ int main(int argc, char *argv[]){//data_count x 2
 	down_cost = down_cost_prev;
       }else{
 	// if data_i is down, it could have come from up_cost_prev.
+	// if(data_i==2329683){
+	//   printf("computing cost data_i=%d\n", data_i);
+	//   verbose=1;
+	// }else{
+	//   verbose=0;
+	// }
 	min_prev_cost.set_to_min_more_of(&up_cost_prev, verbose);
+	//verbose=0;
 	status = min_prev_cost.check_min_of(&up_cost_prev, &up_cost_prev);
 	if(status){
 	  printf("BAD MIN MORE CHECK data_i=%d status=%d\n", data_i, status);
@@ -255,7 +256,7 @@ int main(int argc, char *argv[]){//data_count x 2
 	  up_cost_prev.print();
 	  printf("=min more(prev up cost)\n");
 	  min_prev_cost.print();
-	  //throw status;
+	  throw status;
 	}
 	min_prev_cost.set_prev_seg_end(data_i-1);
 	//NO PENALTY FOR DOWN CHANGE
