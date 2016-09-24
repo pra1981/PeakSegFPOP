@@ -176,6 +176,7 @@ int main(int argc, char *argv[]){//data_count x 2
   PiecewisePoissonLossLog up_cost, down_cost, up_cost_prev, down_cost_prev;
   PiecewisePoissonLossLog min_prev_cost;
   int verbose=0;
+  cum_weight_i = 0;
   while(std::getline(bedGraph_file, line)){
     items = sscanf(line.c_str(), "%*s\t%d\t%d\t%d\n", &chromStart, &chromEnd, &coverage);
     weight = chromEnd-chromStart;
