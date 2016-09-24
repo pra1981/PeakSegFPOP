@@ -27,7 +27,24 @@ getError <- function(penalty.str){
     fpop.cmd <- paste(
       "./PeakSegFPOP", prob.cov.bedGraph, penalty.str, penalty.db)
     cat(fpop.cmd, "\n")
-    system(fpop.cmd)
+    seconds <- system.time({
+      system(fpop.cmd)
+    })[["elapsed"]]
+    megabytes <- if(file.exists(penalty.db)){
+      file.size(penalty.db)/1024/1024
+    }else{
+      0
+    }
+    penalty_timing.tsv <- paste0(pre, "_timing.tsv")
+    timing <- data.table(
+      penalty.str,
+      megabytes,
+      seconds)
+    write.table(
+      timing,
+      penalty_timing.tsv,
+      row.names=FALSE, col.names=FALSE,
+      quote=FALSE, sep="\t")
     unlink(penalty.db)
   }
   penalty_loss.tsv <- paste0(pre, "_loss.tsv")
@@ -116,5 +133,5 @@ write.table(
   target,
   file.path(problem.dir, "target.tsv"),
   quote=FALSE,
-  col.names=TRUE,
+  col.names=FALSE,
   row.names=FALSE)
