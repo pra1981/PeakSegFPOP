@@ -42,9 +42,14 @@ n.bases <- with(one.sample, sum(chromEnd-chromStart))
 exp.bases <- rep(n.bases, l=nrow(loss))
 
 library(testthat)
-expect_identical(as.integer(loss$bases), as.integer(exp.bases))
+test_that("PeakSegFPOP reports correct number of bases", {
+  expect_identical(as.integer(loss$bases), as.integer(exp.bases))
+})
 
 loss.ord <- loss[order(penalty),]
 loss.ord[, log.penalty := log(penalty)]
 best <- loss.ord[target.vec[1] < log.penalty & log.penalty < target.vec[2],]
-expect_identical(as.integer(best$peaks), 1L)
+
+test_that("Target interval contains one model with 1 peak", {
+  expect_identical(as.integer(best$peaks), 1L)
+})
