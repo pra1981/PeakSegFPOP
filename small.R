@@ -12,6 +12,7 @@ labels <- data.frame(
   chromEnd=20009000,
   annotation="peakStart")
 sample.dir <- "labels/small/McGill0106"
+unlink(sample.dir, recursive=TRUE)
 dir.create(sample.dir, showWarnings=FALSE, recursive=TRUE)
 coverage.bedGraph <- file.path(sample.dir, "coverage.bedGraph")
 write.table(
@@ -39,6 +40,8 @@ loss <- fread(paste0("cat ", problem.dir, "/*_loss.tsv"))
 setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status"))
 n.bases <- with(one.sample, sum(chromEnd-chromStart))
 exp.bases <- rep(n.bases, l=nrow(loss))
+
+library(testthat)
 expect_identical(as.integer(loss$bases), as.integer(exp.bases))
 
 loss.ord <- loss[order(penalty),]
