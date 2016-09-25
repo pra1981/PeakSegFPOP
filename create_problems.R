@@ -76,7 +76,7 @@ makeProblem <- function(problem.i){
 #PBS -e ", prob.cov.bedGraph, ".err
 #PBS -V                                        
 #PBS -N ", problem$problem.name, "
-", "Rscript ", normalizePath("problemCoverage.R"), " ", problem.dir, "
+", "Rscript ", normalizePath("compute_coverage_target.R"), " ", problem.dir, "
 ")
   writeLines(script.txt, sh.file)
 }

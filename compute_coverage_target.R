@@ -3,11 +3,12 @@
 ## outputs: if the problem directory does not have coverage.bedGraph,
 ## it will be created via intersectBed. If labels.bed is present, we
 ## also create target.bed.
+arg.vec <- "labels/H3K36me3_AM_immune_folds2-4/McGill0002/problems/chr1:3995268-13052998"
 arg.vec <- "labels/H3K36me3_TDH_immune/McGill0001/problems/chr11:96437584-134946516"
 arg.vec <- "labels/small/McGill0106/problems/chr1:17175658-29878082/"
 arg.vec <- commandArgs(trailingOnly=TRUE)
 if(length(arg.vec) != 1){
-  stop("usage: Rscript computeTarget.R data_dir/sample_dir/problems/problem_dir")
+  stop("usage: Rscript compute_coverage_target.R data_dir/sample_dir/problems/problem_dir")
 }
 problem.dir <- arg.vec[1]
 problems.dir <- dirname(problem.dir)
@@ -148,14 +149,26 @@ if(is.labeled){
     fn.two.lambda <-
       any(1 < peaks.tab[paste(c(first.above$peaks, last.min$peaks))])
     fn.found <- last.is.next || fn.two.lambda
+    ## Rather than searching for when fn becomes minimum, search upper
+    ## penalty limit of the min error.
+    error.dt[, errors := fn+fp]
+    min.error <- error.dt[, min(errors)]
+    error.is.min <- error.dt[errors==min.error, ]
+    bigger.pen <- error.dt[max(error.is.min$penalty) < penalty,]
+    last.min.err <- error.is.min[.N, ]
+    first.bigger <- bigger.pen[1, ]
+    min.is.next <- last.min.err$peaks == first.bigger$peaks+1
+    err.two.lambda <-
+      any(1 < peaks.tab[paste(c(first.bigger$peaks, last.min.err$peaks))])
+    err.found <- min.is.next || err.two.lambda
     next.pen <- if(!fp.found){
       ## m2*x + b2 = m3*x + b3 => x = (b3-b2)/(m2-m3)
       (last.above$total.cost-first.min$total.cost)/
         (first.min$peaks-last.above$peaks)
-    }else if(!fn.found){
+    }else if(!err.found){
       ## m2*x + b2 = m3*x + b3 => x = (b3-b2)/(m2-m3)
-      (first.above$total.cost-last.min$total.cost)/
-        (last.min$peaks-first.above$peaks)
+      (first.bigger$total.cost-last.min.err$total.cost)/
+        (last.min.err$peaks-first.bigger$peaks)
     }else{
       NULL
     }
