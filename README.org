@@ -3,6 +3,8 @@ PeakSegFPOP
 Command line limited memory PeakSeg functional pruning optimal
 partitioning algorithm.
 
+[[https://travis-ci.org/tdhock/PeakSegFPOP][https://travis-ci.org/tdhock/PeakSegFPOP.png?branch=master]]
+
 ** Installation
 
 #+BEGIN_SRC shell-script

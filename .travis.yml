@@ -1,0 +1,23 @@
+language: c
+
+before_install:
+  - curl -OL http://raw.github.com/craigcitro/r-travis/master/scripts/travis-tool.sh
+  - chmod 755 travis-tool.sh
+  - export PATH=$(pwd):$PATH
+  - travis-tool.sh bootstrap
+  - travis-tool.sh install_github tdhock/coseg tdhock/cosegData
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libdb6.0++-dev libdb6.0-stl-dev
+  
+install:
+  - make
+  - chmod 755 PeakSegFPOP
+
+script:
+  - make test_run.out
+
+notifications:
+  email:
+    on_success: change
+    on_failure: change
+
