@@ -4,6 +4,16 @@ test cases.
 
 input data error checking.
 
+2016.09.25
+
+computeTarget.R -> compute_coverage_target.R which creates
+coverage.bedGraph if it does not already exist, and then creates
+target.bed if the problem has labels.
+
+problemDB.R -> create_problems.R which now does no computation, but
+instead just creates coverage.bedGraph.sh for each problem, which
+calls compute_coverage_target.R.
+
 2016.09.23
 
 PeakSegFPOP exits quickly for the special case of penalty=Inf, which
