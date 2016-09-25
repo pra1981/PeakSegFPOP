@@ -14,7 +14,7 @@ install:
   - chmod 755 PeakSegFPOP
 
 script:
-  - make test_run.out
+  - R --vanilla < test_run.R
 
 notifications:
   email:
