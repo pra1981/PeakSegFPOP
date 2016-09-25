@@ -1,0 +1,23 @@
+language: c
+
+before_install:
+  - curl -OL http://raw.github.com/craigcitro/r-travis/master/scripts/travis-tool.sh
+  - chmod 755 travis-tool.sh
+  - export PATH=$(pwd):$PATH
+  - travis-tool.sh bootstrap
+  - sudo apt-get -qq update
+  - sudo apt-get install -y bedtools r-cran-ggplot2 r-cran-data.table libdb5.1++-dev libdb5.1-stl-dev
+  - travis-tool.sh install_github tdhock/coseg tdhock/cosegData
+  
+install:
+  - make
+  - chmod 755 PeakSegFPOP
+
+script:
+  - R --vanilla < test_run.R
+
+notifications:
+  email:
+    on_success: change
+    on_failure: change
+
