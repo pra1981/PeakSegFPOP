@@ -6,7 +6,7 @@ before_install:
   - export PATH=$(pwd):$PATH
   - travis-tool.sh bootstrap
   - sudo apt-get -qq update
-  - sudo apt-get install -y r-cran-ggplot2 libdb6.0++-dev libdb6.0-stl-dev
+  - sudo apt-get install -y r-cran-ggplot2 libdb5.1++-dev libdb5.1-stl-dev
   - travis-tool.sh install_github tdhock/coseg tdhock/cosegData
   
 install:
