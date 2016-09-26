@@ -1,2 +1,6 @@
+if(!require(testthat))install.packages("testthat")
+if(!require(devtools))install.packages("devtools")
+if(!require(coseg))devtools::install_github("tdhock/coseg")
+if(!require(cosegData))devtools::install_github("tdhock/cosegData")
 library(testthat)
 test_file("test_cases.R")

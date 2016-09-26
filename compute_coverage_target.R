@@ -65,7 +65,23 @@ if(is.labeled){
     stopifnot(is.character(penalty.str))
     pre <- paste0(prob.cov.bedGraph, "_penalty=", penalty.str)
     penalty_segments.bed <- paste0(pre, "_segments.bed")
-    if(!file.exists(penalty_segments.bed)){
+    penalty_loss.tsv <- paste0(pre, "_loss.tsv")
+    already.computed <- tryCatch({
+      penalty.segs <- fread(penalty_segments.bed, colClasses=list(NULL=5))
+      penalty.loss <- fread(penalty_loss.tsv)
+      setnames(penalty.loss, c(
+        "penalty", "segments", "peaks", "bases",
+        "mean.pen.cost", "total.cost", "status",
+        "mean.intervals", "max.intervals"))
+      if(penalty.loss$segments == nrow(penalty.segs)){
+        TRUE
+      }else{
+        FALSE
+      }
+    }, error=function(e){
+      FALSE
+    })
+    if(!already.computed){
       penalty.db <- paste0(pre, ".db")
       fpop.cmd <- paste(
         "PeakSegFPOP", prob.cov.bedGraph, penalty.str, penalty.db)
@@ -90,7 +106,6 @@ if(is.labeled){
         quote=FALSE, sep="\t")
       unlink(penalty.db)
     }
-    penalty_loss.tsv <- paste0(pre, "_loss.tsv")
     penalty.loss <- fread(penalty_loss.tsv)
     setnames(penalty.loss, c(
       "penalty", "segments", "peaks", "bases",
