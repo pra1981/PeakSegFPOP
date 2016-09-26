@@ -30,7 +30,7 @@ cat.cmd <- paste0("cat ", problem.dir, "/*loss.tsv")
 loss <- fread(cat.cmd)
 target.tsv <- file.path(problem.dir, "target.tsv")
 target.vec <- scan(target.tsv, quiet=TRUE)
-setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status"))
+setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
 loss[, log.penalty := log(penalty)]
 
 ##         penalty  peaks fp fn
