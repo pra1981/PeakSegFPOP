@@ -5,6 +5,7 @@ library(coseg)
 data(H3K36me3_AM_immune_McGill0002_chunk1, package="cosegData")
 
 problem.dir <- "testProblem"
+unlink(problem.dir, recursive=TRUE)
 dir.create(problem.dir, showWarnings=FALSE, recursive=TRUE)
 data.list <- H3K36me3_AM_immune_McGill0002_chunk1
 file.list <- list(
