@@ -138,6 +138,8 @@ int main(int argc, char *argv[]){//data_count x 2
       "\t" << best_cost/cum_weight_i << //mean penalized cost
       "\t" << best_cost << //total un-penalized cost
       "\t" << "feasible" <<
+      "\t" << 0 <<
+      "\t" << 0 <<
       "\n";
     loss_file.close();
     return 0;
@@ -177,6 +179,7 @@ int main(int argc, char *argv[]){//data_count x 2
   PiecewisePoissonLossLog min_prev_cost;
   int verbose=0;
   cum_weight_i = 0;
+  double total_intervals = 0.0, max_intervals = 0.0;
   while(std::getline(bedGraph_file, line)){
     items = sscanf(line.c_str(), "%*s\t%d\t%d\t%d\n", &chromStart, &chromEnd, &coverage);
     weight = chromEnd-chromStart;
@@ -284,6 +287,13 @@ int main(int argc, char *argv[]){//data_count x 2
       down_cost.multiply(1/cum_weight_i);
     }//if(data_i initialization else update
     cum_weight_prev_i = cum_weight_i;
+    total_intervals += up_cost.piece_list.size() + down_cost.piece_list.size();
+    if(max_intervals < up_cost.piece_list.size()){
+      max_intervals = up_cost.piece_list.size();
+    }
+    if(max_intervals < down_cost.piece_list.size()){
+      max_intervals = down_cost.piece_list.size();
+    }
     up_cost_prev = up_cost;
     down_cost_prev = down_cost;
     //printf("data_i=%d data_i+data_count=%d\n", data_i, data_i+data_count);
@@ -364,7 +374,10 @@ int main(int argc, char *argv[]){//data_count x 2
   }else{
     loss_file << "infeasible";
   }
-  loss_file << "\n";
+  loss_file <<
+    "\t" << total_intervals/(data_count*2) <<
+    "\t" << max_intervals <<
+    "\n";
   loss_file.close();
   return 0;
 }

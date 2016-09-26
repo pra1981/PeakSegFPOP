@@ -1,6 +1,7 @@
 four.out: PeakSegFPOP four.bedGraph
 	./PeakSegFPOP four.bedGraph 0.1 | tee four.out
-test_run.out: test_run.R test_cases.R 
+test_run.out: test_run.R test_cases.R PeakSegFPOP
+	cp PeakSegFPOP ~/bin
 	R --vanilla < test_run.R | tee test_run.out
 three.out: PeakSegFPOP three.bedGraph
 	./PeakSegFPOP three.bedGraph 0.1 | tee three.out

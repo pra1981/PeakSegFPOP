@@ -4,6 +4,17 @@ test cases.
 
 input data error checking.
 
+2016.09.26
+
+_loss.tsv file includes mean and max number of intervals stored by the
+algorithm. This info is not useful for peak detection but it is useful
+for understanding the functional pruning algorithm. For example
+plotting the mean number of intervals versus execution time is roughly
+linear, which explains why the algorithm takes longer for larger
+penalty values.
+
+Bugfix for min-less: only add a constant piece at the end if we need to.
+
 2016.09.25
 
 computeTarget.R -> compute_coverage_target.R which creates

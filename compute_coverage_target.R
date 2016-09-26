@@ -94,7 +94,8 @@ if(is.labeled){
     penalty.loss <- fread(penalty_loss.tsv)
     setnames(penalty.loss, c(
       "penalty", "segments", "peaks", "bases",
-      "mean.pen.cost", "total.cost", "status"))
+      "mean.pen.cost", "total.cost", "status",
+      "mean.intervals", "max.intervals"))
     penalty.segs <- fread(penalty_segments.bed, colClasses=list(NULL=5))
     setnames(penalty.segs, c("chrom","chromStart", "chromEnd", "status"))
     penalty.peaks <- penalty.segs[status=="peak",]
@@ -139,6 +140,10 @@ if(is.labeled){
     fp.two.lambda <-
       any(1 < peaks.tab[paste(c(last.above$peaks, first.min$peaks))])
     fp.found <- fp.above.is.next || fp.two.lambda
+    ## Search for any fp=0 model with peaks.
+    peaks.no.fp <- 0 < first.min$peaks
+    two.0peaks <- 1 < peaks.tab[["0"]]
+    fp.done <- peaks.no.fp || two.0peaks
     ## one sufficient condition for having found the upper limit is
     ## having found one (p,p+1) pair with fn values (>min.fn,min.fn)
     fn.above.min <- error.dt[min.fn < fn, ]
@@ -149,26 +154,39 @@ if(is.labeled){
     fn.two.lambda <-
       any(1 < peaks.tab[paste(c(first.above$peaks, last.min$peaks))])
     fn.found <- last.is.next || fn.two.lambda
-    ## Rather than searching for when fn becomes minimum, search upper
-    ## penalty limit of the min error.
+    ## Rather than searching for when fn/fn becomes minimum, search
+    ## upper/lower penalty limit of the min error.
     error.dt[, errors := fn+fp]
     min.error <- error.dt[, min(errors)]
     error.is.min <- error.dt[errors==min.error, ]
-    bigger.pen <- error.dt[max(error.is.min$penalty) < penalty,]
+    bigger.pen <- error.dt[max(error.is.min$penalty) < penalty, ]
+    smaller.pen <- error.dt[penalty < min(error.is.min$penalty), ]
+    first.min.err <- error.is.min[1, ]
     last.min.err <- error.is.min[.N, ]
     first.bigger <- bigger.pen[1, ]
-    min.is.next <- last.min.err$peaks == first.bigger$peaks+1
-    err.two.lambda <-
+    last.smaller <- smaller.pen[.N, ]
+    big.next <- last.min.err$peaks == first.bigger$peaks+1
+    big.two <-
       any(1 < peaks.tab[paste(c(first.bigger$peaks, last.min.err$peaks))])
-    err.found <- min.is.next || err.two.lambda
-    next.pen <- if(!fp.found){
+    big.found <- big.next || big.two
+    small.next <- first.min.err$peaks+1 == last.smaller$peaks
+    small.two <-
+      any(1 < peaks.tab[paste(c(last.smaller$peaks, first.min.err$peaks))])
+    small.found <- small.next || small.two
+    next.pen <- if(!fp.done){
       ## m2*x + b2 = m3*x + b3 => x = (b3-b2)/(m2-m3)
+      ##print("looking for fp=0 with peaks")
       (last.above$total.cost-first.min$total.cost)/
         (first.min$peaks-last.above$peaks)
-    }else if(!err.found){
+    }else if(!big.found){
+      ##print("looking for big limit")
       ## m2*x + b2 = m3*x + b3 => x = (b3-b2)/(m2-m3)
       (first.bigger$total.cost-last.min.err$total.cost)/
         (last.min.err$peaks-first.bigger$peaks)
+    }else if(!small.found){
+      ##print("looking for small limit")
+      (last.smaller$total.cost-first.min.err$total.cost)/
+        (first.min.err$peaks-last.smaller$peaks)
     }else{
       NULL
     }

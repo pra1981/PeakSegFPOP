@@ -5,6 +5,7 @@ library(coseg)
 data(H3K36me3_AM_immune_McGill0002_chunk1, package="cosegData")
 
 problem.dir <- "testProblem"
+unlink(problem.dir, recursive=TRUE)
 dir.create(problem.dir, showWarnings=FALSE, recursive=TRUE)
 data.list <- H3K36me3_AM_immune_McGill0002_chunk1
 file.list <- list(
@@ -30,7 +31,7 @@ cat.cmd <- paste0("cat ", problem.dir, "/*loss.tsv")
 loss <- fread(cat.cmd)
 target.tsv <- file.path(problem.dir, "target.tsv")
 target.vec <- scan(target.tsv, quiet=TRUE)
-setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status"))
+setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
 loss[, log.penalty := log(penalty)]
 
 ##         penalty  peaks fp fn
@@ -101,7 +102,7 @@ system(bash.cmd)
 target.tsv <- file.path(problem.dir, "target.tsv")
 target.vec <- scan(target.tsv, quiet=TRUE)
 loss <- fread(paste0("cat ", problem.dir, "/*_loss.tsv"))
-setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status"))
+setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
 n.bases <- with(one.sample, sum(chromEnd-chromStart))
 exp.bases <- rep(n.bases, l=nrow(loss))
 
