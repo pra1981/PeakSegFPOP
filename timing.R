@@ -1,5 +1,6 @@
 library(data.table)
 labels.bed.vec <- Sys.glob("labels/*/*/problems/*/labels.bed")
+
 timing.data.list <- list()
 problem.size.list <- list()
 for(labels.bed in labels.bed.vec){
@@ -8,10 +9,16 @@ for(labels.bed in labels.bed.vec){
   n.data <- wc(coverage.bedGraph)
   problem.size.list[[problem.dir]] <- data.table(
     problem.dir, n.data)
-  cmd <- paste("cat", file.path(problem.dir, "*timing.tsv"))
   tryCatch({
-    problem.dt <- fread(cmd)
-    setnames(problem.dt, c("penalty", "megabytes", "seconds"))
+    timing.cmd <- paste("cat", file.path(problem.dir, "*timing.tsv"))
+    timing.dt <- fread(timing.cmd)
+    setnames(timing.dt, c("penalty", "megabytes", "seconds"))
+    loss.cmd <- paste("cat", file.path(problem.dir, "*loss.tsv"))
+    loss.dt <- fread(loss.cmd)
+    setnames(loss.dt, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
+    setkey(loss.dt, penalty)
+    setkey(timing.dt, penalty)
+    problem.dt <- timing.dt[loss.dt]
     timing.data.list[[problem.dir]] <- data.table(
       problem.dir,
       n.data,
