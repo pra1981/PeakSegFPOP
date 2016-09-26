@@ -4,6 +4,10 @@ test cases.
 
 input data error checking.
 
+2016.09.26
+
+Bugfix for min-less: only add a constant piece at the end if we need to.
+
 2016.09.25
 
 computeTarget.R -> compute_coverage_target.R which creates
