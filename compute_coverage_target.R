@@ -94,7 +94,8 @@ if(is.labeled){
     penalty.loss <- fread(penalty_loss.tsv)
     setnames(penalty.loss, c(
       "penalty", "segments", "peaks", "bases",
-      "mean.pen.cost", "total.cost", "status"))
+      "mean.pen.cost", "total.cost", "status",
+      "mean.intervals", "max.intervals"))
     penalty.segs <- fread(penalty_segments.bed, colClasses=list(NULL=5))
     setnames(penalty.segs, c("chrom","chromStart", "chromEnd", "status"))
     penalty.peaks <- penalty.segs[status=="peak",]

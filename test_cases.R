@@ -101,7 +101,7 @@ system(bash.cmd)
 target.tsv <- file.path(problem.dir, "target.tsv")
 target.vec <- scan(target.tsv, quiet=TRUE)
 loss <- fread(paste0("cat ", problem.dir, "/*_loss.tsv"))
-setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status"))
+setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
 n.bases <- with(one.sample, sum(chromEnd-chromStart))
 exp.bases <- rep(n.bases, l=nrow(loss))
 
