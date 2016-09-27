@@ -1,6 +1,42 @@
 TODOs
 
-test cases.
+update README
+
+test cases for problems encountered on guillimin
+
+- labels/H3K4me3_TDH_other/McGill0016/problems/chr2:110251337-149690582/ overlapping regions -- problem in our benchmark.
+
+- min-less errors
+ 29: labels/H3K36me3_AM_immune/McGill0102/problems/chr11:96437584-134946516/coverage.bedGraph.out:BAD MIN LESS CHECK data_i=140364 status=1
+ 51:   labels/H3K36me3_AM_immune/McGill0008/problems/chr13:19020000-86760324/coverage.bedGraph.out:BAD MIN LESS CHECK data_i=648069 status=1
+
+- min-more errors
+  2:        labels/H3K4me3_TDH_other/McGill0014/problems/chr5:10000-17530657/coverage.bedGraph.out:BAD MIN MORE CHECK data_i=8324 status=1
+  3:   labels/H3K36me3_AM_immune/McGill0011/problems/chr16:46385801-88389383/coverage.bedGraph.out:BAD MIN MORE CHECK data_i=8575 status=1
+
+- min-env errors
+ labels/H3K36me3_AM_immune/McGill0029/problems/chr16:46385801-88389383/coverage.bedGraph.out:BAD MIN ENV CHECK data_i=10660 status=4
+ labels/H3K36me3_AM_immune/McGill0079/problems/chr3:60000-66170270/coverage.bedGraph.out:BAD MIN ENV CHECK data_i=45 status=4
+
+
+- binary search errors. Which problem did we need to run PeakSegFPOP
+  the most times, why?
+  labels/H3K4me3_TDH_other/McGill0267/problems/chr4:75452279-191044276/coverage.bedGraph.out
+  also maybe this big one labels/H3K4me3_TDH_other/McGill0037/problems/chr4:75452279-191044276
+
+ ==> labels/H3K4me3_TDH_other/McGill0267/problems/chr4:1478646-8799203/coverage.bedGraph.err 
+ tail: cannot open `/gs/project/mugqic/projects/thocking/projects/PeakSegFPOP-labels/H3K4me3_TDH_other/McGill0267/problems/chr4:1478646-8799203/coverage.bedGraph' for reading: No such file or directo\
+ ry
+ Error in if (!big.found) { : missing value where TRUE/FALSE needed
+ Execution halted
+
+ ==> labels/H3K4me3_TDH_other/McGill0012/problems/chr5:10000-17530657/coverage.bedGraph.err <==
+ Error in fread(penalty_loss.tsv) :
+   File is empty: /gs/project/mugqic/projects/thocking/projects/PeakSegFPOP-labels/H3K4me3_TDH_other/McGill0012/problems/chr5:10000-17530657/coverage.bedGraph_penalty=0_loss.tsv
+ Calls: getError -> fread
+ Execution halted
+
+
 
 input data error checking.
 
