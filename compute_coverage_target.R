@@ -4,6 +4,7 @@
 ## it will be created via intersectBed. If labels.bed is present, we
 ## also create target.bed.
 arg.vec <- "test/H3K36me3_AM_immune_McGill0079_chr3_60000_66170270"
+arg.vec <- "test/H3K36me3_AM_immune_McGill0002_chunk1"
 arg.vec <- "labels/H3K36me3_AM_immune_folds2-4/McGill0002/problems/chr1:3995268-13052998"
 arg.vec <- "labels/H3K36me3_TDH_immune/McGill0001/problems/chr11:96437584-134946516"
 arg.vec <- "labels/small/McGill0106/problems/chr1:17175658-29878082/"
@@ -216,9 +217,9 @@ if(is.labeled){
     }else{
       ## no point where the label error reaches zero, so we try to
       ## find the limits based on the min label error.
-      if(!big.found){
+      if((!is.na(big.pen)) && (!big.found)){
         big.pen
-      }else if(!small.found){
+      }else if((!is.na(small.pen)) && (!small.found)){
         small.pen
       }else{
         NULL
