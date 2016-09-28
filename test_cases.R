@@ -1,45 +1,4 @@
-library(testthat)
-library(data.table)
-library(coseg)
-
-writeProblem <- function(data.list, problem.dir){
-  file.list <- list(
-    coverage=file.path(problem.dir, "coverage.bedGraph"),
-    labels=file.path(problem.dir, "labels.bed"),
-    problem=file.path(problem.dir, "problem.bed"))
-  data.list$problem <- with(data.list$coverage, data.frame(
-    chrom=chrom[1],
-    chromStart=min(chromStart),
-    chromEnd=max(chromEnd)))
-  unlink(problem.dir, recursive=TRUE)
-  dir.create(problem.dir, showWarnings=FALSE, recursive=TRUE)
-  for(name in names(file.list)){
-    df <- data.list[[name]]
-    df$chromStart <- sprintf("%d", df$chromStart)
-    df$chromEnd <- sprintf("%d", df$chromEnd)
-    path <- file.list[[name]]
-    write.table(
-      df, path, quote=FALSE, row.names=FALSE, col.names=FALSE, sep="\t")
-  }
-}
-
-problem.dir <- "test/H3K36me3_AM_immune_McGill0079_chr3_60000_66170270"
-data(H3K36me3_AM_immune_McGill0079_chr3_60000_66170270, package="cosegData")
-writeProblem(H3K36me3_AM_immune_McGill0079_chr3_60000_66170270, problem.dir)
-test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
-system(test.cmd)
-
-cat.cmd <- paste0("cat ", problem.dir, "/*loss.tsv")
-loss <- fread(cat.cmd)
-setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
-test_that("model with 60 peaks is not computed", {
-  expect_false(60 %in% loss$peaks)
-})
-
-target.tsv <- file.path(problem.dir, "target.tsv")
-test_that("target interval computed", {
-  target.vec <- scan(target.tsv, quiet=TRUE)
-})
+source("test_functions.R")
 
 problem.dir <- "test/H3K36me3_AM_immune_McGill0002_chunk1"
 data(H3K36me3_AM_immune_McGill0002_chunk1, package="cosegData")
