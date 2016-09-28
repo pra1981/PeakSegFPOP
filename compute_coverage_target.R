@@ -3,10 +3,12 @@
 ## outputs: if the problem directory does not have coverage.bedGraph,
 ## it will be created via intersectBed. If labels.bed is present, we
 ## also create target.bed.
+arg.vec <- "test/H3K36me3_AM_immune_McGill0079_chr3_60000_66170270"
 arg.vec <- "labels/H3K36me3_AM_immune_folds2-4/McGill0002/problems/chr1:3995268-13052998"
 arg.vec <- "labels/H3K36me3_TDH_immune/McGill0001/problems/chr11:96437584-134946516"
 arg.vec <- "labels/small/McGill0106/problems/chr1:17175658-29878082/"
 arg.vec <- commandArgs(trailingOnly=TRUE)
+
 if(length(arg.vec) != 1){
   stop("usage: Rscript compute_coverage_target.R data_dir/sample_dir/problems/problem_dir")
 }
@@ -155,6 +157,8 @@ if(is.labeled){
     fp.two.lambda <-
       any(1 < peaks.tab[paste(c(last.above$peaks, first.min$peaks))])
     fp.found <- fp.above.is.next || fp.two.lambda
+    fp.pen <- (last.above$total.cost-first.min$total.cost)/
+      (first.min$peaks-last.above$peaks)
     ## Search for any fp=0 model with peaks.
     peaks.no.fp <- 0 < first.min$peaks
     two.0peaks <- 1 < peaks.tab[["0"]]
@@ -169,6 +173,8 @@ if(is.labeled){
     fn.two.lambda <-
       any(1 < peaks.tab[paste(c(first.above$peaks, last.min$peaks))])
     fn.found <- last.is.next || fn.two.lambda
+    fn.pen <- (last.min$total.cost-first.above$total.cost)/
+      (first.above$peaks-last.min$peaks)
     ## Rather than searching for when fn/fn becomes minimum, search
     ## upper/lower penalty limit of the min error.
     error.dt[, errors := fn+fp]
@@ -177,9 +183,13 @@ if(is.labeled){
     bigger.pen <- error.dt[max(error.is.min$penalty) < penalty, ]
     smaller.pen <- error.dt[penalty < min(error.is.min$penalty), ]
     first.min.err <- error.is.min[1, ]
+    last.smaller <- smaller.pen[.N, ]
+    small.pen <- (last.smaller$total.cost-first.min.err$total.cost)/
+      (first.min.err$peaks-last.smaller$peaks)
     last.min.err <- error.is.min[.N, ]
     first.bigger <- bigger.pen[1, ]
-    last.smaller <- smaller.pen[.N, ]
+    big.pen <- (last.min.err$total.cost-first.bigger$total.cost)/
+      (first.bigger$peaks-last.min.err$peaks)
     big.next <- last.min.err$peaks == first.bigger$peaks+1
     big.two <-
       any(1 < peaks.tab[paste(c(first.bigger$peaks, last.min.err$peaks))])
@@ -188,22 +198,31 @@ if(is.labeled){
     small.two <-
       any(1 < peaks.tab[paste(c(last.smaller$peaks, first.min.err$peaks))])
     small.found <- small.next || small.two
-    next.pen <- if(!fp.done){
-      ## m2*x + b2 = m3*x + b3 => x = (b3-b2)/(m2-m3)
-      ##print("looking for fp=0 with peaks")
-      (last.above$total.cost-first.min$total.cost)/
-        (first.min$peaks-last.above$peaks)
-    }else if(!big.found){
-      ##print("looking for big limit")
-      ## m2*x + b2 = m3*x + b3 => x = (b3-b2)/(m2-m3)
-      (first.bigger$total.cost-last.min.err$total.cost)/
-        (last.min.err$peaks-first.bigger$peaks)
-    }else if(!small.found){
-      ##print("looking for small limit")
-      (last.smaller$total.cost-first.min.err$total.cost)/
-        (first.min.err$peaks-last.smaller$peaks)
+    next.pen <- if(fp.pen == fn.pen){
+      ## testing this penalty will help us get closer to both the
+      ## upper and lower limits.
+      fp.pen
+    }else if(fp.pen < fn.pen){
+      ## we have found a zero point, so the penalty that will help us
+      ## find the lower limit (fp) is less than the penalty that will
+      ## help us find the upper limit. we can try either of them.
+      if(!fp.found){
+        fp.pen
+      }else if(!fn.found){
+        fn.pen
+      }else{
+        NULL
+      }
     }else{
-      NULL
+      ## no point where the label error reaches zero, so we try to
+      ## find the limits based on the min label error.
+      if(!big.found){
+        big.pen
+      }else if(!small.found){
+        small.pen
+      }else{
+        NULL
+      }
     }
   }#while(!is.null(pen))
 
