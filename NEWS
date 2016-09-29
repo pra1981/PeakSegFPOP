@@ -6,11 +6,7 @@ test cases for problems encountered on guillimin
 
 - labels/H3K4me3_TDH_other/McGill0016/problems/chr2:110251337-149690582/ overlapping regions -- problem in our benchmark.
 
-- min-less errors
- 29: labels/H3K36me3_AM_immune/McGill0102/problems/chr11:96437584-134946516/coverage.bedGraph.out:BAD MIN LESS CHECK data_i=140364 status=1
- 51:   labels/H3K36me3_AM_immune/McGill0008/problems/chr13:19020000-86760324/coverage.bedGraph.out:BAD MIN LESS CHECK data_i=648069 status=1
-
- ==> labels/H3K4me3_TDH_other/McGill0012/problems/chr5:10000-17530657/coverage.bedGraph.err <==
+==> labels/H3K4me3_TDH_other/McGill0012/problems/chr5:10000-17530657/coverage.bedGraph.err <==
  Error in fread(penalty_loss.tsv) :
    File is empty: /gs/project/mugqic/projects/thocking/projects/PeakSegFPOP-labels/H3K4me3_TDH_other/McGill0012/problems/chr5:10000-17530657/coverage.bedGraph_penalty=0_loss.tsv
  Calls: getError -> fread
@@ -19,6 +15,13 @@ test cases for problems encountered on guillimin
 input data error checking.
 
 FIXED
+
+- min-less errors
+ 29: labels/H3K36me3_AM_immune/McGill0102/problems/chr11:96437584-134946516/coverage.bedGraph.out:BAD MIN LESS CHECK data_i=140364 status=1
+ 51:   labels/H3K36me3_AM_immune/McGill0008/problems/chr13:19020000-86760324/coverage.bedGraph.out:BAD MIN LESS CHECK data_i=648069 status=1
+
+- min more problem
+/labels/H3K36me3_AM_immune/McGill0001/problems/chr16:46385801-88389383/
 
 - labels/H3K4me3_TDH_other/McGill0267/problems/chr4:1478646-8799203
  Error in if (!big.found) { : missing value where TRUE/FALSE needed
