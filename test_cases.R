@@ -53,7 +53,6 @@ by.sample <-
 one.sample <- by.sample[[sample.id]]
 one.sample$chrom <- "chr1"
 n.bases <- with(one.sample, sum(chromEnd-chromStart))
-exp.bases <- rep(n.bases, l=nrow(loss))
 labels.list <- list(
   peakStart=data.frame(
     chrom="chr1",
@@ -100,14 +99,32 @@ for(labels.name in names(labels.list)){
   loss <- fread(paste0("cat ", problem.dir, "/*_loss.tsv"))
   setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))  
   test_that("PeakSegFPOP reports correct number of bases", {
+    exp.bases <- rep(n.bases, l=nrow(loss))
     expect_identical(as.integer(loss$bases), as.integer(exp.bases))
   })
   loss.ord <- loss[order(penalty),]
   loss.ord[, log.penalty := log(penalty)]
   results.list[[labels.name]] <-
-    loss.ord[target.vec[1] < log.penalty & log.penalty < target.vec[2],]
+    loss.ord[target.vec[1] <= log.penalty & log.penalty <= target.vec[2],]
 }
 
 test_that("Target interval contains one model with 1 peak for peakStart label", {
-  expect_identical(as.integer(results.list$peakStart$peaks), 1L)
+  expect_equal(results.list$peakStart$peaks, 1)
 })
+
+test_that("biggest min error model for peaks label has no penalty", {
+  expect_equal(min(results.list$peaks$penalty), 0)
+})
+
+test_that("smallest min error model for peaks label has 1 peak", {
+  expect_equal(min(results.list$peaks$peaks), 1)
+})
+
+test_that("biggest min error model for noPeaks label has 5 peaks", {
+  expect_equal(max(results.list$noPeaks$peaks), 5)
+})
+
+test_that("smallest min error model for noPeaks label has 0 peaks", {
+  expect_equal(min(results.list$noPeaks$peaks), 0)
+})
+

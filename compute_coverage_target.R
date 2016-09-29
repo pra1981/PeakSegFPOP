@@ -7,7 +7,7 @@ arg.vec <- "test/H3K36me3_AM_immune_McGill0079_chr3_60000_66170270"
 arg.vec <- "test/H3K36me3_AM_immune_McGill0002_chunk1"
 arg.vec <- "labels/H3K36me3_AM_immune_folds2-4/McGill0002/problems/chr1:3995268-13052998"
 arg.vec <- "labels/H3K36me3_TDH_immune/McGill0001/problems/chr11:96437584-134946516"
-arg.vec <- "labels/small/McGill0106/problems/chr1:17175658-29878082/"
+arg.vec <- "test/noPeaks/problems/chr1:17175658-29878082"
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
 if(length(arg.vec) != 1){
@@ -129,7 +129,9 @@ if(is.labeled){
   error.dt <- getError("Inf")
   min.fp <- error.list[["Inf"]]$fp
   min.fn <- error.list[["0"]]$fn
-
+  max.fp <- error.list[["0"]]$fp
+  max.fn <- error.list[["Inf"]]$fn
+  
   ## mx+b = lossInf => x = (lossInf-b)/m
   lossInf <- error.list[["Inf"]]$total.cost
   next.pen <- with(error.list[["0"]], (lossInf-total.cost)/peaks)
@@ -199,11 +201,19 @@ if(is.labeled){
     small.two <-
       any(1 < peaks.tab[paste(c(last.smaller$peaks, first.min.err$peaks))])
     small.found <- small.next || small.two
-    next.pen <- if(fp.pen == fn.pen){
-      ## testing this penalty will help us get closer to both the
-      ## upper and lower limits.
-      fp.pen
-    }else if(fp.pen < fn.pen){
+    next.pen <- if(max.fp==0){
+      if(!fn.found){
+        fn.pen
+      }else{
+        NULL
+      }
+    }else if(max.fn==0){
+      if(!fp.found){
+        fp.pen
+      }else{
+        NULL
+      }
+    }else if(fp.pen <= fn.pen){
       ## we have found a zero point, so the penalty that will help us
       ## find the lower limit (fp) is less than the penalty that will
       ## help us find the upper limit. we can try either of them.
