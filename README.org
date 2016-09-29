@@ -10,33 +10,132 @@ partitioning algorithm.
 #+BEGIN_SRC shell-script
 sudo aptitude install libdb6.0++-dev libdb6.0-stl-dev
 make
+cp PeakSegFPOP ~/bin # or wherever is on your $PATH
+#+END_SRC
+
+BerkeleyDB is used by PeakSegFPOP to write a large temporary file to
+disk. If you don't have root or aptitude, then you can always install
+BerkeleyDB by hand to your home directory
+
+#+BEGIN_SRC shell-script
+wget http://download.oracle.com/berkeley-db/db-6.2.23.NC.tar.gz
+tar xf db-6.2.23.NC.tar.gz
+cd db-6.2.23.NC/build_unix
+../dist/configure --prefix=$HOME --enable-stl
+make
+make install
+#+END_SRC 
+
+If BerkeleyDB is installed to your home directory or some other
+non-standard directory, then make sure to edit the [[file:Makefile]] to
+tell the compiler where to find it.
+
+#+BEGIN_SRC 
+g++ -std=c++0x -o PeakSegFPOP PeakSegFPOPLog.cpp funPieceListLog.cpp -I$HOME/include -L$HOME/lib -ldb_stl -Wl,-rpath=$HOME/lib
 #+END_SRC
 
 ** Usage
+
+*** The PeakSegFPOP command line program
+
+The PeakSegFPOP program finds the peak positions and corresponding
+piecewise constant segment means which optimize the Poisson
+likelihood.
 
 #+BEGIN_SRC shell-script
 PeakSegFPOP coverage.bedGraph penalty [tmp.db]
 #+END_SRC
 
-The first argument =coverage.bedGraph= is a plain text file with 3
-columns: chromStart, chromEnd, coverage (all integers).
+The first argument =coverage.bedGraph= is a plain text file with 4
+tab-separated columns: chrom, chromStart, chromEnd, coverage (chrom is
+character and the others are integers). It should include data for
+only one chromosome, and no gap regions.
 
 The second argument =penalty= is a non-negative penalty value, for
-example 0.1 or 100.
+example 0, 0.1, 1e3, or Inf.
 
 The third argument =tmp.db= is optional. It is the path for a
 temporary file which takes O(N log N) disk space (N = number of lines
 in coverage.bedGraph). In practice you can expect the size of the
 temporary file and the computation time to be as in the table
 below. Min and max values show the variation over several values of
-the penalty parameter, on an Intel(R) Core(TM) i7 CPU 930 @ 2.80GHz.
+the penalty parameter (larger penalties require more time and disk
+space), on an Intel(R) Core(TM) i7 CPU 930 @ 2.80GHz.
 
 |       N | min(MB) | max(MB) | min(time) | max(time) |
 |---------+---------+---------+-----------+-----------|
 |   10000 |      12 |      43 | 1 sec     | 2 sec     |
 |  100000 |     189 |     627 | 12 sec    | 25 sec    |
 | 1000000 |    3462 |    7148 | 3 min     | 5 min     |
-| 4485563 |   20391 |   32930 | 17 min    | 29 min    |
+| 7135956 |    5042 |   41695 | 18 min    | 56 min    |
+
+For a single run with penalty parameter =X=, the PeakSegFPOP program
+outputs two files. The =coverage.bedGraph_penalty=X_segments.bed= file
+has one line for each segment, and the following tab-separated
+columns: =chrom=, =chromStart=, =chromEnd=, =segment.type=,
+=segment.mean=. The =coverage.bedGraph_penalty=X_loss.tsv= has just
+one line and the following tab-separated columns:
+
+- =penalty= input penalty parameter.
+- =segments= number of segments in the optimal model.
+- =peaks= number of peaks in the optimal model.
+- =bases= number of bases in the bedGraph file.
+- =mean.pen.cost= mean penalized Poisson loss.
+- =total.cost= total un-penalized Poisson loss. The following equation
+  should hold for all data sets and penalty parameters:
+  (total.cost + penalty * peaks)/bases = mean.pen.cost
+- =status= is the optimal model feasible for the PeakSeg problem with
+  strict inequality constraints? If infeasible, then there is at least
+  one pair of adjacent segment means which are equal (and there is no
+  optimal solution to the problem with strict inequality constraints).
+- =mean.intervals= mean count of intervals (Poisson loss function
+  pieces) over all the 2*N cost function models computed by the
+  algorithm.
+- =max.intervals= maximum number of intervals.
+
+*** Running PeakSegFPOP on a whole genome
+
+The PeakSegFPOP command line program recovers the optimal solution for
+only one segmentation problem and one penalty parameter, but we
+provide several R scripts which make it easy to use on the entire
+genome. First, create a sample directory with =coverage.bedGraph= for
+the whole genome ([[http://bedtools.readthedocs.io/en/latest/content/tools/genomecov.html][bedtools genomecov -bga]]), and =labels.bed= for
+genomic regions with and without peaks (a quick and easy way to create
+labels is by visual inspection as in the [[http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][McGill ChIP-seq peak
+detection benchmark]]). TODO post an example data set with labels.
+
+Then use the [[file:create_problems.R]] script:
+
+#+BEGIN_SRC shell-script
+Rscript create_problems.R hg19_problems.bed path/to/sample_directory
+#+END_SRC
+
+If you don't use hg19, then you can create another problems.bed file
+([[file:gap2problems.R]]). The =create_problems.R= script creates a
+problem sub-directory for each line of =hg19_problems.bed=, for
+example =path/to/sample_dir/problems/chr4:75452279-191044276= which is
+the largest region without gaps in hg19. Each problem sub-directory contains
+- =problem.bed= with one line for the coordinates of this part of the genome.
+- =labels.bed= if there are labels in this part of the genome.
+- =coverage.bedGraph.sh= is a shell script which can be launched via
+  =bash= or =qsub= (edit the [[file:create_problems.R]] script to reflect
+  your cluster configuration).
+
+The =coverage.bedGraph.sh= files each typically contain one line
+
+#+BEGIN_SRC shell-script
+Rscript compute_coverage_target.R path/to/sample_dir/problems/chr4:75452279-191044276
+#+END_SRC
+
+The [[file:compute_coverage_target.R]] script first creates
+=coverage.bedGraph= for this problem ([[http://bedtools.readthedocs.io/en/latest/content/tools/intersect.html][bedtools intersect]] is
+required). If there is a =labels.bed= file for this problem, it is
+used to compute the target interval and save it to =target.tsv=. The
+target is the largest interval of log(penalty) values for which
+PeakSegFPOP returns peak models that have the minimum number of
+incorrect =labels.bed=. The =target.tsv= files are used as input for
+training a machine learning model that predicts optimal penalty
+values, even for un-labeled parts of the genome (TODO).
 
 ** Related work
 
