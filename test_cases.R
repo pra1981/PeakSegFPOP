@@ -128,3 +128,29 @@ test_that("smallest min error model for noPeaks label has 0 peaks", {
   expect_equal(min(results.list$noPeaks$peaks), 0)
 })
 
+
+overlapping.labels <- data.frame(
+  chrom="chr1",
+  chromStart=c(7, 8),
+  chromEnd=c(9, 10),
+  annotation="peaks")
+sample.dir <- file.path("test", "overlapping")
+unlink(sample.dir, recursive=TRUE)
+dir.create(sample.dir, showWarnings=FALSE, recursive=TRUE)
+coverage.bedGraph <- file.path(sample.dir, "coverage.bedGraph")
+write.table(
+  one.sample[, c("chrom", "chromStart", "chromEnd", "coverage")],
+  coverage.bedGraph,
+  quote=FALSE, sep="\t",
+  row.names=FALSE, col.names=FALSE)
+labels.bed <- file.path(sample.dir, "labels.bed")
+write.table(
+  labels, labels.bed,
+  quote=FALSE, sep="\t",
+  row.names=FALSE, col.names=FALSE)
+test.cmd <- paste("Rscript create_problems.R hg19_problems.bed", sample.dir)
+
+test_that("overlapping labels is an error", {
+  status <- system(test.cmd)
+  expect_false(status == 0)
+})
