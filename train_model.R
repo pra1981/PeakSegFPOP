@@ -13,6 +13,7 @@ model.RData <- arg.vec[2]
 library(data.table)
 
 target.tsv.vec <- Sys.glob(file.path(samples.dir, "*", "problems", "*", "target.tsv"))
+cat("Found", length(target.tsv.vec), "target.tsv files for training.\n")
 
 features.list <- list()
 targets.list <- list()
@@ -20,6 +21,7 @@ for(target.tsv in target.tsv.vec){
   problem.dir <- dirname(target.tsv)
   features.tsv <- file.path(problem.dir, "features.tsv")
   if(!file.exists(features.tsv)){
+    cat("Computing", features.tsv, "\n")
     features.cmd <- paste("Rscript compute_features.R", problem.dir)
     system(features.cmd)
   }
