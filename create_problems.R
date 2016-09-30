@@ -11,6 +11,8 @@ if(length(arg.vec) != 2){
 }
 
 library(data.table)
+library(PeakError)
+
 problems.bed <- normalizePath(arg.vec[1], mustWork=TRUE)
 sample.dir <- normalizePath(arg.vec[2], mustWork=TRUE)
 
@@ -22,6 +24,8 @@ coverage.bedGraph <- file.path(sample.dir, "coverage.bedGraph")
 labels.bed <- file.path(sample.dir, "labels.bed")
 labels <- fread(labels.bed)
 setnames(labels, c("chrom", "chromStart", "chromEnd", "annotation"))
+just.to.check <- PeakError(Peaks(), labels)
+
 labels[, chromStart1 := chromStart + 1L]
 problems.dir <- file.path(sample.dir, "problems")
 setkey(labels, chrom, chromStart1, chromEnd)

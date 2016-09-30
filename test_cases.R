@@ -128,8 +128,8 @@ test_that("smallest min error model for noPeaks label has 0 peaks", {
   expect_equal(min(results.list$noPeaks$peaks), 0)
 })
 
-
-overlapping.labels <- data.frame(
+## Overlapping labels test.
+labels <- data.frame(
   chrom="chr1",
   chromStart=c(7, 8),
   chromEnd=c(9, 10),
