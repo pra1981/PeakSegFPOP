@@ -12,15 +12,13 @@ coverage <- fread(file.path(problem.dir, "coverage.bedGraph"))
 setnames(coverage, c("chrom", "chromStart", "chromEnd", "count"))
 bases <- with(coverage, chromEnd-chromStart)
 long <- rep(coverage$count, bases)
-feature.vec <-
-  c(unweighted.quartile=quantile(coverage$count),
-    unweighted.sd=sd(coverage$count),
-    unweighted.mean=mean(coverage$count),
-    weighted.quartile=quantile(long),
-    weighted.mean=mean(long),
-    weighted.sd=sd(long),
-    bases=sum(bases),
-    data=nrow(coverage))
+diff.vec <- abs(diff(long))
+feature.vec <- c(
+  quartile=quantile(long),
+  mean=mean(long),
+  sd=sd(long),
+  bases=sum(bases),
+  data=nrow(coverage))
 log.features <-
   c(feature.vec,
     `log+1`=log(feature.vec+1),
