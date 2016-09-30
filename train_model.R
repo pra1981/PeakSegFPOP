@@ -17,11 +17,12 @@ cat("Found", length(target.tsv.vec), "target.tsv files for training.\n")
 
 features.list <- list()
 targets.list <- list()
-for(target.tsv in target.tsv.vec){
+for(target.tsv.i in seq_along(target.tsv.vec)){
+  target.tsv <- target.tsv.vec[[target.tsv.i]]
   problem.dir <- dirname(target.tsv)
   features.tsv <- file.path(problem.dir, "features.tsv")
   if(!file.exists(features.tsv)){
-    cat("Computing", features.tsv, "\n")
+    cat(sprintf("%4d / %4d Computing %s\n", target.tsv.i, length(target.tsv.vec), features.tsv))
     features.cmd <- paste("Rscript compute_features.R", problem.dir)
     system(features.cmd)
   }
@@ -78,6 +79,7 @@ IntervalRegressionMatrixCV <- function
   }
   ##validation.error.mat <- do.call(cbind, validation.error.mat.list)
   ##if(verbose)print(validation.error.mat)
+  ## TODO: try minimizing squared hinge on validation set instead!
   mean.reg <- mean(unlist(best.reg.list))
   IntervalRegressionMatrixPath(
     feature.mat, target.mat,
