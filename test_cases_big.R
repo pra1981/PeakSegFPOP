@@ -12,6 +12,16 @@ setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "tota
 test_that("un-helpful models are not computed", {
   expect_false(any(1:6 %in% loss$peaks))
 })
+target.tsv <- file.path(problem.dir, "target.tsv")
+target.vec <- scan(target.tsv, quiet=TRUE)
+test_that("target interval computed", {
+  expect_equal(length(target.vec), 2)
+})
+loss[, log.penalty := log(penalty)]
+optimal <- loss[target.vec[1] < log.penalty & log.penalty < target.vec[2], ]
+test_that("target interval is correct", {
+  expect_equal(range(optimal$peaks), c(43, 610))
+})
 
 problem.dir <- "test/H3K36me3_AM_immune_McGill0079_chr3_60000_66170270"
 data(H3K36me3_AM_immune_McGill0079_chr3_60000_66170270, package="cosegData")
