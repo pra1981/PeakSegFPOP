@@ -152,10 +152,10 @@ if(is.labeled){
     peaks.tab <- table(error.dt$peaks)
     ## one sufficient condition for having found the lower limit is
     ## having found one (p,p+1) pair with fp values (0,>0)
-    fp.above.min <- error.dt[min.fp < fp,]
-    fp.is.min <- error.dt[fp==min.fp,]
-    last.above <- fp.above.min[.N,]
-    first.min <- fp.is.min[1,]
+    fp.min.i.vec <- error.dt[, which(fp==min.fp)]
+    fp.min.i.first <- fp.min.i.vec[1]
+    last.above <- error.dt[fp.min.i.first-1, ]
+    first.min <- error.dt[fp.min.i.first, ]
     fp.above.is.next <- first.min$peaks == last.above$peaks-1
     fp.two.lambda <-
       any(1 < peaks.tab[paste(c(last.above$peaks, first.min$peaks))])
@@ -168,10 +168,10 @@ if(is.labeled){
     fp.done <- peaks.no.fp || two.0peaks
     ## one sufficient condition for having found the upper limit is
     ## having found one (p,p+1) pair with fn values (>min.fn,min.fn)
-    fn.above.min <- error.dt[min.fn < fn, ]
-    fn.is.min <- error.dt[fn==min.fn, ]
-    last.min <- fn.is.min[.N, ]
-    first.above <- fn.above.min[1, ]
+    fn.min.i.vec <- error.dt[, which(fn==min.fn)]
+    fn.min.i.last <- max(fn.min.i.vec)
+    last.min <- error.dt[fn.min.i.last, ]
+    first.above <- error.dt[fn.min.i.last+1, ]
     last.is.next <- last.min$peaks == first.above$peaks+1
     fn.two.lambda <-
       any(1 < peaks.tab[paste(c(first.above$peaks, last.min$peaks))])
