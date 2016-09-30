@@ -238,6 +238,15 @@ if(is.labeled){
   }#while(!is.null(pen))
 
   error.sorted <- error.dt[order(peaks), ][c(TRUE, diff(peaks) != 0),]
+
+  ## Oracle model complexity?
+  
+  ## error.sorted[, `:=`(complexity={
+  ##   in.sqrt <- 1.1 + log(bases / segments)
+  ##   in.square <- 1 + 4 * sqrt(in.sqrt)
+  ##   in.square * in.square * segments
+  ## })]
+  
   path <- error.sorted[, exactModelSelection(total.cost, peaks, peaks)]
   setkey(error.sorted, peaks)
   path$errors <- error.sorted[J(path$peaks), fp+fn]

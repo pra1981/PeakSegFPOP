@@ -4,6 +4,17 @@ problem.dir <- "test/H3K36me3_AM_immune_McGill0002_chunk1"
 data(H3K36me3_AM_immune_McGill0002_chunk1, package="cosegData")
 writeProblem(H3K36me3_AM_immune_McGill0002_chunk1, problem.dir)
 
+test.cmd <- paste("Rscript compute_features.R", problem.dir)
+system(test.cmd)
+
+f.row <- read.table(
+  file.path(problem.dir, "features.tsv"),
+  header=TRUE,
+  check.names=FALSE)
+test_that("features are computed", {
+  expect_equal(nrow(f.row), 1)
+})
+
 test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
 system(test.cmd)
 
