@@ -1,5 +1,18 @@
 source("test_functions.R")
 
+problem.dir <- "test/H3K36me3_AM_immune_McGill0106_chr16_46385801_88389383"
+data(H3K36me3_AM_immune_McGill0106_chr16_46385801_88389383, package="cosegData")
+writeProblem(H3K36me3_AM_immune_McGill0106_chr16_46385801_88389383, problem.dir)
+test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
+system(test.cmd)
+
+cat.cmd <- paste0("cat ", problem.dir, "/*loss.tsv")
+loss <- fread(cat.cmd)
+setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
+test_that("un-helpful models are not computed", {
+  expect_false(any(1:6 %in% loss$peaks))
+})
+
 problem.dir <- "test/H3K36me3_AM_immune_McGill0079_chr3_60000_66170270"
 data(H3K36me3_AM_immune_McGill0079_chr3_60000_66170270, package="cosegData")
 writeProblem(H3K36me3_AM_immune_McGill0079_chr3_60000_66170270, problem.dir)

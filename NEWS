@@ -1,6 +1,11 @@
 TODOs
 
-update README
+command 
+
+R script for training a model based on the target interval.
+
+test and implementation for samples with no labels at all -- we may
+want to predict on them.
 
 test cases for problems encountered on guillimin
 
@@ -15,6 +20,8 @@ test cases for problems encountered on guillimin
 input data error checking.
 
 FIXED
+
+updated README with some description about how to run PeakSegFPOP on a whole genome.
 
 - min-less errors
  29: labels/H3K36me3_AM_immune/McGill0102/problems/chr11:96437584-134946516/coverage.bedGraph.out:BAD MIN LESS CHECK data_i=140364 status=1
