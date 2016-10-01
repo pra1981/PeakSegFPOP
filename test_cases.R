@@ -1,8 +1,82 @@
 source("test_functions.R")
 
+## Manually create a data set with two chunks from our benchmark.
+db.prefix <- "http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/"
+set.name <- "H3K4me3_TDH_other"
+set.dir <- file.path("test", set.name)
+samples.dir <- file.path(set.dir, "samples")
+for(chunk.id in c(22, 7)){
+  chunk.dir <- file.path(set.dir, "chunks", chunk.id)
+  chunk.name <- paste0(set.name, "/", chunk.id)
+  dir.create(chunk.dir, showWarnings=FALSE, recursive=TRUE)
+  counts.RData <- file.path(chunk.dir, "counts.RData")
+  if(!file.exists(counts.RData)){
+    u <- paste0(db.prefix, chunk.name, "/counts.RData")
+    download.file(u, counts.RData)
+  }
+  load(counts.RData)
+  counts.by.sample <- split(counts, counts$sample.id)
+  regions.RData <- file.path(chunk.dir, "regions.RData")
+  if(!file.exists(regions.RData)){
+    u <- paste0(db.prefix, chunk.name, "/regions.RData")
+    download.file(u, regions.RData)
+  }
+  load(regions.RData)
+  regions.by.sample <- split(regions, regions$sample.id)
+  for(sample.id in names(regions.by.sample)){
+    sample.regions <- regions.by.sample[[sample.id]]
+    sample.counts <- counts.by.sample[[sample.id]]
+    problem.dir <- file.path(samples.dir, sample.id, "problems", chunk.id)
+    dir.create(problem.dir, showWarnings=FALSE, recursive=TRUE)
+    write.table(
+      sample.regions[, c("chrom", "chromStart", "chromEnd", "annotation")],
+      file.path(problem.dir, "labels.bed"),
+      quote=FALSE,
+      sep="\t",
+      row.names=FALSE,
+      col.names=FALSE)
+    sample.counts$chrom <- sample.regions$chrom[1]
+    write.table(
+      sample.counts[, c("chrom", "chromStart", "chromEnd", "coverage")],
+      file.path(problem.dir, "coverage.bedGraph"),
+      quote=FALSE,
+      sep="\t",
+      row.names=FALSE,
+      col.names=FALSE)
+    problem <- with(sample.counts, data.frame(
+      chrom=chrom[1],
+      chromStart=chromStart[1],
+      chromEnd=max(chromEnd)))
+    write.table(
+      problem[, c("chrom", "chromStart", "chromEnd")],
+      file.path(problem.dir, "problem.bed"),
+      quote=FALSE,
+      sep="\t",
+      row.names=FALSE,
+      col.names=FALSE)
+    cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
+    system(cmd)
+  }
+}
+
+model.RData <- file.path(set.dir, "model.RData")
+train.cmd <- paste("Rscript train_model.R", samples.dir, model.RData)
+system(train.cmd)
+
 problem.dir <- "test/H3K36me3_AM_immune_McGill0002_chunk1"
 data(H3K36me3_AM_immune_McGill0002_chunk1, package="cosegData")
 writeProblem(H3K36me3_AM_immune_McGill0002_chunk1, problem.dir)
+
+test.cmd <- paste("Rscript compute_features.R", problem.dir)
+system(test.cmd)
+
+f.row <- read.table(
+  file.path(problem.dir, "features.tsv"),
+  header=TRUE,
+  check.names=FALSE)
+test_that("features are computed", {
+  expect_equal(nrow(f.row), 1)
+})
 
 test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
 system(test.cmd)
