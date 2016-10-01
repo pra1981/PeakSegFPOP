@@ -1,5 +1,14 @@
 source("test_functions.R")
 
+problem.dir <- "test/H3K36me3_AM_immune_McGill0107_chr13_19020000_86760324.RData"
+obj.name <- data(H3K36me3_AM_immune_McGill0107_chr13_19020000_86760324, package="cosegData")
+data.list <- get(obj.name)
+data.list$coverage <- data.list$coverage[1:3100000,]
+writeProblem(data.list, problem.dir)
+coverage.bedGraph <- file.path(problem.dir, "coverage.bedGraph")
+test.cmd <- paste("./PeakSegFPOP", coverage.bedGraph, data.list$penalty)
+system(test.cmd)
+
 problem.dir <- "test/H3K36me3_AM_immune_McGill0029_chr16_46385801_88389383"
 obj.name <- data(H3K36me3_AM_immune_McGill0029_chr16_46385801_88389383, package="cosegData")
 data.list <- get(obj.name)
