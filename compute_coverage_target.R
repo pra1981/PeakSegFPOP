@@ -180,9 +180,8 @@ if(is.labeled){
     min.errors.last <- max(min.errors.i.vec)
     before.min.error <- check(seq_along(error.dt$errors) < min.errors.first)
     after.min.error <- check(min.errors.last < seq_along(error.dt$errors))
-    ##lower.candidates <- rbind(feasible, fp, before.min.error)[order(penalty),]
-    ##lower <- lower.candidates[.N,]
-    lower <- before.min.error
+    lower.candidates <- rbind(feasible, fp, before.min.error)[order(penalty),]
+    lower <- lower.candidates[.N,]
     next.pen <- if(!lower$found){
       lower$penalty
     }else if(0 < max.fn){
