@@ -186,16 +186,12 @@ test_that("Target interval contains one model with 1 peak for peakStart label", 
   expect_equal(results.list$peakStart$peaks, 1)
 })
 
-test_that("biggest min error model for peaks label has no penalty", {
-  expect_equal(min(results.list$peaks$penalty), 0)
+test_that("Target interval contains one model with 1 peak for peaks label", {
+  expect_equal(results.list$peaks$peaks, 1)
 })
 
-test_that("smallest min error model for peaks label has 1 peak", {
-  expect_equal(min(results.list$peaks$peaks), 1)
-})
-
-test_that("biggest min error model for noPeaks label has 5 peaks", {
-  expect_equal(max(results.list$noPeaks$peaks), 5)
+test_that("biggest min error model for noPeaks label has 1 peak", {
+  expect_equal(max(results.list$noPeaks$peaks), 1)
 })
 
 test_that("smallest min error model for noPeaks label has 0 peaks", {
