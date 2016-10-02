@@ -127,7 +127,6 @@ if(is.labeled){
 
   error.dt <- getError("0")
   error.dt <- getError("Inf")
-  min.fp <- error.list[["Inf"]]$fp
   min.fn <- error.list[["0"]]$fn
   max.fp <- error.list[["0"]]$fp
   max.fn <- error.list[["Inf"]]$fn
@@ -148,91 +147,53 @@ if(is.labeled){
     }
     next.str <- paste(next.pen)
     error.dt <- getError(next.str)
-    print(error.dt[,.(penalty, peaks, fp, fn)])
+    error.dt[, errors := ifelse(status=="feasible", fp, Inf)+fn]
+    print(error.dt[,.(penalty, peaks, status, fp, fn, errors)])
     peaks.tab <- table(error.dt$peaks)
-    ## one sufficient condition for having found the lower limit is
-    ## having found one (p,p+1) pair with fp values (0,>0)
-    fp.min.i.vec <- error.dt[, which(fp==min.fp)]
-    fp.min.i.first <- fp.min.i.vec[1]
-    last.above <- error.dt[fp.min.i.first-1, ]
-    first.min <- error.dt[fp.min.i.first, ]
-    fp.above.is.next <- first.min$peaks == last.above$peaks-1
-    fp.two.lambda <-
-      any(1 < peaks.tab[paste(c(last.above$peaks, first.min$peaks))])
-    fp.found <- fp.above.is.next || fp.two.lambda
-    fp.pen <- (last.above$total.cost-first.min$total.cost)/
-      (first.min$peaks-last.above$peaks)
-    ## Search for any fp=0 model with peaks.
-    peaks.no.fp <- 0 < first.min$peaks
-    two.0peaks <- 1 < peaks.tab[["0"]]
-    fp.done <- peaks.no.fp || two.0peaks
-    ## one sufficient condition for having found the upper limit is
-    ## having found one (p,p+1) pair with fn values (>min.fn,min.fn)
-    fn.min.i.vec <- error.dt[, which(fn==min.fn)]
-    fn.min.i.last <- max(fn.min.i.vec)
-    last.min <- error.dt[fn.min.i.last, ]
-    first.above <- error.dt[fn.min.i.last+1, ]
-    last.is.next <- last.min$peaks == first.above$peaks+1
-    fn.two.lambda <-
-      any(1 < peaks.tab[paste(c(first.above$peaks, last.min$peaks))])
-    fn.found <- last.is.next || fn.two.lambda
-    fn.pen <- (last.min$total.cost-first.above$total.cost)/
-      (first.above$peaks-last.min$peaks)
-    ## Rather than searching for when fn/fn becomes minimum, search
-    ## upper/lower penalty limit of the min error.
-    error.dt[, errors := fn+fp]
-    min.error <- error.dt[, min(errors)]
-    error.is.min <- error.dt[errors==min.error, ]
-    bigger.pen <- error.dt[max(error.is.min$penalty) < penalty, ]
-    smaller.pen <- error.dt[penalty < min(error.is.min$penalty), ]
-    first.min.err <- error.is.min[1, ]
-    last.smaller <- smaller.pen[.N, ]
-    small.pen <- (last.smaller$total.cost-first.min.err$total.cost)/
-      (first.min.err$peaks-last.smaller$peaks)
-    last.min.err <- error.is.min[.N, ]
-    first.bigger <- bigger.pen[1, ]
-    big.pen <- (last.min.err$total.cost-first.bigger$total.cost)/
-      (first.bigger$peaks-last.min.err$peaks)
-    big.next <- last.min.err$peaks == first.bigger$peaks+1
-    big.two <-
-      any(1 < peaks.tab[paste(c(first.bigger$peaks, last.min.err$peaks))])
-    big.found <- big.next || big.two
-    small.next <- first.min.err$peaks+1 == last.smaller$peaks
-    small.two <-
-      any(1 < peaks.tab[paste(c(last.smaller$peaks, first.min.err$peaks))])
-    small.found <- small.next || small.two
-    next.pen <- if(max.fp==0){
-      if(!fn.found){
-        fn.pen
+    check <- function(is.vec){
+      stopifnot(is.logical(is.vec))
+      stopifnot(nrow(error.dt) == length(is.vec))
+      i.vec <- which(is.vec)
+      if(length(i.vec)==0)return(NULL)
+      two.i <- if(1 %in% i.vec){
+        m <- max(i.vec)
+        c(m, m+1)
       }else{
-        NULL
+        m <- min(i.vec)
+        c(m-1, m)
       }
-    }else if(max.fn==0){
-      if(!fp.found){
-        fp.pen
-      }else{
-        NULL
-      }
-    }else if(fp.pen <= fn.pen){
-      ## we have found a zero point, so the penalty that will help us
-      ## find the lower limit (fp) is less than the penalty that will
-      ## help us find the upper limit. we can try either of them.
-      if(!fp.found){
-        fp.pen
-      }else if(!fn.found){
-        fn.pen
-      }else{
-        NULL
+      if(any(!two.i %in% seq_along(error.dt$peaks)))return(NULL)
+      two.error <- error.dt[two.i,]
+      adjacent.models <- diff(two.error$peaks) == -1
+      two.lambda <- any(1 < peaks.tab[paste(two.error$peaks)])
+      data.table(
+        penalty=(two.error[1, total.cost]-two.error[2, total.cost])/
+          (two.error[2, peaks]-two.error[1, peaks]),
+        found=two.lambda||adjacent.models)
+    }
+    feasible <- check(error.dt$status=="infeasible")
+    fp <- check(error.dt$fp==0)
+    fn <- check(error.dt$fn==min.fn)
+    min.errors <- min(error.dt$errors)
+    min.errors.i.vec <- which(error.dt$errors==min.errors)
+    min.errors.first <- min(min.errors.i.vec)
+    min.errors.last <- max(min.errors.i.vec)
+    before.min.error <- check(seq_along(error.dt$errors) < min.errors.first)
+    after.min.error <- check(min.errors.last < seq_along(error.dt$errors))
+    lower.candidates <- rbind(feasible, fp, before.min.error)[order(penalty),]
+    lower <- lower.candidates[.N,]
+    next.pen <- if(max.fn==0){
+      ## Special case for no positive labels.
+      if(!lower$found){
+        lower$penalty
       }
     }else{
-      ## no point where the label error reaches zero, so we try to
-      ## find the limits based on the min label error.
-      if((!is.na(big.pen)) && (!big.found)){
-        big.pen
-      }else if((!is.na(small.pen)) && (!small.found)){
-        small.pen
-      }else{
-        NULL
+      upper.candidates <- rbind(fn, after.min.error)[order(penalty),]
+      upper <- upper.candidates[1,]
+      if(!lower$found){
+        lower$penalty
+      }else if(!upper$found){
+        upper$penalty
       }
     }
   }#while(!is.null(pen))
@@ -249,7 +210,7 @@ if(is.labeled){
   
   path <- error.sorted[, exactModelSelection(total.cost, peaks, peaks)]
   setkey(error.sorted, peaks)
-  path$errors <- error.sorted[J(path$peaks), fp+fn]
+  path$errors <- error.sorted[J(path$peaks), errors]
   indices <- with(path, largestContinuousMinimum(
     errors, max.log.lambda-min.log.lambda))
   target <- with(path, data.table(
