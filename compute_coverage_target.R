@@ -180,16 +180,20 @@ if(is.labeled){
     min.errors.last <- max(min.errors.i.vec)
     before.min.error <- check(seq_along(error.dt$errors) < min.errors.first)
     after.min.error <- check(min.errors.last < seq_along(error.dt$errors))
-    lower.candidates <- rbind(feasible, fp, before.min.error)[order(penalty),]
-    lower <- lower.candidates[.N,]
+    ##lower.candidates <- rbind(feasible, fp, before.min.error)[order(penalty),]
+    ##lower <- lower.candidates[.N,]
+    lower <- before.min.error
     next.pen <- if(max.fn==0){
       ## Special case for no positive labels.
       if(!lower$found){
         lower$penalty
       }
     }else{
-      upper.candidates <- rbind(fn, after.min.error)[order(penalty),]
-      upper <- upper.candidates[1,]
+      upper <- if(!is.null(after.min.error)){
+        after.min.error
+      }else{
+        fn
+      }
       if(!lower$found){
         lower$penalty
       }else if(!upper$found){
