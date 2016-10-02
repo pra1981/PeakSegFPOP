@@ -59,7 +59,7 @@ for(chunk.id in c(22, 7)){
   }
 }
 
-loss <- fread("test/H3K4me3_TDH_other/samples/McGill0023/problems/22/*_loss.tsv")
+loss <- fread("cat test/H3K4me3_TDH_other/samples/McGill0023/problems/22/*_loss.tsv")
 setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
 test_that("un-necessary models are not computed", {
   expect_false(31 %in% loss$peaks)
