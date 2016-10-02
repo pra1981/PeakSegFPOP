@@ -1,6 +1,38 @@
 source("test_functions.R")
 
-problem.dir <- "test/H3K36me3_AM_immune_McGill0107_chr13_19020000_86760324.RData"
+problem.dir <- "test/H3K36me3_AM_immune_McGill0027_chr4_75452279_191044276"
+obj.name <- data(H3K36me3_AM_immune_McGill0027_chr4_75452279_191044276, package="cosegData")
+data.list <- get(obj.name)
+writeProblem(data.list, problem.dir)
+
+test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
+system(test.cmd)
+
+peaks.with.fp <- 15:23
+target.vec <- scan(file.path(problem.dir, "target.tsv"), quiet=TRUE)
+loss <- fread(paste0("cat ", problem.dir, "/*_loss.tsv"))
+setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
+loss[, log.penalty := log(penalty)]
+in.target <- loss[target.vec[1] < log.penalty & log.penalty < target.vec[2],]
+test_that("target interval contains no fp models", {
+  expect_true(all(!peaks.with.fp %in% in.target))
+})
+test_that("target interval contains no infeasible models", {
+  expect_true(all(in.target$status == "feasible"))
+})
+min.peaks <- min(in.target$peaks)
+smaller.present <- (min.peaks-1) %in% loss$peaks
+loss.ord <- loss[order(penalty),]
+min.peaks.i <- which(loss.ord$peaks==min.peaks)
+min.and.next <- loss.ord[c(min.peaks.i, min.peaks.i+1),]
+peaks.count.tab <- table(loss$peaks)
+min.and.next.counts <- peaks.count.tab[paste(min.and.next$peaks)]
+two.present <- any(1 < min.and.next.counts)
+test_that("upper limit computed precisely", {
+  expect_true(two.present || smaller.present)
+})
+
+problem.dir <- "test/H3K36me3_AM_immune_McGill0107_chr13_19020000_86760324"
 obj.name <- data(H3K36me3_AM_immune_McGill0107_chr13_19020000_86760324, package="cosegData")
 data.list <- get(obj.name)
 data.list$coverage <- data.list$coverage[1:3100000,]
