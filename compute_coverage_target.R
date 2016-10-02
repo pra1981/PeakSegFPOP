@@ -183,20 +183,17 @@ if(is.labeled){
     ##lower.candidates <- rbind(feasible, fp, before.min.error)[order(penalty),]
     ##lower <- lower.candidates[.N,]
     lower <- before.min.error
-    next.pen <- if(max.fn==0){
-      ## Special case for no positive labels.
-      if(!lower$found){
-        lower$penalty
-      }
-    }else{
+    next.pen <- if(!lower$found){
+      lower$penalty
+    }else if(0 < max.fn){
+      ## Do not search for the upper limit when there are no
+      ## positive labels.
       upper <- if(!is.null(after.min.error)){
         after.min.error
       }else{
         fn
       }
-      if(!lower$found){
-        lower$penalty
-      }else if(!upper$found){
+      if(!upper$found){
         upper$penalty
       }
     }
