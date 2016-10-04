@@ -1,5 +1,20 @@
 source("test_functions.R")
 
+obj.name <- "H3K4me3_TDH_immune_McGill0322_chr3_93504854_194041961"
+problem.dir <- file.path("test", tname)
+data(list=obj.name, package="cosegData")
+data.list <- get(obj.name)
+writeProblem(data.list, problem.dir)
+
+test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
+system(test.cmd)
+
+feasible.limit.peaks <- 343:344
+models <- fread(file.path(problem.dir, "target_models.tsv"))
+test_that("did not compute feasible limit models", {
+  expect_true(all(!feasible.limit.peaks %in% models$peaks))
+})
+
 problem.dir <- "test/H3K36me3_AM_immune_McGill0027_chr4_75452279_191044276"
 obj.name <- data(H3K36me3_AM_immune_McGill0027_chr4_75452279_191044276, package="cosegData")
 data.list <- get(obj.name)
