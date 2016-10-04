@@ -5,7 +5,9 @@ db.prefix <- "http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/"
 set.name <- "H3K4me3_TDH_other"
 set.dir <- file.path("test", set.name)
 samples.dir <- file.path(set.dir, "samples")
-for(chunk.id in c(22, 7)){
+chunk.list <- list(train=c(22, 7), test=24)
+chunk.vec <- unlist(chunk.list)
+for(chunk.id in chunk.vec){
   chunk.dir <- file.path(set.dir, "chunks", chunk.id)
   chunk.name <- paste0(set.name, "/", chunk.id)
   dir.create(chunk.dir, showWarnings=FALSE, recursive=TRUE)
@@ -54,8 +56,10 @@ for(chunk.id in c(22, 7)){
       sep="\t",
       row.names=FALSE,
       col.names=FALSE)
-    cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
-    system(cmd)
+    if(chunk.id %in% chunk.list$train){
+      cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
+      system(cmd)
+    }
   }
 }
 
@@ -69,7 +73,18 @@ model.RData <- file.path(set.dir, "model.RData")
 train.cmd <- paste("Rscript train_model.R", samples.dir, model.RData)
 system(train.cmd)
 
-problem.dir <- "test/H3K36me3_AM_immune_McGill0002_chunk1"
+test.dir.vec <- Sys.glob(file.path(samples.dir, "*", "problems", 24))
+peaks.bed.vec <- file.path(test.dir.vec, "peaks.bed")
+unlink(peaks.bed.vec)
+for(test.dir in test.dir.vec){
+  predict.cmd <- paste("Rscript predict_problem.R", model.RData, test.dir)
+  system(predict.cmd)
+}
+
+test_that("peaks.bed files created", {
+  expect_true(all(file.exists(peaks.bed)))
+})
+
 data(H3K36me3_AM_immune_McGill0002_chunk1, package="cosegData")
 writeProblem(H3K36me3_AM_immune_McGill0002_chunk1, problem.dir)
 
