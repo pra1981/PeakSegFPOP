@@ -245,6 +245,13 @@ if(is.labeled){
     }
   }#while(!is.null(pen))
 
+  write.table(
+    error.dt,
+    file.path(problem.dir, "target_models.tsv"),
+    quote=FALSE,
+    row.names=FALSE,
+    col.names=TRUE)
+
   error.sorted <- error.dt[order(peaks), ][c(TRUE, diff(peaks) != 0),]
 
   ## Oracle model complexity?
