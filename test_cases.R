@@ -176,8 +176,13 @@ for(labels.name in names(labels.list)){
   system(bash.cmd)
   target.tsv <- file.path(problem.dir, "target.tsv")
   target.vec <- scan(target.tsv, quiet=TRUE)
+  incorrect.tsv <- file.path(problem.dir, "labels_incorrect.tsv")
+  incorrect <- fread(incorrect.tsv)
   loss <- fread(paste0("cat ", problem.dir, "/*_loss.tsv"))
-  setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))  
+  setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
+  test_that("sum of loss rows equals incorrect rows", {
+    expect_equal(nrow(loss), nrow(incorrect))
+  })
   test_that("PeakSegFPOP reports correct number of bases", {
     exp.bases <- rep(n.bases, l=nrow(loss))
     expect_identical(as.integer(loss$bases), as.integer(exp.bases))
