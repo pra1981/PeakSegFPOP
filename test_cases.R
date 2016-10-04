@@ -181,7 +181,7 @@ for(labels.name in names(labels.list)){
   loss <- fread(paste0("cat ", problem.dir, "/*_loss.tsv"))
   setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
   test_that("sum of loss rows equals target_models rows", {
-    expect_equal(nrow(loss), nrow(target))
+    expect_equal(nrow(loss), nrow(models))
   })
   test_that("PeakSegFPOP reports correct number of bases", {
     exp.bases <- rep(n.bases, l=nrow(loss))
