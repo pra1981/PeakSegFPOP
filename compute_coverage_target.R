@@ -134,6 +134,7 @@ if(is.labeled){
   ## mx+b = lossInf => x = (lossInf-b)/m
   lossInf <- error.list[["Inf"]]$total.cost
   next.pen <- with(error.list[["0"]], (lossInf-total.cost)/peaks)
+  next.side <- "upper"
   while(!is.null(next.pen)){
     if(interactive()){
       gg <- ggplot()+
@@ -182,17 +183,63 @@ if(is.labeled){
     after.min.error <- check(min.errors.last < seq_along(error.dt$errors))
     lower.candidates <- rbind(feasible, fp, before.min.error)[order(penalty),]
     lower <- lower.candidates[.N,]
-    next.pen <- if(!lower$found){
-      lower$penalty
-    }else if(0 < max.fn){
+    upper <- if(!is.null(after.min.error)){
+      after.min.error
+    }else{
+      fn
+    }
+    next.pen <- if(0 < max.fn){
       ## Do not search for the upper limit when there are no
       ## positive labels.
-      upper <- if(!is.null(after.min.error)){
-        after.min.error
-      }else{
-        fn
-      }
       if(!upper$found){
+        upper$penalty
+      }
+    }else{
+      if((!lower$found) && (!upper$found)){
+        ## Neither the upper limit nor the lower limit have been
+        ## found, so we can search for one or the other. One search
+        ## strategy is to always search for the upper limit until it
+        ## is found, and then search for the lower limit. That could
+        ## be bad if we have an error profile as follows,
+        ## H3K4me3_TDH_immune/McGill0322/problems/chr3:93504854-194041961
+
+##  1:     0.0000 2495509 infeasible 23  0    Inf
+##  2:    46.2596  297639 infeasible 23  0    Inf
+##  3:   347.5916   65093 infeasible 20  0    Inf
+##  4:  1132.9245    9402 infeasible 14  0    Inf
+##  5:  4317.8561    1460 infeasible  4  2    Inf
+##  6: 18045.5544     384 infeasible  0  3    Inf
+##  7: 20763.5231     345 infeasible  0  3    Inf
+##  8: 20877.9948     344 infeasible  0  3    Inf
+##  9: 20904.2069     343   feasible  0  3      3
+## 10: 20990.6296     342   feasible  0  3      3
+## 11: 21165.0400     340   feasible  0  3      3
+## 12: 21669.8758     337   feasible  0  3      3
+## 13: 22530.0711     331   feasible  0  3      3
+## 14: 23795.3361     314   feasible  0  3      3
+## 15: 29561.2146     247   feasible  0  3      3
+## 16: 30935.5267     230   feasible  0  2      2
+## 17: 32698.7993     215   feasible  0  4      4
+## 18: 36089.5234     181   feasible  0  4      4
+## 19: 45600.3192     126   feasible  0  5      5
+## 20:        Inf       0   feasible  0 11     11
+
+        ## Using the old/bad search method, after finding the upper
+        ## limit between 3 and Inf errors, the lower limit search
+        ## discovered a model with only 2 errors, so had to re-start
+        ## the upper limit search. Using the new search method below,
+        ## we alternate between looking for the upper and lower
+        ## limits.
+        if(next.side == "upper"){
+          next.side <- "lower"
+          upper$penalty
+        }else{
+          next.side <- "upper"
+          lower$penalty
+        }
+      }else if(!lower$found){
+        lower$penalty
+      }else if(!upper$found){
         upper$penalty
       }
     }
