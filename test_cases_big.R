@@ -8,7 +8,7 @@ writeProblem(data.list, problem.dir)
 test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
 system(test.cmd)
 
-peaks.with.fp <- 15:23
+peaks.with.fp <- 15:22
 target.vec <- scan(file.path(problem.dir, "target.tsv"), quiet=TRUE)
 loss <- fread(paste0("cat ", problem.dir, "/*_loss.tsv"))
 setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
