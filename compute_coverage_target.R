@@ -188,11 +188,11 @@ if(is.labeled){
     }else{
       fn
     }
-    next.pen <- if(0 < max.fn){
+    next.pen <- if(0 == max.fn){
       ## Do not search for the upper limit when there are no
       ## positive labels.
-      if(!upper$found){
-        upper$penalty
+      if(!lower$found){
+        lower$penalty
       }
     }else{
       if((!lower$found) && (!upper$found)){
