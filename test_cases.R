@@ -26,17 +26,9 @@ for(chunk.id in chunk.vec){
   load(regions.RData)
   regions.by.sample <- split(regions, regions$sample.id)
   for(sample.id in names(regions.by.sample)){
-    sample.regions <- regions.by.sample[[sample.id]]
     sample.counts <- counts.by.sample[[sample.id]]
     problem.dir <- file.path(samples.dir, sample.id, "problems", chunk.id)
     dir.create(problem.dir, showWarnings=FALSE, recursive=TRUE)
-    write.table(
-      sample.regions[, c("chrom", "chromStart", "chromEnd", "annotation")],
-      file.path(problem.dir, "labels.bed"),
-      quote=FALSE,
-      sep="\t",
-      row.names=FALSE,
-      col.names=FALSE)
     sample.counts$chrom <- sample.regions$chrom[1]
     write.table(
       sample.counts[, c("chrom", "chromStart", "chromEnd", "coverage")],
@@ -57,6 +49,14 @@ for(chunk.id in chunk.vec){
       row.names=FALSE,
       col.names=FALSE)
     if(chunk.id %in% chunk.list$train){
+      sample.regions <- regions.by.sample[[sample.id]]
+      write.table(
+        sample.regions[, c("chrom", "chromStart", "chromEnd", "annotation")],
+        file.path(problem.dir, "labels.bed"),
+        quote=FALSE,
+        sep="\t",
+        row.names=FALSE,
+        col.names=FALSE)
       cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
       system(cmd)
     }
@@ -73,24 +73,53 @@ model.RData <- file.path(set.dir, "model.RData")
 train.cmd <- paste("Rscript train_model.R", samples.dir, model.RData)
 system(train.cmd)
 
-test.dir.vec <- Sys.glob(file.path(samples.dir, "*", "problems", 24))
+test.glob <- file.path(samples.dir, "*", "problems", 24)
+test.dir.vec <- Sys.glob(test.glob)
+segments.glob <- file.path(test.glob, "*_segments.bed")
+test.segments.vec <- Sys.glob(segments.glob)
 peaks.bed.vec <- file.path(test.dir.vec, "peaks.bed")
 unlink(peaks.bed.vec)
+unlink(test.segments.vec)
 for(test.dir in test.dir.vec){
   predict.cmd <- paste("Rscript predict_problem.R", model.RData, test.dir)
   system(predict.cmd)
 }
 
 test_that("peaks.bed files created", {
-  expect_true(all(file.exists(peaks.bed)))
+  expect_true(all(file.exists(peaks.bed.vec)))
+})
+
+loss <- fread(paste0("cat ", test.glob, "/*_loss.tsv"))
+setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
+test_that("predicted peaks are feasible", {
+  expect_true(all(loss$status=="feasible"))
+})
+
+## this problem has already computed models from 0 to 4 peaks, so we
+## should not have to re-run PeakSegFPOP.
+problem.dir <- "test/H3K4me3_TDH_other/samples/McGill0023/problems/7"
+loss.files.before <- Sys.glob(file.path("*_loss.tsv"))
+predict.cmd <- paste("Rscript predict_problem.R", model.RData, problem.dir)
+system(predict.cmd)
+loss.files.after <- Sys.glob(file.path("*_loss.tsv"))
+test_that("PeakSegFPOP is not run when we already have the solution", {
+  expect_equal(length(loss.files.before), length(loss.files.after))
+})
+
+## this problem predicts outside the target interval, so we should
+## return the closest model inside.
+problem.dir <- "test/H3K4me3_TDH_other/samples/McGill0267/problems/7"
+predict.cmd <- paste("Rscript predict_problem.R", model.RData, problem.dir)
+system(predict.cmd)
+peaks <- fread(file.path(problem.dir, "peaks.bed"))
+test_that("predict model with 2 peaks", {
+  expect_equal(nrow(peaks), 2)
 })
 
 data(H3K36me3_AM_immune_McGill0002_chunk1, package="cosegData")
 writeProblem(H3K36me3_AM_immune_McGill0002_chunk1, problem.dir)
-
 test.cmd <- paste("Rscript compute_features.R", problem.dir)
 system(test.cmd)
-
 f.row <- read.table(
   file.path(problem.dir, "features.tsv"),
   header=TRUE,
@@ -98,10 +127,8 @@ f.row <- read.table(
 test_that("features are computed", {
   expect_equal(nrow(f.row), 1)
 })
-
 test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
 system(test.cmd)
-
 cat.cmd <- paste0("cat ", problem.dir, "/*loss.tsv")
 loss <- fread(cat.cmd)
 setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
