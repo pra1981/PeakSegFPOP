@@ -58,7 +58,10 @@ for(chunk.id in chunk.vec){
         row.names=FALSE,
         col.names=FALSE)
       cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
-      system(cmd)
+      status <- system(cmd)
+      if(status != 0){
+        stop("non-zero exit status")
+      }
     }
   }
 }
@@ -72,6 +75,10 @@ test_that("un-necessary models are not computed", {
 model.RData <- file.path(set.dir, "model.RData")
 train.cmd <- paste("Rscript train_model.R", samples.dir, model.RData)
 system(train.cmd)
+test_that("models file created", {
+  obj.name.vec <- load(model.RData)
+  expect_true("model" %in% obj.name.vec)
+})
 
 test.glob <- file.path(samples.dir, "*", "problems", 24)
 test.dir.vec <- Sys.glob(test.glob)
@@ -83,14 +90,37 @@ peaks.bed.vec <- file.path(test.dir.vec, "peaks.bed")
 unlink(peaks.bed.vec)
 unlink(test.segments.vec)
 unlink(test.loss.vec)
+pred.peaks.list <- list()
 for(test.dir in test.dir.vec){
   predict.cmd <- paste("Rscript predict_problem.R", model.RData, test.dir)
   system(predict.cmd)
+  peaks.bed <- file.path(test.dir, "peaks.bed")
+  tryCatch({
+    sample.peaks <- fread(peaks.bed)
+    setnames(sample.peaks, c("chrom", "chromStart", "chromEnd", "status", "mean"))
+    sample.id <- basename(dirname(dirname(test.dir)))
+    pred.peaks.list[[test.dir]] <- data.table(sample.id, sample.peaks)
+  }, error=function(e){
+    ## do nothing
+  })
 }
-
 test_that("peaks.bed files created", {
   expect_true(all(file.exists(peaks.bed.vec)))
 })
+
+## pred.peaks <- do.call(rbind, pred.peaks.list)
+## ggplot()+
+##   theme_bw()+
+##   theme(panel.margin=grid::unit(0, "lines"))+
+##   facet_grid(sample.id ~ ., scales="free")+
+##   geom_step(aes(chromStart/1e3, coverage),
+##             data=counts,
+##             color="grey50")+
+##   geom_segment(aes(chromStart/1e3, 0,
+##                    xend=chromEnd/1e3, yend=0),
+##                data=pred.peaks,
+##                color="deepskyblue",
+##                size=2)
 
 ## How to test if peaks are feasible?
 

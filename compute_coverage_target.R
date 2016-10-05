@@ -19,5 +19,5 @@ library(coseg)
 library(data.table)
 library(PeakError)
 
-problem.coverage(problem.dir)
-problem.target(problem.dir)
+c.info <- problem.coverage(problem.dir)
+t.info <- problem.target(problem.dir)
