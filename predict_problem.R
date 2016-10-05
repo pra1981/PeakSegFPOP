@@ -7,6 +7,9 @@ arg.vec <- c(#predicts inside, already computed.
 arg.vec <- c(#predicts outside target interval
   "test/H3K4me3_TDH_other/model.RData",
   "test/H3K4me3_TDH_other/samples/McGill0267/problems/7")
+arg.vec <- c(#predicts infeasible.
+  "test/H3K4me3_TDH_other/model.RData",
+  "test/H3K4me3_TDH_other/samples/McGill0012/problems/24")
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
@@ -24,8 +27,7 @@ load(model.RData)
 features.tsv <- file.path(problem.dir, "features.tsv")
 if(!file.exists(features.tsv)){
   cat(sprintf("Computing %s\n", features.tsv))
-  features.cmd <- paste("Rscript compute_features.R", problem.dir)
-  system(features.cmd)
+  problem.features(problem.dir)
 }
 
 features <- fread(features.tsv)
@@ -39,11 +41,11 @@ cat(sprintf(
 loss.ord <- tryCatch({
   loss <- fread(paste0("cat ", problem.dir, "/*_loss.tsv"))
   setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
+  loss[, log.penalty := log(penalty)]
   loss[order(-penalty),]
 }, error=function(e){
   data.table()
 })
-loss.ord[, log.penalty := log(penalty)]
 
 ## TODO: If we have already computed the target interval and the
 ## prediction is outside, then we should choose the minimal error
@@ -53,7 +55,7 @@ target.vec <- tryCatch({
 }, error=function(e){
   NULL
 })
-if(length(target.vec)==2){
+if(nrow(loss.ord) && length(target.vec)==2){
   cat(sprintf("Target interval %f < log(penalty) < %f\n", target.vec[1], target.vec[2]))
   if(log(pred.penalty) < target.vec[1]){
     pred.penalty <- loss.ord[target.vec[1] < log.penalty, penalty[.N]]
@@ -72,13 +74,6 @@ if(length(target.vec)==2){
 ## This will be NULL until we find or compute a model that can be used
 ## for predicted peaks.
 pen.str <- NULL
-
-## This exact model has already been computed.
-is.computed <- paste(pred.penalty) == paste(loss.ord$penalty)
-if(any(is.computed)){
-  cat(sprintf("Model with penalty=%f already computed.\n", pred.penalty))
-  pen.str <- paste(pred.penalty)
-}
 
 ## If two neighboring penalties have already been computed, then we do
 ## not have to re-run PeakSegFPOP.
@@ -103,7 +98,7 @@ if(is.null(pen.str) && 2 <= nrow(loss.ord)){
       sep="")
     pen.str <- paste(pen.num)
   }
-}  
+}
 
 ## TODO: If we have not already computed the target interval, then we
 ## can run PeakSegFPOP at the predicted penalty value. If the
@@ -111,9 +106,13 @@ if(is.null(pen.str) && 2 <= nrow(loss.ord)){
 ## compute the target interval to find the biggest feasible model,
 ## which we return.
 if(is.null(pen.str)){
-  stop("not implemented")
-  cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
-  system(cmd)
+  pen.str <- paste(pred.penalty)
+  result <- problem.PeakSegFPOP(problem.dir, pen.str)
+  if(result$loss$status=="infeasible"){
+    t.info <- problem.target(problem.dir)
+    biggest.feasible <- t.info$models[which.min(errors),]
+    pen.str <- paste(biggest.feasible$penalty)
+  }
 }
 
 ## compute peaks.

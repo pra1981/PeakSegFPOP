@@ -10,7 +10,7 @@ if(length(arg.vec) != 2){
 samples.dir <- arg.vec[1]
 model.RData <- arg.vec[2]
 
-library(data.table)
+library(coseg)
 
 target.tsv.vec <- Sys.glob(file.path(samples.dir, "*", "problems", "*", "target.tsv"))
 cat("Found", length(target.tsv.vec), "target.tsv files for training.\n")
@@ -23,8 +23,7 @@ for(target.tsv.i in seq_along(target.tsv.vec)){
   features.tsv <- file.path(problem.dir, "features.tsv")
   if(!file.exists(features.tsv)){
     cat(sprintf("%4d / %4d Computing %s\n", target.tsv.i, length(target.tsv.vec), features.tsv))
-    features.cmd <- paste("Rscript compute_features.R", problem.dir)
-    system(features.cmd)
+    problem.features(problem.dir)
   }
   features.list[[problem.dir]] <- fread(features.tsv)
   targets.list[[problem.dir]] <- scan(target.tsv, quiet=TRUE)
