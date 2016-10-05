@@ -151,6 +151,16 @@ test_that("predict model with 2 peaks", {
   expect_equal(nrow(peaks), 2)
 })
 
+## Predict for an entire sample.
+sample.dir <- file.path(samples.dir, "McGill0036")
+sample.pred.cmd <- paste("Rscript predict_sample.R", model.RData, sample.dir)
+system(sample.pred.cmd)
+test_that("sampleID/peaks.bed file created", {
+  peaks.bed <- file.path(sample.dir, "peaks.bed")
+  peaks <- fread(peaks.bed)
+  setnames(peaks, c("chrom", "chromStart", "chromEnd", "status", "mean"))
+})
+
 data(H3K36me3_AM_immune_McGill0002_chunk1, package="cosegData")
 writeProblem(H3K36me3_AM_immune_McGill0002_chunk1, problem.dir)
 test.cmd <- paste("Rscript compute_features.R", problem.dir)
