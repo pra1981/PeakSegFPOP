@@ -29,6 +29,7 @@ for(chunk.id in chunk.vec){
     sample.counts <- counts.by.sample[[sample.id]]
     problem.dir <- file.path(samples.dir, sample.id, "problems", chunk.id)
     dir.create(problem.dir, showWarnings=FALSE, recursive=TRUE)
+    sample.regions <- regions.by.sample[[sample.id]]
     sample.counts$chrom <- sample.regions$chrom[1]
     write.table(
       sample.counts[, c("chrom", "chromStart", "chromEnd", "coverage")],
@@ -49,7 +50,6 @@ for(chunk.id in chunk.vec){
       row.names=FALSE,
       col.names=FALSE)
     if(chunk.id %in% chunk.list$train){
-      sample.regions <- regions.by.sample[[sample.id]]
       write.table(
         sample.regions[, c("chrom", "chromStart", "chromEnd", "annotation")],
         file.path(problem.dir, "labels.bed"),
