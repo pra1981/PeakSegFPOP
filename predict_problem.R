@@ -34,12 +34,14 @@ features <- fread(features.tsv)
 feature.mat <- as.matrix(features)
 pred.penalty <- as.numeric(exp(model$predict(feature.mat)))
 cat(sprintf(
-  "Predicting penalty=%f log(penalty)=%f based on features.\n",
+  "Predicting penalty=%f log(penalty)=%f based on %d features.\n",
   pred.penalty,
-  log(pred.penalty)))
+  log(pred.penalty),
+  length(model$pred.feature.names)
+  ))
 
 loss.ord <- tryCatch({
-  loss <- fread(paste0("cat ", problem.dir, "/*_loss.tsv"))
+  loss <- suppressWarnings(fread(paste0("cat ", problem.dir, "/*_loss.tsv")))
   setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
   loss[, log.penalty := log(penalty)]
   loss[order(-penalty),]
@@ -51,7 +53,7 @@ loss.ord <- tryCatch({
 ## prediction is outside, then we should choose the minimal error
 ## model which is closest to the predicted penalty.
 target.vec <- tryCatch({
-  scan(file.path(problem.dir, "target.tsv"), quiet=TRUE)
+  suppressWarnings(scan(file.path(problem.dir, "target.tsv"), quiet=TRUE))
 }, error=function(e){
   NULL
 })
