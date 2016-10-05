@@ -16,8 +16,8 @@ arg.vec <- commandArgs(trailingOnly=TRUE)
 if(length(arg.vec) != 2){
   stop("usage: Rscript predict_problem.R model.RData problem_dir")
 }
-model.RData <- arg.vec[1]
-problem.dir <- arg.vec[2]
+model.RData <- normalizePath(arg.vec[1], mustWork=TRUE)
+problem.dir <- normalizePath(arg.vec[2], mustWork=TRUE)
 
 library(data.table)
 library(coseg)

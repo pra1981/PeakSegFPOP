@@ -4,7 +4,7 @@ arg.vec <- commandArgs(trailingOnly=TRUE)
 if(length(arg.vec) != 1){
   stop("usage: Rscript compute_features.R data_dir/sample_dir/problems/problem_dir")
 }
-problem.dir <- arg.vec[1]
+problem.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
 
 library(coseg)
 
