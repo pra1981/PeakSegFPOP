@@ -128,14 +128,22 @@ Rscript compute_coverage_target.R path/to/sample_dir/problems/chr4:75452279-1910
 #+END_SRC
 
 The [[file:compute_coverage_target.R]] script first creates
-=coverage.bedGraph= for this problem ([[http://bedtools.readthedocs.io/en/latest/content/tools/intersect.html][bedtools intersect]] is
-required). If there is a =labels.bed= file for this problem, it is
-used to compute the target interval and save it to =target.tsv=. The
-target is the largest interval of log(penalty) values for which
-PeakSegFPOP returns peak models that have the minimum number of
-incorrect =labels.bed=. The =target.tsv= files are used as input for
-training a machine learning model that predicts optimal penalty
-values, even for un-labeled parts of the genome (TODO).
+=coverage.bedGraph= for this problem ([[http://bedtools.readthedocs.io/en/latest/content/tools/intersect.html][intersectBed]] is required). If
+there is a =labels.bed= file for this problem, it is used to compute
+the target interval and save it to =target.tsv=. The target is the
+largest interval of log(penalty) values for which PeakSegFPOP returns
+peak models that have the minimum number of incorrect
+=labels.bed=. The =target.tsv= files are used as input for training a
+machine learning model that can predict optimal penalty values, even
+for un-labeled parts of the genome. To train a model, use
+
+#+BEGIN_SRC shell-script
+Rscript train_model.R samples_dir model.RData
+#+END_SRC
+
+which trains a model using =samples_dir/*/problems/*/target.tsv=
+files, and saves it to =model.RData=. To make predictions, use =bash=
+or =qsub= on the =samples_dir/*/problems/*/peaks.bed.sh= scripts.
 
 ** Related work
 
