@@ -161,6 +161,31 @@ test_that("sampleID/peaks.bed file created", {
   setnames(peaks, c("chrom", "chromStart", "chromEnd", "status", "mean"))
 })
 
+## Predict on some data where we have labels, so we can train the
+## joint algo.
+labels.bed.vec <- Sys.glob(file.path(samples.dir, "*", "problems", "*", "labels.bed"))
+for(labels.bed in labels.bed.vec){
+  problem.dir <- dirname(labels.bed)
+  predict.cmd <- paste("Rscript predict_problem.R", model.RData, problem.dir)
+  system(predict.cmd)
+}
+
+## Create the scripts that will be used to train the joint algo and
+## then predict with it.
+for(chunk.id in chunk.vec){
+  cmd <- paste("Rscript create_problems_joint.R", samples.dir, chunk.id)
+  system(cmd)
+}
+data.dir <- dirname(samples.dir)
+target.tsv.vec <- Sys.glob(file.path(
+  data.dir, "jointProblems", "*", "target.tsv.sh"))
+peaks.bed.vec <- Sys.glob(file.path(
+  data.dir, "jointProblems", "*", "peaks.bed.sh"))
+test_that("more peaks.bed.sh prediction scripts than target.tsv.sh training", {
+  expect_true(length(target.tsv.vec) < length(peaks.bed.vec))
+})
+
+## Longer test for target interval search.
 data(H3K36me3_AM_immune_McGill0002_chunk1, package="cosegData")
 writeProblem(H3K36me3_AM_immune_McGill0002_chunk1, problem.dir)
 test.cmd <- paste("Rscript compute_features.R", problem.dir)
