@@ -238,8 +238,9 @@ labels.list <- list(
     annotation="noPeaks"))
 
 results.list <- list()
+samples.dir <- file.path("test", "H3K4me3_TDH_other", "samples")
 for(labels.name in names(labels.list)){
-  sample.dir <- file.path("test", labels.name)
+  sample.dir <- file.path(samples.dir, labels.name)
   labels <- labels.list[[labels.name]]
   unlink(sample.dir, recursive=TRUE)
   dir.create(sample.dir, showWarnings=FALSE, recursive=TRUE)
@@ -322,3 +323,14 @@ test_that("overlapping labels is an error", {
   status <- system(test.cmd)
   expect_false(status == 0)
 })
+
+## Test prediction.
+peaks.bed <- file.path(problem.dir, "peaks.bed")
+peaks.sh.path <- paste0(peaks.bed, ".sh")
+peaks.cmd <- paste("bash", peaks.sh.path)
+system(peaks.cmd)
+peaks <- fread(peaks.bed)
+test_that("peaks.bed has 1 peak predicted", {
+  expect_equal(nrow(peaks), 1)
+})
+
