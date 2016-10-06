@@ -1,3 +1,13 @@
+## Edit the following definition to reflect your cluster
+## configuration.
+PBS.header <- "#!/bin/bash
+#PBS -l nodes=1:ppn=4
+#PBS -l walltime=24:00:00
+#PBS -A bws-221-ae
+#PBS -m ae
+#PBS -M tdhock5@gmail.com
+#PBS -V"
+
 ## input: a directory with labels.bed and coverage.bedGraph.
 
 ## output: problems directory with sub-directories for each problem
@@ -15,6 +25,9 @@ library(PeakError)
 
 problems.bed <- normalizePath(arg.vec[1], mustWork=TRUE)
 sample.dir <- normalizePath(arg.vec[2], mustWork=TRUE)
+samples.dir <- dirname(sample.dir)
+data.dir <- dirname(samples.dir)
+model.RData <- file.path(data.dir, "model.RData")
 
 problems <- fread(problems.bed)
 setnames(problems, c("chrom", "problemStart", "problemEnd"))
@@ -68,19 +81,25 @@ makeProblem <- function(problem.i){
       prob.lab.bed,
       quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
   }
+  ## Script for coverage.
   prob.cov.bedGraph <- file.path(problem.dir, "coverage.bedGraph")
   sh.file <- paste0(prob.cov.bedGraph, ".sh")
-  script.txt <- paste0("#!/bin/bash
-#PBS -l nodes=1:ppn=4
-#PBS -l walltime=12:00:00
-#PBS -A bws-221-ae
-#PBS -m ae
-#PBS -M tdhock5@gmail.com
+  script.txt <- paste0(PBS.header, "
 #PBS -o ", prob.cov.bedGraph, ".out
 #PBS -e ", prob.cov.bedGraph, ".err
-#PBS -V                                        
-#PBS -N ", problem$problem.name, "
+#PBS -N COVER", problem$problem.name, "
 ", "Rscript ", normalizePath("compute_coverage_target.R"), " ", problem.dir, "
+")
+  writeLines(script.txt, sh.file)
+  ## Script for peaks.
+  peaks.bed <- file.path(problem.dir, "peaks.bed")
+  sh.file <- paste0(peaks.bed, ".sh")
+  script.txt <- paste0(PBS.header, "
+#PBS -o ", peaks.bed, ".out
+#PBS -e ", peaks.bed, ".err
+#PBS -N PRED", problem$problem.name, "
+", "Rscript ", normalizePath("predict_problem.R"), " ",
+model.RData, " ", problem.dir, " 
 ")
   writeLines(script.txt, sh.file)
 }
