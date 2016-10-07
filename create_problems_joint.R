@@ -27,7 +27,7 @@ samples.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
 problem.name <- arg.vec[2]
 
 library(data.table)
-library(PeakSegJoint)
+library(PeakSegJoint)#for clusterPeaks
 
 peaks.bed.vec <- Sys.glob(file.path(
   samples.dir, "*", "problems", problem.name, "peaks.bed"))
@@ -53,8 +53,9 @@ clustered <- clusterPeaks(peaks)
 clusters <- data.table(clustered)[, list(
   clusterStart=min(chromStart),
   clusterEnd=max(chromEnd)
-), by=cluster]
-setkey(clusters, clusterStart, clusterEnd)
+  ), by=cluster]
+clusters[, clusterStart1 := clusterStart + 1L]
+setkey(clusters, clusterStart1, clusterEnd)
 problems.list <- list(
   peaks=clusters[, .(clusterStart, clusterEnd)])
 
@@ -78,8 +79,9 @@ labels <- do.call(rbind, labels.list)
 if(!is.null(labels)){
   label.props <- labels[, list(
     prop.noPeaks=mean(annotation=="noPeaks")
-  ), by=.(labelStart, labelEnd)]
-  setkey(label.props, labelStart, labelEnd)
+    ), by=.(labelStart, labelEnd)]
+  label.props[, labelStart1 := labelStart + 1L]
+  setkey(label.props, labelStart1, labelEnd)
   over <- foverlaps(label.props, clusters, nomatch=NA)
   labels.with.no.peaks <- over[is.na(cluster),]
   labels.with.no.peaks[, bases := labelEnd - labelStart]
@@ -104,10 +106,12 @@ problem.info <- problems[, data.table(
   problemStart,
   problemEnd,
   problem.name=sprintf("%s:%d-%d", chrom, problemStart, problemEnd))]
-setkey(problem.info, problemStart, problemEnd)
+problem.info[, problemStart1 := problemStart + 1L]
+setkey(problem.info, problemStart1, problemEnd)
 
 if(!is.null(labels)){
-  setkey(labels, labelStart, labelEnd)
+  labels[, labelStart1 := labelStart + 1L]
+  setkey(labels, labelStart1, labelEnd)
   problems.with.labels <- foverlaps(problem.info, labels, nomatch=0L)
   setkey(problems.with.labels, problem.name)
 }
@@ -191,8 +195,8 @@ makeProblem <- function(problem.i){
   if(!is.null(labels) && pname %in% problems.with.labels$problem.name){
     problem.labels <- problems.with.labels[pname]
     write.table(
-      problem.labels[, .(chrom, labelStart, labelEnd, annotation)],
-      file.path(problem.dir, "labels.bed"),
+      problem.labels[, .(sample.id, chrom, labelStart, labelEnd, annotation)],
+      file.path(problem.dir, "labels.tsv"),
       quote=FALSE,
       sep="\t",
       row.names=FALSE,
