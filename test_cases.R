@@ -27,7 +27,9 @@ for(chunk.id in chunk.vec){
   regions.by.sample <- split(regions, regions$sample.id)
   for(sample.id in names(regions.by.sample)){
     sample.counts <- counts.by.sample[[sample.id]]
-    problem.dir <- file.path(samples.dir, sample.id, "problems", chunk.id)
+    cell.type <- paste(sample.counts$cell.type[1])
+    problem.dir <- file.path(
+      samples.dir, cell.type, sample.id, "problems", chunk.id)
     dir.create(problem.dir, showWarnings=FALSE, recursive=TRUE)
     sample.regions <- regions.by.sample[[sample.id]]
     sample.counts$chrom <- sample.regions$chrom[1]
@@ -66,7 +68,7 @@ for(chunk.id in chunk.vec){
   }
 }
 
-loss <- fread("cat test/H3K4me3_TDH_other/samples/McGill0023/problems/22/*_loss.tsv")
+loss <- fread("cat test/H3K4me3_TDH_other/samples/kidney/McGill0023/problems/22/*_loss.tsv")
 setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
 test_that("un-necessary models are not computed", {
   expect_false(31 %in% loss$peaks)
@@ -80,7 +82,7 @@ test_that("models file created", {
   expect_true("model" %in% obj.name.vec)
 })
 
-test.glob <- file.path(samples.dir, "*", "problems", 24)
+test.glob <- file.path(samples.dir, "*", "*", "problems", 24)
 test.dir.vec <- Sys.glob(test.glob)
 segments.glob <- file.path(test.glob, "*_segments.bed")
 test.segments.vec <- Sys.glob(segments.glob)
@@ -132,7 +134,7 @@ test_that("peaks.bed files created", {
 
 ## this problem has already computed models from 0 to 4 peaks, so we
 ## should not have to re-run PeakSegFPOP.
-problem.dir <- "test/H3K4me3_TDH_other/samples/McGill0023/problems/7"
+problem.dir <- "test/H3K4me3_TDH_other/samples/kidney/McGill0023/problems/7"
 loss.files.before <- Sys.glob(file.path("*_loss.tsv"))
 predict.cmd <- paste("Rscript predict_problem.R", model.RData, problem.dir)
 system(predict.cmd)
@@ -143,7 +145,8 @@ test_that("PeakSegFPOP is not run when we already have the solution", {
 
 ## this problem predicts outside the target interval, so we should
 ## return the closest model inside.
-problem.dir <- "test/H3K4me3_TDH_other/samples/McGill0267/problems/7"
+problem.dir <-
+  "test/H3K4me3_TDH_other/samples/leukemiaCD19CD10BCells/McGill0267/problems/7"
 predict.cmd <- paste("Rscript predict_problem.R", model.RData, problem.dir)
 system(predict.cmd)
 peaks <- fread(file.path(problem.dir, "peaks.bed"))
@@ -152,7 +155,7 @@ test_that("predict model with 2 peaks", {
 })
 
 ## Predict for an entire sample.
-sample.dir <- file.path(samples.dir, "McGill0036")
+sample.dir <- file.path(samples.dir, "skeletalMuscleCtrl", "McGill0036")
 sample.pred.cmd <- paste("Rscript predict_sample.R", model.RData, sample.dir)
 system(sample.pred.cmd)
 test_that("sampleID/peaks.bed file created", {
@@ -163,7 +166,8 @@ test_that("sampleID/peaks.bed file created", {
 
 ## Predict on some data where we have labels, so we can train the
 ## joint algo.
-labels.bed.vec <- Sys.glob(file.path(samples.dir, "*", "problems", "*", "labels.bed"))
+labels.bed.vec <- Sys.glob(file.path(
+  samples.dir, "*", "*", "problems", "*", "labels.bed"))
 for(labels.bed in labels.bed.vec){
   problem.dir <- dirname(labels.bed)
   predict.cmd <- paste("Rscript predict_problem.R", model.RData, problem.dir)
