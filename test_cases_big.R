@@ -1,5 +1,17 @@
 source("test_functions.R")
 
+obj.name <- "H3K4me3_TDH_immune_McGill0005_chr1_17175658_29878082"
+problem.dir <- file.path("test", obj.name)
+data(list=obj.name, package="cosegData")
+data.list <- get(obj.name)
+writeProblem(data.list, problem.dir)
+test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
+system(test.cmd)
+models <- fread(file.path(problem.dir, "target_models.tsv"))
+test_that("did not compute infeasible models", {
+  expect_false(506 %in% models$peaks)
+})
+
 obj.name <- "H3K4me3_TDH_immune_McGill0322_chr3_93504854_194041961"
 problem.dir <- file.path("test", obj.name)
 data(list=obj.name, package="cosegData")
