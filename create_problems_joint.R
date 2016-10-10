@@ -30,7 +30,7 @@ library(data.table)
 library(PeakSegJoint)#for clusterPeaks
 
 peaks.bed.vec <- Sys.glob(file.path(
-  samples.dir, "*", "problems", problem.name, "peaks.bed"))
+  samples.dir, "*", "*", "problems", problem.name, "peaks.bed"))
 peaks.list <- list()
 for(sample.i in seq_along(peaks.bed.vec)){
   peaks.bed <- peaks.bed.vec[[sample.i]]
@@ -60,7 +60,7 @@ problems.list <- list(
   peaks=clusters[, .(clusterStart, clusterEnd)])
 
 labels.bed.vec <- Sys.glob(file.path(
-  samples.dir, "*", "problems", problem.name, "labels.bed"))
+  samples.dir, "*", "*", "problems", problem.name, "labels.bed"))
 labels.list <- list()
 for(sample.i in seq_along(labels.bed.vec)){
   labels.bed <- labels.bed.vec[[sample.i]]
@@ -117,7 +117,7 @@ if(!is.null(labels)){
 }
 
 coverage.bedGraph.vec <- Sys.glob(file.path(
-  samples.dir, "*", "problems", problem.name, "coverage.bedGraph"))
+  samples.dir, "*", "*", "problems", problem.name, "coverage.bedGraph"))
 if(FALSE){
   
   coverage.list <- list()
