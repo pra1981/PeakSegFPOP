@@ -12,7 +12,8 @@ model.RData <- arg.vec[2]
 
 library(coseg)
 
-target.tsv.vec <- Sys.glob(file.path(samples.dir, "*", "problems", "*", "target.tsv"))
+target.tsv.vec <- Sys.glob(file.path(
+  samples.dir, "*", "*", "problems", "*", "target.tsv"))
 cat("Found", length(target.tsv.vec), "target.tsv files for training.\n")
 
 features.list <- list()
