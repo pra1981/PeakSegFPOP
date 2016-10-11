@@ -1,4 +1,17 @@
 source("test_functions.R")
+writeProblem <- function(...){}
+
+obj.name <- "H3K36me3_AM_immune_samples_monocyte_McGill0001_chr3_60000_66170270"
+problem.dir <- file.path("test", obj.name)
+data(list=obj.name, package="cosegData")
+data.list <- get(obj.name)
+writeProblem(data.list, problem.dir)
+test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
+system(test.cmd)
+models <- fread(file.path(problem.dir, "target_models.tsv"))
+test_that("did not compute useless models", {
+  expect_false(30 %in% models$peaks)
+})
 
 obj.name <- "H3K4me3_TDH_immune_McGill0005_chr1_17175658_29878082"
 problem.dir <- file.path("test", obj.name)
@@ -8,7 +21,7 @@ writeProblem(data.list, problem.dir)
 test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
 system(test.cmd)
 models <- fread(file.path(problem.dir, "target_models.tsv"))
-test_that("did not compute infeasible models", {
+test_that("did not compute infeasible model", {
   expect_false(506 %in% models$peaks)
 })
 
@@ -17,10 +30,8 @@ problem.dir <- file.path("test", obj.name)
 data(list=obj.name, package="cosegData")
 data.list <- get(obj.name)
 writeProblem(data.list, problem.dir)
-
 test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
 system(test.cmd)
-
 models <- fread(file.path(problem.dir, "target_models.tsv"))
 test_that("did not compute feasible limit models", {
   expect_true(all(! (343:344) %in% models$peaks))
@@ -30,10 +41,8 @@ problem.dir <- "test/H3K36me3_AM_immune_McGill0027_chr4_75452279_191044276"
 obj.name <- data(H3K36me3_AM_immune_McGill0027_chr4_75452279_191044276, package="cosegData")
 data.list <- get(obj.name)
 writeProblem(data.list, problem.dir)
-
 test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
 system(test.cmd)
-
 peaks.with.fp <- 15:22
 target.vec <- scan(file.path(problem.dir, "target.tsv"), quiet=TRUE)
 loss <- fread(paste0("cat ", problem.dir, "/*_loss.tsv"))
@@ -58,30 +67,11 @@ test_that("upper limit computed precisely", {
   expect_true(two.present || smaller.present)
 })
 
-problem.dir <- "test/H3K36me3_AM_immune_McGill0107_chr13_19020000_86760324"
-obj.name <- data(H3K36me3_AM_immune_McGill0107_chr13_19020000_86760324, package="cosegData")
-data.list <- get(obj.name)
-data.list$coverage <- data.list$coverage[1:3100000,]
-writeProblem(data.list, problem.dir)
-coverage.bedGraph <- file.path(problem.dir, "coverage.bedGraph")
-test.cmd <- paste("./PeakSegFPOP", coverage.bedGraph, data.list$penalty)
-system(test.cmd)
-
-problem.dir <- "test/H3K36me3_AM_immune_McGill0029_chr16_46385801_88389383"
-obj.name <- data(H3K36me3_AM_immune_McGill0029_chr16_46385801_88389383, package="cosegData")
-data.list <- get(obj.name)
-data.list$coverage <- data.list$coverage[1:1000000,]
-writeProblem(data.list, problem.dir)
-coverage.bedGraph <- file.path(problem.dir, "coverage.bedGraph")
-test.cmd <- paste("./PeakSegFPOP", coverage.bedGraph, data.list$penalty)
-system(test.cmd)
-
 problem.dir <- "test/H3K36me3_AM_immune_McGill0106_chr16_46385801_88389383"
 data(H3K36me3_AM_immune_McGill0106_chr16_46385801_88389383, package="cosegData")
 writeProblem(H3K36me3_AM_immune_McGill0106_chr16_46385801_88389383, problem.dir)
 test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
 system(test.cmd)
-
 cat.cmd <- paste0("cat ", problem.dir, "/*loss.tsv")
 loss <- fread(cat.cmd)
 setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
@@ -104,7 +94,6 @@ data(H3K36me3_AM_immune_McGill0079_chr3_60000_66170270, package="cosegData")
 writeProblem(H3K36me3_AM_immune_McGill0079_chr3_60000_66170270, problem.dir)
 test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
 system(test.cmd)
-
 cat.cmd <- paste0("cat ", problem.dir, "/*loss.tsv")
 loss <- fread(cat.cmd)
 setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
@@ -113,12 +102,14 @@ test_that("un-helpful models are not computed", {
   expect_false(2084 %in% loss$peaks)
   expect_false(618 %in% loss$peaks)
 })
-
 target.tsv <- file.path(problem.dir, "target.tsv")
 test_that("target interval computed", {
   target.vec <- scan(target.tsv, quiet=TRUE)
   expect_equal(length(target.vec), 2)
 })
+
+## Below we have some data for which the minimum cost was not computed
+## correctly (problems in C++ code not R scripts).
 
 bedGraph.base <-
   "H3K36me3_TDH_immune_McGill0001_chr10_51448845_125869472.bedGraph"
@@ -131,15 +122,31 @@ if(!file.exists(bedGraph.base)){
   file.copy(xz.file, getwd())
   system(paste("unxz", xz.base))
 }
-
 penalty.str <- "7400.04974500218"
 cmd <- paste("PeakSegFPOP", bedGraph.base, penalty.str)
 status <- system(cmd)
-
 test_that("FPOP computes correct number of segments", {
   segments.bed <- paste0(
     bedGraph.base, "_penalty=", penalty.str, "_segments.bed")
   segs <- read.table(segments.bed)
   expect_equal(nrow(segs), 1157)
 })
+
+problem.dir <- "test/H3K36me3_AM_immune_McGill0107_chr13_19020000_86760324"
+obj.name <- data(H3K36me3_AM_immune_McGill0107_chr13_19020000_86760324, package="cosegData")
+data.list <- get(obj.name)
+data.list$coverage <- data.list$coverage[1:3100000,]
+writeProblem(data.list, problem.dir)
+coverage.bedGraph <- file.path(problem.dir, "coverage.bedGraph")
+test.cmd <- paste("./PeakSegFPOP", coverage.bedGraph, data.list$penalty)
+system(test.cmd)
+
+problem.dir <- "test/H3K36me3_AM_immune_McGill0029_chr16_46385801_88389383"
+obj.name <- data(H3K36me3_AM_immune_McGill0029_chr16_46385801_88389383, package="cosegData")
+data.list <- get(obj.name)
+data.list$coverage <- data.list$coverage[1:1000000,]
+writeProblem(data.list, problem.dir)
+coverage.bedGraph <- file.path(problem.dir, "coverage.bedGraph")
+test.cmd <- paste("./PeakSegFPOP", coverage.bedGraph, data.list$penalty)
+system(test.cmd)
 
