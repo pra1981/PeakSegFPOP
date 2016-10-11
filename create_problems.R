@@ -87,7 +87,7 @@ makeProblem <- function(problem.i){
   script.txt <- paste0(PBS.header, "
 #PBS -o ", target.tsv, ".out
 #PBS -e ", target.tsv, ".err
-#PBS -N COVER", problem$problem.name, "
+#PBS -N Target", problem$problem.name, "
 ", "Rscript ", normalizePath("compute_coverage_target.R", mustWork=TRUE), " ", problem.dir, "
 ")
   writeLines(script.txt, sh.file)
@@ -97,7 +97,7 @@ makeProblem <- function(problem.i){
   script.txt <- paste0(PBS.header, "
 #PBS -o ", peaks.bed, ".out
 #PBS -e ", peaks.bed, ".err
-#PBS -N PRED", problem$problem.name, "
+#PBS -N Predict", problem$problem.name, "
 ", "Rscript ", normalizePath("predict_problem.R", mustWork=TRUE), " ",
 model.RData, " ", problem.dir, " 
 ")
