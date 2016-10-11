@@ -215,7 +215,7 @@ makeProblem <- function(problem.i){
 #PBS -o ", target.tsv, ".out
 #PBS -e ", target.tsv, ".err
 #PBS -N JTRAIN", pname, "
-", "Rscript ", normalizePath("compute_joint_target.R"), " ",
+", "Rscript ", normalizePath("compute_joint_target.R", mustWork=TRUE), " ",
 problem.dir, " 
 ")
     writeLines(script.txt, sh.file)
@@ -227,7 +227,7 @@ problem.dir, "
 #PBS -o ", peaks.bed, ".out
 #PBS -e ", peaks.bed, ".err
 #PBS -N PRED", problem$problem.name, "
-", "Rscript ", normalizePath("predict_problem_joint.R"), " ",
+", "Rscript ", normalizePath("predict_problem_joint.R", mustWork=TRUE), " ",
 joint.model.RData, " ", problem.dir, " 
 ")
   writeLines(script.txt, sh.file)
