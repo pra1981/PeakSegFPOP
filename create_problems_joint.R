@@ -38,12 +38,14 @@ for(sample.i in seq_along(peaks.bed.vec)){
   problems.dir <- dirname(problem.dir)
   sample.dir <- dirname(problems.dir)
   sample.id <- basename(sample.dir)
+  group.dir <- dirname(sample.dir)
+  sample.group <- basename(group.dir)
   peaks.list[[peaks.bed]] <- tryCatch({
     sample.peaks <- fread(peaks.bed)
     setnames(
       sample.peaks,
       c("chrom", "chromStart", "chromEnd", "status", "mean"))
-    data.table(sample.id, sample.peaks)
+    data.table(sample.id, sample.group, sample.peaks)
   }, error=function(e){
     ## do nothing
   })
@@ -68,12 +70,14 @@ for(sample.i in seq_along(labels.bed.vec)){
   problems.dir <- dirname(problem.dir)
   sample.dir <- dirname(problems.dir)
   sample.id <- basename(sample.dir)
+  group.dir <- dirname(sample.dir)
+  sample.group <- basename(group.dir)
   sample.labels <- fread(labels.bed)
   setnames(
     sample.labels,
     c("chrom", "labelStart", "labelEnd", "annotation"))
   labels.list[[labels.bed]] <- 
-    data.table(sample.id, sample.labels)
+    data.table(sample.id, sample.group, sample.labels)
 }
 labels <- do.call(rbind, labels.list)
 if(!is.null(labels)){
@@ -126,12 +130,14 @@ if(FALSE){
     problems.dir <- dirname(problem.dir)
     sample.dir <- dirname(problems.dir)
     sample.id <- basename(sample.dir)
+    group.dir <- dirname(sample.dir)
+    sample.group <- basename(group.dir)
     sample.cov <- fread(coverage.bedGraph)
     setnames(
       sample.cov,
       c("chrom", "chromStart", "chromEnd", "count"))
     coverage.list[[coverage.bedGraph]] <- 
-      data.table(sample.id, sample.cov)
+      data.table(sample.id, sample.group, sample.cov)
   }
   coverage <- do.call(rbind, coverage.list)
 
@@ -195,7 +201,8 @@ makeProblem <- function(problem.i){
   if(!is.null(labels) && pname %in% problems.with.labels$problem.name){
     problem.labels <- problems.with.labels[pname]
     write.table(
-      problem.labels[, .(sample.id, chrom, labelStart, labelEnd, annotation)],
+      problem.labels[, .(
+        chrom, labelStart, labelEnd, annotation, sample.id, sample.group)],
       file.path(problem.dir, "labels.tsv"),
       quote=FALSE,
       sep="\t",
