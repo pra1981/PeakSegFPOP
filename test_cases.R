@@ -174,17 +174,17 @@ for(labels.bed in labels.bed.vec){
   system(predict.cmd)
 }
 
-## Create the scripts that will be used to train the joint algo and
-## then predict with it.
+## Create the scripts that will be used to train the joint algo.
 for(chunk.id in chunk.vec){
   cmd <- paste("Rscript create_problems_joint.R", samples.dir, chunk.id)
   system(cmd)
 }
 data.dir <- dirname(samples.dir)
+jointProblems <- file.path(data.dir, "jointProblems")
 target.sh.vec <- Sys.glob(file.path(
-  data.dir, "jointProblems", "*", "target.tsv.sh"))
+  jointProblems, "*", "target.tsv.sh"))
 peaks.sh.vec <- Sys.glob(file.path(
-  data.dir, "jointProblems", "*", "peaks.bed.sh"))
+  jointProblems, "*", "peaks.bed.sh"))
 test_that("more peaks.bed.sh prediction scripts than target.sh training", {
   expect_true(length(target.sh.vec) < length(peaks.sh.vec))
 })
@@ -201,6 +201,9 @@ target.tsv.vec <- sub("[.]sh$", "", target.sh.vec)
 test_that("target intervals computed", {
   expect_true(all(file.exists(target.tsv.vec)))
 })
+
+## train joint model.
+cmd <- paste("Rscript train_model_joint.R", jointProblems)
 
 ## Longer test for target interval search.
 data(H3K36me3_AM_immune_McGill0002_chunk1, package="cosegData")

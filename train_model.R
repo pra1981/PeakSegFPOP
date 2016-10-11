@@ -7,7 +7,7 @@ arg.vec <- commandArgs(trailingOnly=TRUE)
 if(length(arg.vec) != 2){
   stop("usage: Rscript train_model.R samples_dir model.RData")
 }
-samples.dir <- arg.vec[1]
+samples.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
 model.RData <- arg.vec[2]
 
 library(coseg)
