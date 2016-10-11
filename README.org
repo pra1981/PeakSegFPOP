@@ -98,33 +98,56 @@ one line and the following tab-separated columns:
 The PeakSegFPOP command line program recovers the optimal solution for
 only one segmentation problem and one penalty parameter, but we
 provide several R scripts which make it easy to use on the entire
-genome. First, create a sample directory with =coverage.bedGraph= for
+genome. First, create sample directories with =coverage.bedGraph= for
 the whole genome ([[http://bedtools.readthedocs.io/en/latest/content/tools/genomecov.html][bedtools genomecov -bga]]), and =labels.bed= for
 genomic regions with and without peaks (a quick and easy way to create
 labels is by visual inspection as in the [[http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][McGill ChIP-seq peak
-detection benchmark]]). TODO post an example data set with labels.
+detection benchmark]]). For example, to run it on the =bcell= and
+=tcell= samples of the [[https://github.com/tdhock/PeakSegJoint/tree/master/inst/exampleData][PeakSegJoint example data set]], convert them to
 
-Then use the [[file:create_problems.R]] script:
+#+BEGIN_SRC 
+H3K4me3_project/samples/bcell/McGill0091/coverage.bedGraph
+H3K4me3_project/samples/bcell/McGill0091/labels.bed
+H3K4me3_project/samples/bcell/McGill0322/coverage.bedGraph
+H3K4me3_project/samples/bcell/McGill0322/labels.bed
+H3K4me3_project/samples/tcell/McGill0107/coverage.bedGraph
+H3K4me3_project/samples/tcell/McGill0107/labels.bed
+H3K4me3_project/samples/tcell/McGill0322/coverage.bedGraph
+H3K4me3_project/samples/tcell/McGill0322/labels.bed
+#+END_SRC
+
+In the example above we have the =H3K4me3_project= directory which
+will contain all data sets, labels, and peak calls for a particular
+project (in this example, all H3K4me3 samples). The =samples=
+directory should contain a sub-directory for each sample group
+(experimental conditions or cell types, e.g. =bcell= or =tcell=). Each
+sample group directory should contain a sub-directory for each sample
+(e.g. =McGill0091= or =McGill0322=). Then use the
+[[file:create_problems.R]] script on each sample
 
 #+BEGIN_SRC shell-script
-Rscript create_problems.R hg19_problems.bed path/to/sample_directory
+Rscript create_problems.R hg19_problems.bed H3K4me3_project/samples/bcell/McGill0091
 #+END_SRC
 
 If you don't use hg19, then you can create another problems.bed file
 ([[file:gap2problems.R]]). The =create_problems.R= script creates a
 problem sub-directory for each line of =hg19_problems.bed=, for
-example =path/to/sample_dir/problems/chr4:75452279-191044276= which is
-the largest region without gaps in hg19. Each problem sub-directory contains
-- =problem.bed= with one line for the coordinates of this part of the genome.
-- =labels.bed= if there are labels in this part of the genome.
-- =coverage.bedGraph.sh= is a shell script which can be launched via
-  =bash= or =qsub= (edit the [[file:create_problems.R]] script to reflect
-  your cluster configuration).
+example
+=H3K4me3_project/samples/bcell/McGill0091/problems/chr4:75452279-191044276=
+which is the largest region without gaps in hg19. Each problem
+sub-directory contains
+- =problem.bed= with one line for the coordinates of this part of the
+  genome, and a =peaks.bed.sh= script.
+- If there are labels in this part of the genome, =labels.bed= and a
+  =target.tsv.sh= script.
+- =target.tsv.sh= and =peaks.bed.sh= are shell scripts which can be
+  launched via =bash= or =qsub= (edit the [[file:create_problems.R]]
+  script to reflect your cluster configuration).
 
-The =coverage.bedGraph.sh= files each typically contain one line
+The =target.tsv.sh= files contain one line
 
 #+BEGIN_SRC shell-script
-Rscript compute_coverage_target.R path/to/sample_dir/problems/chr4:75452279-191044276
+Rscript compute_coverage_target.R /path/to/H3K4me3_project/samples/bcell/McGill0091/problems/chr4:75452279-191044276
 #+END_SRC
 
 The [[file:compute_coverage_target.R]] script first creates
@@ -138,12 +161,27 @@ machine learning model that can predict optimal penalty values, even
 for un-labeled parts of the genome. To train a model, use
 
 #+BEGIN_SRC shell-script
-Rscript train_model.R samples_dir model.RData
+Rscript train_model.R H3K4me3_project/samples H3K4me3_project/model.RData
 #+END_SRC
 
-which trains a model using =samples_dir/*/problems/*/target.tsv=
-files, and saves it to =model.RData=. To make predictions, use =bash=
-or =qsub= on the =samples_dir/*/problems/*/peaks.bed.sh= scripts.
+which trains a model using
+=H3K4me3_project/samples/*/*/problems/*/target.tsv= files, and saves
+it to =H3K4me3_project/model.RData=. To make predictions, use =bash=
+or =qsub= on the =H3K4me3_project/samples/*/*/problems/*/peaks.bed.sh=
+scripts, which will create a =peaks.bed= file in each problem
+sub-directory. These =peaks.bed= files can be collated to obtain peak
+calls for the whole genome. For example, =cat H3K4me3_project/samples/bcell/McGill0091/problems/*/peaks.bed > H3K4me3_project/samples/bcell/McGill0091/peaks.bed= 
+will create a file with all peak predictions for the =bcell/McGill0091= sample.
+
+The next step is *joint* peak calling, which can be used to determine
+genomic regions with similar or different peak patterns in the
+different samples. To do that, run
+
+#+BEGIN_SRC shell-script
+Rscript create_problems_joint.R H3K4me3_project/samples 
+#+END_SRC
+
+TODO
 
 ** Related work
 

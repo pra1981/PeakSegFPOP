@@ -301,7 +301,7 @@ for(labels.name in names(labels.list)){
   system(test.cmd)
   labels.bed <- Sys.glob(paste0(sample.dir, "/problems/*/labels.bed"))
   problem.dir <- dirname(labels.bed)
-  sh.path <- file.path(problem.dir, "coverage.bedGraph.sh")
+  sh.path <- file.path(problem.dir, "target.tsv.sh")
   bash.cmd <- paste("bash", sh.path)
   system(bash.cmd)
   target.tsv <- file.path(problem.dir, "target.tsv")

@@ -13,7 +13,7 @@ PBS.header <- "#!/bin/bash
 ## output: problems directory with sub-directories for each problem
 ## with labels.
 
-arg.vec <- c("hg19_problems.bed", "labels/H3K36me3_TDH_immune/McGill0001")
+arg.vec <- c("hg19_problems.bed", "test/H3K4me3_TDH_other/samples/peakStart")
 arg.vec <- c("hg19_problems.bed", "labels/H3K36me3_AM_immune_folds2-4/McGill0322/")
 arg.vec <- commandArgs(trailingOnly=TRUE)
 if(length(arg.vec) != 2){
@@ -82,13 +82,13 @@ makeProblem <- function(problem.i){
       quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
   }
   ## Script for coverage.
-  prob.cov.bedGraph <- file.path(problem.dir, "coverage.bedGraph")
-  sh.file <- paste0(prob.cov.bedGraph, ".sh")
+  target.tsv <- file.path(problem.dir, "target.tsv")
+  sh.file <- paste0(target.tsv, ".sh")
   script.txt <- paste0(PBS.header, "
-#PBS -o ", prob.cov.bedGraph, ".out
-#PBS -e ", prob.cov.bedGraph, ".err
+#PBS -o ", target.tsv, ".out
+#PBS -e ", target.tsv, ".err
 #PBS -N COVER", problem$problem.name, "
-", "Rscript ", normalizePath("compute_coverage_target.R"), " ", problem.dir, "
+", "Rscript ", normalizePath("compute_coverage_target.R", mustWork=TRUE), " ", problem.dir, "
 ")
   writeLines(script.txt, sh.file)
   ## Script for peaks.
@@ -98,7 +98,7 @@ makeProblem <- function(problem.i){
 #PBS -o ", peaks.bed, ".out
 #PBS -e ", peaks.bed, ".err
 #PBS -N PRED", problem$problem.name, "
-", "Rscript ", normalizePath("predict_problem.R"), " ",
+", "Rscript ", normalizePath("predict_problem.R", mustWork=TRUE), " ",
 model.RData, " ", problem.dir, " 
 ")
   writeLines(script.txt, sh.file)
