@@ -181,12 +181,25 @@ for(chunk.id in chunk.vec){
   system(cmd)
 }
 data.dir <- dirname(samples.dir)
-target.tsv.vec <- Sys.glob(file.path(
+target.sh.vec <- Sys.glob(file.path(
   data.dir, "jointProblems", "*", "target.tsv.sh"))
-peaks.bed.vec <- Sys.glob(file.path(
+peaks.sh.vec <- Sys.glob(file.path(
   data.dir, "jointProblems", "*", "peaks.bed.sh"))
-test_that("more peaks.bed.sh prediction scripts than target.tsv.sh training", {
-  expect_true(length(target.tsv.vec) < length(peaks.bed.vec))
+test_that("more peaks.bed.sh prediction scripts than target.sh training", {
+  expect_true(length(target.sh.vec) < length(peaks.sh.vec))
+})
+test_that("there are some labeled problems", {
+  expect_true(0 < length(target.sh.vec))
+})
+
+## Compute target intervals.
+for(target.sh in target.sh.vec){
+  target.cmd <- paste("bash", target.sh)
+  system(target.cmd)
+}
+target.tsv.vec <- sub("[.]sh$", "", target.sh.vec)
+test_that("target intervals computed", {
+  expect_true(all(file.exists(target.tsv.vec)))
 })
 
 ## Longer test for target interval search.
