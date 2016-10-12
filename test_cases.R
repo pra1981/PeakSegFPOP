@@ -154,12 +154,23 @@ test_that("predict model with 2 peaks", {
   expect_equal(nrow(peaks), 2)
 })
 
-## Predict for an entire sample.
+## Predict for an entire sample using predict_sample.R
 sample.dir <- file.path(samples.dir, "skeletalMuscleCtrl", "McGill0036")
 sample.pred.cmd <- paste("Rscript predict_sample.R", model.RData, sample.dir)
 system(sample.pred.cmd)
-test_that("sampleID/peaks.bed file created", {
+test_that("sampleID/peaks.bed file created using predict_sample.R", {
   peaks.bed <- file.path(sample.dir, "peaks.bed")
+  peaks <- fread(peaks.bed)
+  setnames(peaks, c("chrom", "chromStart", "chromEnd", "status", "mean"))
+})
+
+## Predict for an entire sample using sampleID/peaks.bed.sh
+sample.dir <- file.path(samples.dir, "kidney", "McGill0023")
+peaks.bed <- file.path(sample.dir, "peaks.bed")
+peaks.bed.sh <- paste0(peaks.bed, ".sh")
+sample.pred.cmd <- paste("bash", peaks.bed.sh)
+system(sample.pred.cmd)
+test_that("sampleID/peaks.bed file created using peaks.bed.sh", {
   peaks <- fread(peaks.bed)
   setnames(peaks, c("chrom", "chromStart", "chromEnd", "status", "mean"))
 })
