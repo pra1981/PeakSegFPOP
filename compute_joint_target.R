@@ -1,4 +1,5 @@
 arg.vec <- "test/H3K4me3_TDH_other/jointProblems/chr4:88923952-88935469"
+arg.vec <- "test/H3K4me3_TDH_other/jointProblems/chr11:110160402-110172255"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
@@ -32,7 +33,7 @@ if(FALSE){
   ggplot()+
     theme_bw()+
     theme(panel.margin=grid::unit(0, "lines"))+
-    facet_grid(sample.id ~ ., scales="free")+
+    facet_grid(sample.group + sample.id ~ ., scales="free")+
     scale_fill_manual(values=ann.colors)+
     geom_tallrect(aes(
       xmin=chromStart/1e3,
@@ -45,7 +46,9 @@ if(FALSE){
       xmin=chromStart/1e3,
       xmax=chromEnd/1e3,
       linetype=status),
-      color="black",
+                  color="black",
+                  size=1,
+                  fill=NA,
       data=show.errors)+
     scale_linetype_manual(
       "error type",
@@ -56,17 +59,17 @@ if(FALSE){
                "false negative"=3,
                "false positive"=1))+
     geom_step(aes(chromStart/1e3, count),
-              data=coverage,
+              data=converted$coverage,
               color="grey50")+
-    ## geom_segment(aes(chromStart/1e3, 0,
-    ##                  xend=chromEnd/1e3, yend=0),
-    ##              data=subset(converted$peaks, peaks==max(peaks)),
-    ##              color="deepskyblue",
-    ##              size=2)+
-    geom_segment(aes(chromStart/1e3, mean,
-                     xend=chromEnd/1e3, yend=mean),
-                 data=subset(converted$segments, peaks==max(peaks)),
-                 color="green")
+    geom_segment(aes(chromStart/1e3, 0,
+                     xend=chromEnd/1e3, yend=0),
+                 data=show.peaks.df,
+                 color="deepskyblue",
+                 size=2)
+    ## geom_segment(aes(chromStart/1e3, mean,
+    ##                  xend=chromEnd/1e3, yend=mean),
+    ##              data=
+    ##              color="green")
 }
 
 target.tsv <- file.path(jointProblem.dir, "target.tsv")
