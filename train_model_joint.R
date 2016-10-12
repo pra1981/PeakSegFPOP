@@ -108,8 +108,6 @@ joint.model <- IntervalRegressionProblems(
   initial.regularization=mean.reg,
   factor.regularization=NULL)
 
-joint.model <- IntervalRegressionProblems(problems.list)
-
 save(joint.model, problems.list, file=joint.model.RData)
 
 
