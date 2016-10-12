@@ -164,17 +164,6 @@ test_that("sampleID/peaks.bed file created using predict_sample.R", {
   setnames(peaks, c("chrom", "chromStart", "chromEnd", "status", "mean"))
 })
 
-## Predict for an entire sample using sampleID/peaks.bed.sh
-sample.dir <- file.path(samples.dir, "kidney", "McGill0023")
-peaks.bed <- file.path(sample.dir, "peaks.bed")
-peaks.bed.sh <- paste0(peaks.bed, ".sh")
-sample.pred.cmd <- paste("bash", peaks.bed.sh)
-system(sample.pred.cmd)
-test_that("sampleID/peaks.bed file created using peaks.bed.sh", {
-  peaks <- fread(peaks.bed)
-  setnames(peaks, c("chrom", "chromStart", "chromEnd", "status", "mean"))
-})
-
 ## Predict on some data where we have labels, so we can train the
 ## joint algo.
 labels.bed.vec <- Sys.glob(file.path(
@@ -296,7 +285,7 @@ labels.list <- list(
 results.list <- list()
 samples.dir <- file.path("test", "H3K4me3_TDH_other", "samples")
 for(labels.name in names(labels.list)){
-  sample.dir <- file.path(samples.dir, labels.name)
+  sample.dir <- file.path(samples.dir, "notype", labels.name)
   labels <- labels.list[[labels.name]]
   unlink(sample.dir, recursive=TRUE)
   dir.create(sample.dir, showWarnings=FALSE, recursive=TRUE)
@@ -351,6 +340,16 @@ test_that("biggest min error model for noPeaks label has 1 peak", {
 
 test_that("smallest min error model for noPeaks label has 0 peaks", {
   expect_equal(min(results.list$noPeaks$peaks), 0)
+})
+
+## Predict for an entire sample using sampleID/peaks.bed.sh
+peaks.bed <- file.path(sample.dir, "peaks.bed")
+peaks.bed.sh <- paste0(peaks.bed, ".sh")
+sample.pred.cmd <- paste("bash", peaks.bed.sh)
+system(sample.pred.cmd)
+test_that("sampleID/peaks.bed file created using peaks.bed.sh", {
+  peaks <- fread(peaks.bed)
+  setnames(peaks, c("chrom", "chromStart", "chromEnd", "status", "mean"))
 })
 
 ## Overlapping labels test.

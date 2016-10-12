@@ -25,14 +25,16 @@ library(PeakError)
 
 problems.bed <- normalizePath(arg.vec[1], mustWork=TRUE)
 sample.dir <- normalizePath(arg.vec[2], mustWork=TRUE)
-samples.dir <- dirname(sample.dir)
+group.dir <- dirname(sample.dir)
+samples.dir <- dirname(group.dir)
 data.dir <- dirname(samples.dir)
 model.RData <- file.path(data.dir, "model.RData")
 
 problems <- fread(problems.bed)
 setnames(problems, c("chrom", "problemStart", "problemEnd"))
 problems[, problemStart1 := problemStart + 1L]
-problems[, problem.name := sprintf("%s:%d-%d", chrom, problemStart, problemEnd)]
+problems[, problem.name := sprintf(
+  "%s:%d-%d", chrom, problemStart, problemEnd)]
 coverage.bedGraph <- file.path(sample.dir, "coverage.bedGraph")
 labels.bed <- file.path(sample.dir, "labels.bed")
 labels <- fread(labels.bed)
@@ -106,3 +108,16 @@ model.RData, " ", problem.dir, "
 
 library(parallel)
 nothing <- mclapply(1:nrow(problems), makeProblem)
+
+## Script for peaks on the whole sample.
+peaks.bed <- file.path(sample.dir, "peaks.bed")
+sh.file <- paste0(peaks.bed, ".sh")
+sample.id <- basename(sample.dir)
+script.txt <- paste0(PBS.header, "
+#PBS -o ", peaks.bed, ".out
+#PBS -e ", peaks.bed, ".err
+#PBS -N Predict", sample.id, "
+", "Rscript ", normalizePath("predict_sample.R", mustWork=TRUE), " ",
+model.RData, " ", sample.dir, " 
+")
+writeLines(script.txt, sh.file)
