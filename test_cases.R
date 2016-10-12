@@ -210,6 +210,16 @@ test_that("joint.model.RData created", {
   expect_true(file.exists(joint.model.RData))
 })
 
+## Joint prediction.
+for(peaks.sh in peaks.sh.vec){
+  predict.cmd <- paste("bash", peaks.sh)
+  system(predict.cmd)
+}
+peaks.bed.vec <- sub("[.]sh$", "", peaks.sh.vec)
+test_that("joint peaks.bed files created", {
+  expect_true(all(file.exists(peaks.bed.vec)))
+})
+
 ## Longer test for target interval search.
 data(H3K36me3_AM_immune_McGill0002_chunk1, package="cosegData")
 writeProblem(H3K36me3_AM_immune_McGill0002_chunk1, problem.dir)
