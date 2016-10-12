@@ -214,7 +214,7 @@ makeProblem <- function(problem.i){
     script.txt <- paste0(PBS.header, "
 #PBS -o ", target.tsv, ".out
 #PBS -e ", target.tsv, ".err
-#PBS -N JTRAIN", pname, "
+#PBS -N JTarget", pname, "
 ", "Rscript ", normalizePath("compute_joint_target.R", mustWork=TRUE), " ",
 problem.dir, " 
 ")
@@ -226,7 +226,7 @@ problem.dir, "
   script.txt <- paste0(PBS.header, "
 #PBS -o ", peaks.bed, ".out
 #PBS -e ", peaks.bed, ".err
-#PBS -N PRED", problem$problem.name, "
+#PBS -N JPred", problem$problem.name, "
 ", "Rscript ", normalizePath("predict_problem_joint.R", mustWork=TRUE), " ",
 joint.model.RData, " ", problem.dir, " 
 ")
@@ -235,3 +235,4 @@ joint.model.RData, " ", problem.dir, "
 
 library(parallel)
 nothing <- lapply(1:nrow(problem.info), makeProblem)
+
