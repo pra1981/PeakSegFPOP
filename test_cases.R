@@ -7,6 +7,8 @@ set.dir <- file.path("test", set.name)
 samples.dir <- file.path(set.dir, "samples")
 chunk.list <- list(train=c(22, 7), test=24)
 chunk.vec <- unlist(chunk.list)
+counts.by.chunk <- list()
+regions.by.chunk <- list()
 for(chunk.id in chunk.vec){
   chunk.dir <- file.path(set.dir, "chunks", chunk.id)
   chunk.name <- paste0(set.name, "/", chunk.id)
@@ -17,6 +19,7 @@ for(chunk.id in chunk.vec){
     download.file(u, counts.RData)
   }
   load(counts.RData)
+  counts.by.chunk[[paste(chunk.id)]] <- counts
   counts.by.sample <- split(counts, counts$sample.id)
   regions.RData <- file.path(chunk.dir, "regions.RData")
   if(!file.exists(regions.RData)){
@@ -24,6 +27,7 @@ for(chunk.id in chunk.vec){
     download.file(u, regions.RData)
   }
   load(regions.RData)
+  regions.by.chunk[[paste(chunk.id)]] <- regions
   regions.by.sample <- split(regions, regions$sample.id)
   for(sample.id in names(regions.by.sample)){
     sample.counts <- counts.by.sample[[sample.id]]
@@ -211,14 +215,89 @@ test_that("joint.model.RData created", {
 })
 
 ## Joint prediction.
+all.peaks.list <- list()
 for(peaks.sh in peaks.sh.vec){
   predict.cmd <- paste("bash", peaks.sh)
+  peaks.bed <- sub("[.]sh$", "", peaks.sh)
+  unlink(peaks.bed)
   system(predict.cmd)
+  test_that("joint peaks.bed created", {
+    expect_true(all(file.exists(peaks.bed)))
+  })
+  tryCatch({
+    problem.peaks <- fread(peaks.bed)
+    setnames(problem.peaks, c("chrom", "chromStart", "chromEnd", "sample.path", "mean"))
+    problem.bed <- sub("peaks.bed$", "problem.bed", peaks.bed)
+    problem <- fread(problem.bed)
+    setnames(problem, c("chrom", "problemStart", "problemEnd", "chunk.id"))
+    all.peaks.list[[peaks.sh]] <- data.table(
+      chunk.id=problem$chunk.id,
+      problem.peaks)
+  }, error=function(e){
+    NULL
+  })
 }
-peaks.bed.vec <- sub("[.]sh$", "", peaks.sh.vec)
-test_that("joint peaks.bed files created", {
-  expect_true(all(file.exists(peaks.bed.vec)))
-})
+all.peaks <- do.call(rbind, all.peaks.list)
+all.peaks[, sample.id := sub(".*/", "", sample.path)]
+all.peaks[, sample.group := sub("/.*", "", sample.path)]
+peaks.by.chunk <- split(all.peaks, all.peaks$chunk.id)
+
+ann.colors <-
+  c(noPeaks="#f6f4bf",
+    peakStart="#ffafaf",
+    peakEnd="#ff4c4c",
+    peaks="#a445ee")
+for(chunk.id in chunk.vec){
+  chunk.peaks <- peaks.by.chunk[[paste(chunk.id)]]
+  chunk.counts <- counts.by.chunk[[paste(chunk.id)]]
+  chunk.regions <- regions.by.chunk[[paste(chunk.id)]]
+  chunk.regions$sample.group <- chunk.regions$cell.type
+  chunk.errors <- PeakErrorSamples(chunk.peaks, chunk.regions)
+
+  ## ggplot()+
+  ##   theme_bw()+
+  ##   theme(panel.margin=grid::unit(0, "lines"))+
+  ##   facet_grid(sample.id ~ ., scales="free")+
+  ##   scale_fill_manual(values=ann.colors)+
+  ##   geom_tallrect(aes(
+  ##     xmin=chromStart/1e3,
+  ##     xmax=chromEnd/1e3,
+  ##     fill=annotation),
+  ##     color="grey",
+  ##     alpha=0.5,
+  ##     data=chunk.regions)+
+  ##   geom_tallrect(aes(
+  ##     xmin=chromStart/1e3,
+  ##     xmax=chromEnd/1e3,
+  ##     linetype=status),
+  ##                 color="black",
+  ##                 size=1,
+  ##                 fill=NA,
+  ##     data=chunk.errors)+
+  ##   scale_linetype_manual(
+  ##     "error type",
+  ##     limits=c("correct", 
+  ##              "false negative",
+  ##              "false positive"),
+  ##     values=c(correct=0,
+  ##              "false negative"=3,
+  ##              "false positive"=1))+
+  ##   geom_step(aes(chromStart/1e3, coverage),
+  ##             data=chunk.counts,
+  ##             color="grey50")+
+  ##   geom_segment(aes(chromStart/1e3, 0,
+  ##                    xend=chromEnd/1e3, yend=0),
+  ##                data=chunk.peaks,
+  ##                color="deepskyblue",
+  ##                size=2)
+
+  with(chunk.errors, cat(sprintf(
+    "chunk=%4d FP=%4d/%4d FN=%4d/%4d\n",
+    chunk.id,
+    sum(fp), sum(possible.fp),
+    sum(fn), sum(possible.tp))))
+  
+}
 
 ## Longer test for target interval search.
 data(H3K36me3_AM_immune_McGill0002_chunk1, package="cosegData")
