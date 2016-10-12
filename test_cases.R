@@ -179,8 +179,7 @@ for(chunk.id in chunk.vec){
   cmd <- paste("Rscript create_problems_joint.R", samples.dir, chunk.id)
   system(cmd)
 }
-data.dir <- dirname(samples.dir)
-jointProblems <- file.path(data.dir, "jointProblems")
+jointProblems <- file.path(set.dir, "jointProblems")
 target.sh.vec <- Sys.glob(file.path(
   jointProblems, "*", "target.tsv.sh"))
 peaks.sh.vec <- Sys.glob(file.path(
@@ -203,7 +202,13 @@ test_that("target intervals computed", {
 })
 
 ## train joint model.
-cmd <- paste("Rscript train_model_joint.R", jointProblems)
+joint.model.RData <- file.path(set.dir, "joint.model.RData")
+train.joint.cmd <- paste(
+  "Rscript train_model_joint.R", jointProblems, joint.model.RData)
+system(train.joint.cmd)
+test_that("joint.model.RData created", {
+  expect_true(file.exists(joint.model.RData))
+})
 
 ## Longer test for target interval search.
 data(H3K36me3_AM_immune_McGill0002_chunk1, package="cosegData")
