@@ -1,5 +1,6 @@
 library(testthat)
 library(data.table)
+library(PeakSegJoint)
 library(coseg)
 writeProblem <- function(data.list, problem.dir){
   file.list <- list(
