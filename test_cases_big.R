@@ -1,6 +1,23 @@
 source("test_functions.R")
 writeProblem <- function(...){}
 
+## Test for target interval after infeasible models.
+obj.name <- "H3K4me3_TDH_immune_tcell_McGill0007_chr10_60000_17974675"
+problem.dir <- file.path("test", obj.name)
+data(list=obj.name, package="cosegData")
+data.list <- get(obj.name)
+writeProblem(data.list, problem.dir)
+test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
+system(test.cmd)
+target.vec <- scan(file.path(problem.dir, "target.tsv"), quiet=TRUE)
+models <- fread(file.path(problem.dir, "target_models.tsv"))
+models.above <- models[target.vec[2] < log(penalty), ]
+n.infeasible <- sum(models.above$status == "infeasible")
+test_that("only feasible models above upper penalty limit", {
+  expect_equal(n.infeasible, 0)
+})
+
+## Test for not computing a useless model that does not help find the target interval.
 obj.name <- "H3K36me3_AM_immune_samples_monocyte_McGill0001_chr3_60000_66170270"
 problem.dir <- file.path("test", obj.name)
 data(list=obj.name, package="cosegData")
