@@ -436,6 +436,33 @@ test_that("smallest min error model for noPeaks label has 0 peaks", {
   expect_equal(min(results.list$noPeaks$peaks), 0)
 })
 
+## First line of segments.bed should be the last segment, and its
+## chromEnd should be the same as the last line of coverage.bedGraph.
+segments.glob <- paste0(problem.dir, "/*_segments.bed")
+head.cmd <- paste0("head -1 -q ", segments.glob)
+last.segments <- fread(head.cmd)
+setnames(last.segments, c("chrom", "chromStart", "chromEnd", "status", "mean"))
+tail.cmd <- paste("tail -1", coverage.bedGraph)
+last.coverage <- fread(tail.cmd)
+setnames(last.coverage, c("chrom", "chromStart", "chromEnd", "count"))
+test_that("last segments chromEnd == last coverage chromEnd", {
+  end.vec <- rep(last.coverage$chromEnd, nrow(last.segments))
+  expect_equal(last.segments$chromEnd, end.vec)
+})
+
+## Last line of segments.bed should be the first segment, and its
+## chromStart should be the same as the first line of coverage.bedGraph.
+tail.cmd <- paste0("tail -n 1 -q ", segments.glob)
+first.segments <- fread(tail.cmd)
+setnames(first.segments, c("chrom", "chromStart", "chromEnd", "status", "mean"))
+head.cmd <- paste("head -1", coverage.bedGraph)
+first.coverage <- fread(head.cmd)
+setnames(first.coverage, c("chrom", "chromStart", "chromEnd", "count"))
+test_that("first segments chromStart == first coverage chromStart", {
+  start.vec <- rep(first.coverage$chromStart, nrow(first.segments))
+  expect_equal(first.segments$chromStart, start.vec)
+})
+
 ## Predict for an entire sample using sampleID/peaks.bed.sh
 peaks.bed <- file.path(sample.dir, "peaks.bed")
 peaks.bed.sh <- paste0(peaks.bed, ".sh")

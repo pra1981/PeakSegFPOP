@@ -13,8 +13,17 @@ timing.stats <- timing.data[penalty < Inf, list(
   min.megabytes=min(megabytes),
   max.megabytes=max(megabytes),
   penalties=.N,
-  n.Inf=sum(errors==Inf)
-  ), by=.(problem.dir, n.data)]
+  n.Inf=sum(errors==Inf),
+  feasible.changes=sum(abs(diff(status=="feasible")))
+  ), by=.(problem.dir, n.data)][order(n.data),]
+levs <- timing.stats$problem.dir
+timing.stats[, problem.fac := factor(problem.dir, levs)]
+timing.data[, problem.fac := factor(problem.dir, levs)]
+table(timing.stats$feasible.changes)
+weird.problem.dirs <- timing.stats[1 < feasible.changes, problem.dir]
+weird.timings <- timing.data[problem.dir %in% weird.problem.dirs, ]
+weird.list <- split(weird.timings, weird.timings$problem.fac, drop=TRUE)
+lapply(weird.list, function(dt)dt[, .(n.data, penalty, peaks, status, fn, fp, errors)])
 
 ## labels/H3K4me3_TDH_immune/samples/tcell/McGill0025/problems/chr3:93504854-194041961
 ## ran PeakSegFPOP for too many infeasible models.
