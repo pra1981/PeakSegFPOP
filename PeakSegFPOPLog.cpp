@@ -94,7 +94,7 @@ int main(int argc, char *argv[]){//data_count x 2
     weight = chromEnd-chromStart;
     cum_weight_i += weight;
     cum_weighted_count += weight*coverage;
-    if(data_i==0){
+    if(line_i == 1){
       first_chromStart = chromStart;
     }
     log_data = log(coverage);
