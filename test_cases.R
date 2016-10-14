@@ -72,7 +72,8 @@ for(chunk.id in chunk.vec){
   }
 }
 
-## Should not ever compute two 0 peaks models.
+## Should not compute two 0 peaks models in this data set where there
+## is a 1 peak model.
 models <- fread("test/H3K4me3_TDH_other/samples/skeletalMuscleCtrl/McGill0036/problems/22/target_models.tsv")
 test_that("only one model with 0 peaks", {
   expect_equal(sum(models$peaks==0), 1)
@@ -80,25 +81,24 @@ test_that("only one model with 0 peaks", {
 
 ## The model with 31 peaks does not help to find the target interval,
 ## so we should not compute it.
-loss <- fread("cat test/H3K4me3_TDH_other/samples/kidney/McGill0023/problems/22/*_loss.tsv")
-setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
+models <- fread("cat test/H3K4me3_TDH_other/samples/kidney/McGill0023/problems/22/target_models.tsv")
 test_that("un-necessary models are not computed", {
-  expect_false(31 %in% loss$peaks)
+  expect_false(31 %in% models$peaks)
 })
 
 ## it should be possible to achieve zero errors in each of these
 ## simple problems.
 models <- fread("test/H3K4me3_TDH_other/samples/kidney/McGill0023/problems/22/target_models.tsv")
 test_that("target interval includes no errors", {
-  expect_true(0 %in% models$errors)
+  expect_true(0 %in% models[, fp + fn])
 })
 models <- fread("test/H3K4me3_TDH_other/samples/skeletalMuscleCtrl/McGill0037/problems/7/target_models.tsv")
 test_that("target interval includes no errors", {
-  expect_true(0 %in% models$errors)
+  expect_true(0 %in% models[, fp + fn])
 })
 models <- fread("test/H3K4me3_TDH_other/samples/skeletalMuscleMD/McGill0016/problems/7/target_models.tsv")
 test_that("target interval includes no errors", {
-  expect_true(0 %in% models$errors)
+  expect_true(0 %in% models[, fp + fn])
 })
 
 model.RData <- file.path(set.dir, "model.RData")
@@ -276,55 +276,58 @@ for(chunk.id in chunk.vec){
   chunk.regions <- regions.by.chunk[[paste(chunk.id)]]
   chunk.regions$sample.group <- chunk.regions$cell.type
   chunk.errors <- PeakErrorSamples(chunk.peaks, chunk.regions)
-
-  ## ggplot()+
-  ##   theme_bw()+
-  ##   theme(panel.margin=grid::unit(0, "lines"))+
-  ##   facet_grid(sample.id ~ ., scales="free")+
-  ##   scale_fill_manual(values=ann.colors)+
-  ##   geom_tallrect(aes(
-  ##     xmin=chromStart/1e3,
-  ##     xmax=chromEnd/1e3,
-  ##     fill=annotation),
-  ##     color="grey",
-  ##     alpha=0.5,
-  ##     data=chunk.regions)+
-  ##   geom_tallrect(aes(
-  ##     xmin=chromStart/1e3,
-  ##     xmax=chromEnd/1e3,
-  ##     linetype=status),
-  ##                 color="black",
-  ##                 size=1,
-  ##                 fill=NA,
-  ##     data=chunk.errors)+
-  ##   scale_linetype_manual(
-  ##     "error type",
-  ##     limits=c("correct", 
-  ##              "false negative",
-  ##              "false positive"),
-  ##     values=c(correct=0,
-  ##              "false negative"=3,
-  ##              "false positive"=1))+
-  ##   geom_step(aes(chromStart/1e3, coverage),
-  ##             data=chunk.counts,
-  ##             color="grey50")+
-  ##   geom_segment(aes(chromStart/1e3, 0,
-  ##                    xend=chromEnd/1e3, yend=0),
-  ##                data=chunk.peaks,
-  ##                color="deepskyblue",
-  ##                size=2)
-
+  if(interactive()){
+    gg <- ggplot()+
+    theme_bw()+
+    theme(panel.margin=grid::unit(0, "lines"))+
+    facet_grid(sample.id ~ ., scales="free")+
+    scale_fill_manual(values=ann.colors)+
+    geom_tallrect(aes(
+      xmin=chromStart/1e3,
+      xmax=chromEnd/1e3,
+      fill=annotation),
+      color="grey",
+      alpha=0.5,
+      data=chunk.regions)+
+    geom_tallrect(aes(
+      xmin=chromStart/1e3,
+      xmax=chromEnd/1e3,
+      linetype=status),
+                  color="black",
+                  size=1,
+                  fill=NA,
+      data=chunk.errors)+
+    scale_linetype_manual(
+      "error type",
+      limits=c("correct", 
+               "false negative",
+               "false positive"),
+      values=c(correct=0,
+               "false negative"=3,
+               "false positive"=1))+
+    geom_step(aes(chromStart/1e3, coverage),
+              data=chunk.counts,
+              color="grey50")+
+    geom_segment(aes(chromStart/1e3, 0,
+                     xend=chromEnd/1e3, yend=0),
+                 data=chunk.peaks,
+                 color="deepskyblue",
+                 size=2)
+    print(gg)
+  }
   with(chunk.errors, cat(sprintf(
     "chunk=%4d FP=%4d/%4d FN=%4d/%4d\n",
     chunk.id,
     sum(fp), sum(possible.fp),
     sum(fn), sum(possible.tp))))
-  
 }
 
 ## Longer test for target interval search.
-data(H3K36me3_AM_immune_McGill0002_chunk1, package="cosegData")
-writeProblem(H3K36me3_AM_immune_McGill0002_chunk1, problem.dir)
+prob.name <- "H3K36me3_AM_immune_McGill0002_chunk1"
+data(list=prob.name, package="cosegData")
+data.list <- get(prob.name)
+problem.dir <- file.path("test", prob.name)
+writeProblem(data.list, problem.dir)
 test.cmd <- paste("Rscript compute_features.R", problem.dir)
 system(test.cmd)
 f.row <- read.table(
@@ -365,7 +368,6 @@ loss[, log.penalty := log(penalty)]
 target.tsv <- file.path(problem.dir, "target.tsv")
 target.vec <- scan(target.tsv, quiet=TRUE)
 ## 9.18313518325901 12.4640792600544
-
 test_that("target interval is around min error", {
   best <- loss[target.vec[1] < log.penalty & log.penalty < target.vec[2],]
   max.peaks <- max(best$peaks)
