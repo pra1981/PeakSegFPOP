@@ -29,6 +29,7 @@ group.dir <- dirname(sample.dir)
 samples.dir <- dirname(group.dir)
 data.dir <- dirname(samples.dir)
 model.RData <- file.path(data.dir, "model.RData")
+problems.dir <- file.path(sample.dir, "problems")
 
 problems <- fread(problems.bed)
 setnames(problems, c("chrom", "problemStart", "problemEnd"))
@@ -36,31 +37,35 @@ problems[, problemStart1 := problemStart + 1L]
 problems[, problem.name := sprintf(
   "%s:%d-%d", chrom, problemStart, problemEnd)]
 coverage.bedGraph <- file.path(sample.dir, "coverage.bedGraph")
-labels.bed <- file.path(sample.dir, "labels.bed")
-labels <- fread(labels.bed)
-setnames(labels, c("chrom", "chromStart", "chromEnd", "annotation"))
-just.to.check <- PeakError(Peaks(), labels)
 
-labels[, chromStart1 := chromStart + 1L]
-problems.dir <- file.path(sample.dir, "problems")
-setkey(labels, chrom, chromStart1, chromEnd)
-setkey(problems, chrom, problemStart1, problemEnd)
-over.dt <- foverlaps(labels, problems, nomatch=0L)
-if(nrow(over.dt) < nrow(labels)){
-  warning(
-    nrow(labels), " lines in ",
-    labels.bed, " but only ",
-    nrow(over.dt), " labels occur in ",
-    problems.bed)
-}
-labels.by.problem <- split(data.frame(over.dt), over.dt$problem.name)
+labels.bed <- file.path(sample.dir, "labels.bed")
+labels.by.problem <- tryCatch({
+  labels <- fread(labels.bed)
+  setnames(labels, c("chrom", "chromStart", "chromEnd", "annotation"))
+  just.to.check <- PeakError(Peaks(), labels)
+  labels[, chromStart1 := chromStart + 1L]
+  setkey(labels, chrom, chromStart1, chromEnd)
+  setkey(problems, chrom, problemStart1, problemEnd)
+  over.dt <- foverlaps(labels, problems, nomatch=0L)
+  if(nrow(over.dt) < nrow(labels)){
+    warning(
+      nrow(labels), " lines in ",
+      labels.bed, " but only ",
+      nrow(over.dt), " labels occur in ",
+      problems.bed)
+  }
+  split(data.frame(over.dt), over.dt$problem.name)
+}, error=function(e){
+  cat("No labels in", labels.bed, "\n")
+  list()
+})
 
 makeProblem <- function(problem.i){
   problem <- data.frame(problems)[problem.i,]
   problem.dir <- file.path(problems.dir, problem$problem.name)
-  cat(sprintf(
-    "%4d / %4d %s\n",
-    problem.i, nrow(problems), problem.dir))
+  ## cat(sprintf(
+  ##   "%4d / %4d %s\n",
+  ##   problem.i, nrow(problems), problem.dir))
   dir.create(problem.dir, showWarnings=FALSE, recursive=TRUE)
   problem.bed <- file.path(problem.dir, "problem.bed")
   prob.text <- with(problem, data.frame(
@@ -106,8 +111,8 @@ model.RData, " ", problem.dir, "
   writeLines(script.txt, sh.file)
 }
 
-library(parallel)
-nothing <- mclapply(1:nrow(problems), makeProblem)
+cat("Creating scripts for", nrow(problems), "problems.\n")
+nothing <- lapply(1:nrow(problems), makeProblem)
 
 ## Script for peaks on the whole sample.
 peaks.bed <- file.path(sample.dir, "peaks.bed")
