@@ -39,9 +39,16 @@ problems[, problem.name := sprintf(
 coverage.bedGraph <- file.path(sample.dir, "coverage.bedGraph")
 
 labels.bed <- file.path(sample.dir, "labels.bed")
-labels.by.problem <- tryCatch({
+labels <- tryCatch({
   labels <- fread(labels.bed)
   setnames(labels, c("chrom", "chromStart", "chromEnd", "annotation"))
+  labels
+}, error=function(e){
+  cat("No labels in", labels.bed, "\n")
+  list()
+})
+
+labels.by.problem <- if(length(labels)){
   just.to.check <- PeakError(Peaks(), labels)
   labels[, chromStart1 := chromStart + 1L]
   setkey(labels, chrom, chromStart1, chromEnd)
@@ -55,10 +62,7 @@ labels.by.problem <- tryCatch({
       problems.bed)
   }
   split(data.frame(over.dt), over.dt$problem.name)
-}, error=function(e){
-  cat("No labels in", labels.bed, "\n")
-  list()
-})
+}
 
 makeProblem <- function(problem.i){
   problem <- data.frame(problems)[problem.i,]
@@ -111,7 +115,7 @@ model.RData, " ", problem.dir, "
   writeLines(script.txt, sh.file)
 }
 
-cat("Creating scripts for", nrow(problems), "problems.\n")
+cat("Creating ", nrow(problems), " problems in ", problems.dir, ".\n", sep="")
 nothing <- lapply(1:nrow(problems), makeProblem)
 
 ## Script for peaks on the whole sample.
