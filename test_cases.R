@@ -72,10 +72,33 @@ for(chunk.id in chunk.vec){
   }
 }
 
+## Should not ever compute two 0 peaks models.
+models <- fread("test/H3K4me3_TDH_other/samples/skeletalMuscleCtrl/McGill0036/problems/22/target_models.tsv")
+test_that("only one model with 0 peaks", {
+  expect_equal(sum(models$peaks==0), 1)
+})
+
+## The model with 31 peaks does not help to find the target interval,
+## so we should not compute it.
 loss <- fread("cat test/H3K4me3_TDH_other/samples/kidney/McGill0023/problems/22/*_loss.tsv")
 setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
 test_that("un-necessary models are not computed", {
   expect_false(31 %in% loss$peaks)
+})
+
+## it should be possible to achieve zero errors in each of these
+## simple problems.
+models <- fread("test/H3K4me3_TDH_other/samples/kidney/McGill0023/problems/22/target_models.tsv")
+test_that("target interval includes no errors", {
+  expect_true(0 %in% models$errors)
+})
+models <- fread("test/H3K4me3_TDH_other/samples/skeletalMuscleCtrl/McGill0037/problems/7/target_models.tsv")
+test_that("target interval includes no errors", {
+  expect_true(0 %in% models$errors)
+})
+models <- fread("test/H3K4me3_TDH_other/samples/skeletalMuscleMD/McGill0016/problems/7/target_models.tsv")
+test_that("target interval includes no errors", {
+  expect_true(0 %in% models$errors)
 })
 
 model.RData <- file.path(set.dir, "model.RData")
