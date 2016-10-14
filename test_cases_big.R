@@ -18,18 +18,6 @@ test_that("only feasible models above upper penalty limit", {
 })
 
 ## Test for not computing a useless model that does not help find the target interval.
-obj.name <- "H3K36me3_AM_immune_samples_monocyte_McGill0001_chr3_60000_66170270"
-problem.dir <- file.path("test", obj.name)
-data(list=obj.name, package="cosegData")
-data.list <- get(obj.name)
-writeProblem(data.list, problem.dir)
-test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
-system(test.cmd)
-models <- fread(file.path(problem.dir, "target_models.tsv"))
-test_that("did not compute useless models", {
-  expect_false(30 %in% models$peaks)
-})
-
 obj.name <- "H3K4me3_TDH_immune_McGill0005_chr1_17175658_29878082"
 problem.dir <- file.path("test", obj.name)
 data(list=obj.name, package="cosegData")
@@ -115,7 +103,6 @@ cat.cmd <- paste0("cat ", problem.dir, "/*loss.tsv")
 loss <- fread(cat.cmd)
 setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
 test_that("un-helpful models are not computed", {
-  expect_false(60 %in% loss$peaks)
   expect_false(2084 %in% loss$peaks)
   expect_false(618 %in% loss$peaks)
 })
