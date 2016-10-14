@@ -491,9 +491,21 @@ test_that("first segments chromStart == first coverage chromStart", {
   expect_equal(first.segments$chromStart, start.vec)
 })
 
-## Predict for an entire sample using sampleID/peaks.bed.sh
+## Make sure create_problems.R works for samples with no labels.
+unlink(file.path(sample.dir, "labels.bed"))
 peaks.bed <- file.path(sample.dir, "peaks.bed")
 peaks.bed.sh <- paste0(peaks.bed, ".sh")
+unlink(peaks.bed.sh)
+test.cmd <- paste("Rscript create_problems.R hg19_problems.bed", sample.dir)
+status <- system(test.cmd)
+test_that("script finishes successfully", {
+  expect_equal(status, 0)
+})
+test_that("sampleID/peaks.bed.sh is created", {
+  expect_true(file.exists(peaks.bed.sh))
+})
+
+## Predict for an entire sample using sampleID/peaks.bed.sh
 sample.pred.cmd <- paste("bash", peaks.bed.sh)
 system(sample.pred.cmd)
 test_that("sampleID/peaks.bed file created using peaks.bed.sh", {
@@ -537,4 +549,5 @@ peaks <- fread(peaks.bed)
 test_that("peaks.bed has 1 peak predicted", {
   expect_equal(nrow(peaks), 1)
 })
+
 
