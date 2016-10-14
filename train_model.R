@@ -12,8 +12,10 @@ model.RData <- arg.vec[2]
 
 library(coseg)
 
-target.tsv.vec <- Sys.glob(file.path(
-  samples.dir, "*", "*", "problems", "*", "target.tsv"))
+glob.str <- file.path(
+  samples.dir, "*", "*", "problems", "*", "target.tsv")
+cat("Searching for", glob.str, "files for training.\n")
+target.tsv.vec <- Sys.glob(glob.str)
 cat("Found", length(target.tsv.vec), "target.tsv files for training.\n")
 
 features.list <- list()
@@ -379,7 +381,7 @@ IntervalRegressionMatrix <- function
 ### ones.
 }
 
-model <- IntervalRegressionMatrixCV(features, targets, verbose=1)
+model <- IntervalRegressionMatrixCV(features, targets, verbose=0)
 
 save(model, features, targets, file=model.RData)
 
