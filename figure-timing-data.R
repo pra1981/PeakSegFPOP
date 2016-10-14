@@ -1,4 +1,5 @@
 load("timing.data.RData")
+library(data.table)
 
 timing.data[, minutes := seconds/60]
 
@@ -24,6 +25,12 @@ weird.problem.dirs <- timing.stats[1 < feasible.changes, problem.dir]
 weird.timings <- timing.data[problem.dir %in% weird.problem.dirs, ]
 weird.list <- split(weird.timings, weird.timings$problem.fac, drop=TRUE)
 lapply(weird.list, function(dt)dt[, .(n.data, penalty, peaks, status, fn, fp, errors)])
+H3K36me3_TDH <- timing.data[grepl("H3K36me3_TDH", problem.fac),]
+H3K36me3_TDH[, list(min.errors=min(errors)), by=problem.fac][order(min.errors),]
+H3K36me3_TDH.list <- split(H3K36me3_TDH, H3K36me3_TDH$problem.fac, drop=TRUE)
+lapply(H3K36me3_TDH.list, function(dt)dt[, .(n.data, penalty, peaks, status, fn, fp, errors)])
+H3K36me3_TDH["labels/H3K36me3_TDH_immune/samples/tcell/McGill0102/problems/chr11:96437584-134946516"==problem.fac,]
+H3K36me3_TDH["labels/H3K36me3_TDH_other/samples/skeletalMuscleCtrl/McGill0019/problems/chr14:19000000-107289540"==problem.fac,]
 
 ## labels/H3K4me3_TDH_immune/samples/tcell/McGill0025/problems/chr3:93504854-194041961
 ## ran PeakSegFPOP for too many infeasible models.

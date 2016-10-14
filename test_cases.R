@@ -122,7 +122,10 @@ unlink(test.loss.vec)
 pred.peaks.list <- list()
 for(test.dir in test.dir.vec){
   predict.cmd <- paste("Rscript predict_problem.R", model.RData, test.dir)
-  system(predict.cmd)
+  status <- system(predict.cmd)
+  if(status != 0){
+    stop("status code ", status)
+  }
   peaks.bed <- file.path(test.dir, "peaks.bed")
   tryCatch({
     sample.peaks <- fread(peaks.bed)
