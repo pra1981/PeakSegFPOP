@@ -242,9 +242,14 @@ test_that("joint.model.RData created", {
 
 ## Joint prediction.
 all.peaks.list <- list()
+all.problems.list <- list()
 for(peaks.sh in peaks.sh.vec){
   predict.cmd <- paste("bash", peaks.sh)
   peaks.bed <- sub("[.]sh$", "", peaks.sh)
+  problem.bed <- sub("peaks.bed$", "problem.bed", peaks.bed)
+  problem <- fread(problem.bed)
+  setnames(problem, c("chrom", "problemStart", "problemEnd", "chunk.id"))
+  all.problems.list[[problem.bed]] <- problem
   unlink(peaks.bed)
   system(predict.cmd)
   test_that("joint peaks.bed created", {
@@ -252,10 +257,8 @@ for(peaks.sh in peaks.sh.vec){
   })
   tryCatch({
     problem.peaks <- fread(peaks.bed)
-    setnames(problem.peaks, c("chrom", "chromStart", "chromEnd", "sample.path", "mean"))
-    problem.bed <- sub("peaks.bed$", "problem.bed", peaks.bed)
-    problem <- fread(problem.bed)
-    setnames(problem, c("chrom", "problemStart", "problemEnd", "chunk.id"))
+    setnames(problem.peaks, c(
+      "chrom", "chromStart", "chromEnd", "sample.path", "mean"))
     all.peaks.list[[peaks.sh]] <- data.table(
       chunk.id=problem$chunk.id,
       problem.peaks)
@@ -267,6 +270,8 @@ all.peaks <- do.call(rbind, all.peaks.list)
 all.peaks[, sample.id := sub(".*/", "", sample.path)]
 all.peaks[, sample.group := sub("/.*", "", sample.path)]
 peaks.by.chunk <- split(all.peaks, all.peaks$chunk.id)
+all.problems <- do.call(rbind, all.problems.list)
+problems.by.chunk <- split(all.problems, all.problems$chunk.id)
 
 ann.colors <-
   c(noPeaks="#f6f4bf",
@@ -275,16 +280,43 @@ ann.colors <-
     peaks="#a445ee")
 for(chunk.id in chunk.vec){
   chunk.peaks <- peaks.by.chunk[[paste(chunk.id)]]
-  chunk.counts <- counts.by.chunk[[paste(chunk.id)]]
   chunk.regions <- regions.by.chunk[[paste(chunk.id)]]
   chunk.regions$sample.group <- chunk.regions$cell.type
   chunk.errors <- PeakErrorSamples(chunk.peaks, chunk.regions)
   if(interactive()){
+    first.peaks.list <- list()
+    peaks.bed.vec <- Sys.glob(file.path(
+      samples.dir, "*", "*", "problems", chunk.id, "peaks.bed"))
+    for(peaks.bed in peaks.bed.vec){
+      first.peaks.list[[peaks.bed]] <- tryCatch({
+        sample.peaks <- fread(peaks.bed)
+        chunk.dir <- dirname(peaks.bed)
+        problems.dir <- dirname(chunk.dir)
+        sample.dir <- dirname(problems.dir)
+        sample.id <- basename(sample.dir)
+        group.dir <- dirname(sample.dir)
+        sample.group <- basename(group.dir)
+        setnames(sample.peaks, c(
+          "chrom", "chromStart", "chromEnd", "status", "mean"))
+        data.table(sample.id, sample.group, sample.peaks)
+      }, error=function(e){
+        NULL
+      })
+    }
+    first.peaks <- do.call(rbind, first.peaks.list)
+    chunk.problems <- problems.by.chunk[[paste(chunk.id)]]
+    chunk.counts <- counts.by.chunk[[paste(chunk.id)]]
     gg <- ggplot()+
     theme_bw()+
     theme(panel.margin=grid::unit(0, "lines"))+
     facet_grid(sample.id ~ ., scales="free")+
-    scale_fill_manual(values=ann.colors)+
+      scale_fill_manual(values=ann.colors)+
+      geom_tallrect(aes(
+        xmin=problemStart/1e3,
+        xmax=problemEnd/1e3),
+        data=chunk.problems,
+        fill="grey",
+        color="black")+
     geom_tallrect(aes(
       xmin=chromStart/1e3,
       xmax=chromEnd/1e3,
@@ -315,7 +347,10 @@ for(chunk.id in chunk.vec){
                      xend=chromEnd/1e3, yend=0),
                  data=chunk.peaks,
                  color="deepskyblue",
-                 size=2)
+                 size=2)+
+      geom_segment(aes(chromStart/1e3, 0,
+                       xend=chromEnd/1e3, yend=0),
+                   data=first.peaks)
     print(gg)
   }
   with(chunk.errors, cat(sprintf(
