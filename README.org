@@ -179,10 +179,31 @@ genomic regions with similar or different peak patterns in the
 different samples. To do that, run
 
 #+BEGIN_SRC shell-script
-Rscript create_problems_joint.R H3K4me3_project/samples 
+Rscript create_problems_joint.R H3K4me3_project/samples chr4:75452279-191044276
 #+END_SRC
 
-TODO
+which will create some =H3K4me3_project/jointProblems/chr4:*=
+directories with =target.tsv.sh= and =peaks.bed.sh= scripts. One
+directory and joint segmentation problem will be created for each
+genomic region which has at least one sample with a predicted peak. To
+train a joint peak calling model, first run =target.tsv.sh= scripts to
+create =target.tsv= files, which contain an interval of log(penalty)
+values that result in the minimal number of incorrectly predicted
+labels for each joint segmentation problem. Then run
+
+#+BEGIN_SRC shell-script
+Rscript train_model_joint.R H3K4me3_project/jointProblems H3K4me3_project/joint.model.RData
+#+END_SRC
+
+which will train a joint peak calling model using the
+=H3K4me3_project/jointProblems/*/target.tsv= files, saving the model
+to =H3K4me3_project/joint.model.RData=. Finally, to make joint peak
+predictions, run the =H3K4me3_project/jointProblems/*/peaks.bed.sh=
+scripts, which will create corresponding =peaks.bed= files. These
+files will contain one line for each sample that has a peak in this
+region of the genome. For a given joint segmentation problem, each
+sample will have the same peak start and end positions, which makes it
+trivial to compute differences between samples.
 
 ** Related work
 
