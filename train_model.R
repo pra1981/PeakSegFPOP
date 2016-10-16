@@ -11,6 +11,7 @@ samples.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
 model.RData <- arg.vec[2]
 
 library(coseg)
+library(data.table)
 
 glob.str <- file.path(
   samples.dir, "*", "*", "problems", "*", "target.tsv")
