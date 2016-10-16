@@ -15,9 +15,9 @@ library(data.table)
 ##   hg19.gap[,1:3], "hg19_gap.bed",
 ##   sep="\t", quote=FALSE, row.names=FALSE, col.names=FALSE)
 
-gap.bed <- arg.vec[1]
-chromInfo.txt <- arg.vec[2]
-problems.bed <- arg.vec[3]
+gap.bed <- normalizePath(arg.vec[1], mustWork=TRUE)
+chromInfo.txt <- normalizePath(arg.vec[2], mustWork=TRUE)
+problems.bed <- normalizePath(arg.vec[3], mustWork=TRUE)
 
 gap <- fread(gap.bed)
 setnames(gap, c("chrom", "chromStart", "chromEnd"))
