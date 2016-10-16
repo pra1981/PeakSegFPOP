@@ -1,45 +1,32 @@
 TODOs
 
-feature computation command line program
+input data error checking.
 
-R script for training a model based on the target interval.
+2016.10.16
+
+new scripts compute_joint_target.R and predict_problem_joint.R for
+running PeakSegJoint.
+
+labels/H3K4me3_TDH_other/McGill0016/problems/chr2:110251337-149690582/
+overlapping regions -- problem in the input labels detected by
+create_labels.R which now stops with an error.
+
+feature computation command line program compute_features.R and
+corresponding coseg::problem.features function.
+
+R script train_model.R for training a model based on the target
+interval.
 
 test and implementation for samples with no labels at all -- we may
 want to predict on them.
 
-test cases for problems encountered on guillimin
+updated README with some description about how to run PeakSegFPOP on a
+whole genome.
 
-- labels/H3K4me3_TDH_other/McGill0016/problems/chr2:110251337-149690582/ overlapping regions -- problem in our benchmark.
+various fixes for min-less/more/env computation.
 
-==> labels/H3K4me3_TDH_other/McGill0012/problems/chr5:10000-17530657/coverage.bedGraph.err <==
- Error in fread(penalty_loss.tsv) :
-   File is empty: /gs/project/mugqic/projects/thocking/projects/PeakSegFPOP-labels/H3K4me3_TDH_other/McGill0012/problems/chr5:10000-17530657/coverage.bedGraph_penalty=0_loss.tsv
- Calls: getError -> fread
- Execution halted
-
-input data error checking.
-
-FIXED
-
-updated README with some description about how to run PeakSegFPOP on a whole genome.
-
-- min-less errors
- 29: labels/H3K36me3_AM_immune/McGill0102/problems/chr11:96437584-134946516/coverage.bedGraph.out:BAD MIN LESS CHECK data_i=140364 status=1
- 51:   labels/H3K36me3_AM_immune/McGill0008/problems/chr13:19020000-86760324/coverage.bedGraph.out:BAD MIN LESS CHECK data_i=648069 status=1
-
-- min more problem
-/labels/H3K36me3_AM_immune/McGill0001/problems/chr16:46385801-88389383/
-
-- labels/H3K4me3_TDH_other/McGill0267/problems/chr4:1478646-8799203
- Error in if (!big.found) { : missing value where TRUE/FALSE needed
-
-- min-more errors
-  2:        labels/H3K4me3_TDH_other/McGill0014/problems/chr5:10000-17530657/coverage.bedGraph.out:BAD MIN MORE CHECK data_i=8324 status=1
-  3:   labels/H3K36me3_AM_immune/McGill0011/problems/chr16:46385801-88389383/coverage.bedGraph.out:BAD MIN MORE CHECK data_i=8575 status=1
-
-- binary search errors. 
-  labels/H3K4me3_TDH_other/McGill0267/problems/chr4:75452279-191044276/coverage.bedGraph.out
-  also maybe this big one labels/H3K4me3_TDH_other/McGill0037/problems/chr4:75452279-191044276
+compute_coverage_target.R uses coseg::problem.target which now uses
+parallel::mclapply.
 
 2016.09.26
 
