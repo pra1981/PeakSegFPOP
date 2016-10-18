@@ -98,6 +98,15 @@ test_that("expected number of lines in each labels.bed file", {
   expect_equal(n.labels.vec, n.expected.vec)
 })
 
+## Create problems.
+sample.dir <- dirname(labels.bed)
+create.cmd <- paste("Rscript create_problems.R hg19_problems.bed", sample.dir)
+system(create.cmd)
+labels.bed.vec <- Sys.glob(file.path(sample.dir, "problems", "*", "labels.bed"))
+test_that("at least one labeled problem", {
+  expect_more_than(length(labels.bed.vec), 0)
+})
+
 ## Manually create a data set with two chunks from our benchmark.
 db.prefix <- "http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/"
 set.name <- "H3K4me3_TDH_other"
