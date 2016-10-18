@@ -111,6 +111,7 @@ test_that("at least one labeled problem", {
 problem.dir <- dirname(labels.bed.vec[1])
 target.tsv <- file.path(problem.dir, "target.tsv")
 unlink(target.tsv)
+unlink(Sys.glob(file.path(problem.dir, "*_loss.tsv")))
 target.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
 system(target.cmd)
 test_that("target.tsv file created", {
