@@ -310,7 +310,7 @@ for(sample.path in names(regions.by.sample)){
   sample.labels <- regions.by.sample[[sample.path]]
   labels.bed <- file.path(project.dir, "samples", sample.path, "labels.bed")
   write.table(
-    sample.labels,
+    sample.labels[, .(chrom, chromStart, chromEnd, annotation)],
     labels.bed,
     quote=FALSE,
     row.names=FALSE,
