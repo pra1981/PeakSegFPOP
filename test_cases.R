@@ -107,6 +107,16 @@ test_that("at least one labeled problem", {
   expect_more_than(length(labels.bed.vec), 0)
 })
 
+## Compute target interval.
+problem.dir <- dirname(labels.bed.vec[1])
+target.tsv <- file.path(problem.dir, "target.tsv")
+unlink(target.tsv)
+target.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
+system(target.cmd)
+test_that("target.tsv file created", {
+  expect_true(file.exists(target.tsv))
+})
+
 ## Manually create a data set with two chunks from our benchmark.
 db.prefix <- "http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/"
 set.name <- "H3K4me3_TDH_other"
