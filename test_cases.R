@@ -1,5 +1,103 @@
 source("test_functions.R")
 
+## PeakSegJoint example data.
+exampleData <- system.file("exampleData", package="PeakSegJoint")
+bigwig.vec <- Sys.glob(file.path(exampleData, "*", "*.bigwig"))
+label.files.list <- list(
+  overlapping=c("overlapping_labels.txt"),
+  one=c("manually_annotated_region_labels.txt"),
+  two=c("manually_annotated_region_labels.txt", "other_labels.txt"))
+for(set.name in names(label.files.list)){
+  set.dir <- file.path("test", paste0("PeakSegJoint-", set.name))
+  for(bigwig.old in bigwig.vec){
+    group.dir.old <- dirname(bigwig.old)
+    sample.group <- basename(group.dir.old)
+    base.old <- basename(bigwig.old)
+    sample.id <- sub("[.]bigwig$", "", base.old)
+    bigwig.new <- file.path(
+      set.dir, "samples", sample.group, sample.id, "coverage.bigWig")
+    sample.dir.new <- dirname(bigwig.new)
+    dir.create(sample.dir.new, showWarnings=FALSE, recursive=TRUE)
+    file.symlink(bigwig.old, bigwig.new)
+  }
+  label.files <- label.files.list[[set.name]]
+  labels.dir <- file.path(set.dir, "labels")
+  dir.create(labels.dir, showWarnings=FALSE)
+  for(label.file in label.files){
+    label.old <- file.path(exampleData, label.file)
+    label.new <- file.path(labels.dir, label.file)
+    file.symlink(label.old, label.new)
+  }
+}
+
+## Data set with one bad overlapping label file that should error.
+convert.cmd <- "Rscript convert_labels.R test/PeakSegJoint-overlapping"
+status <- system(convert.cmd)
+test_that("stop for overlapping labels", {
+  expect_equal(status, 1)
+})
+
+## Data set with one good label file.
+set.dir <- file.path("test", "PeakSegJoint-one")
+convert.cmd <- paste("Rscript convert_labels.R", set.dir)
+status <- system(convert.cmd)
+test_that("converting one labels file succeeds", {
+  expect_equal(status, 1)
+})
+labels.bed.vec <- Sys.glob(file.path(
+  set.dir, "samples", "*", "*", "labels.bed"))
+sample.dir.vec <- dirname(labels.bed.vec)
+group.dir.vec <- dirname(sample.dir.vec)
+group.name.vec <- basename(group.dir.vec)
+test_that("labels.bed files for tcell and bcell samples", {
+  expect_equal(sum(group.name.vec=="bcell"), 2)
+  expect_equal(sum(group.name.vec=="tcell"), 2)
+})
+test_that("no labels.bed files for other samples", {
+  expect_equal(sum(group.name.vec=="kidney"), 0)
+  expect_equal(sum(group.name.vec=="stem"), 0)
+  expect_equal(sum(group.name.vec=="skeletalMuscle"), 0)
+})
+
+## Data set with two good label files.
+set.dir <- file.path("test", "PeakSegJoint-two")
+convert.cmd <- paste("Rscript convert_labels.R", set.dir)
+status <- system(convert.cmd)
+test_that("converting two labels file succeeds", {
+  expect_equal(status, 1)
+})
+labels.bed.vec <- Sys.glob(file.path(
+  set.dir, "samples", "*", "*", "labels.bed"))
+sample.dir.vec <- dirname(labels.bed.vec)
+group.dir.vec <- dirname(sample.dir.vec)
+group.name.vec <- basename(group.dir.vec)
+test_that("labels.bed files for tcell and bcell samples", {
+  expect_equal(sum(group.name.vec=="bcell"), 2)
+  expect_equal(sum(group.name.vec=="tcell"), 2)
+})
+test_that("labels.bed files for other samples", {
+  expect_equal(sum(group.name.vec=="kidney"), 1)
+  expect_equal(sum(group.name.vec=="stem"), 1)
+  expect_equal(sum(group.name.vec=="skeletalMuscle"), 2)
+})
+immune.lines <- readLines(file.path(
+  set.dir, "labels", "manually_annotated_region_labels.txt"))
+n.immune <- sum(immune.lines != "")
+other.lines <- readLines(file.path(
+  set.dir, "labels", "other_labels.txt"))
+n.other <- sum(other.lines != "")
+n.labels.vec <- rep(NA_integer_, length(labels.bed.vec))
+for(labels.bed.i in seq_along(labels.bed.vec)){
+  labels.bed <- labels.bed.vec[[labels.bed.i]]
+  label.lines <- readLines(labels.bed)
+  n.labels.vec[[labels.bed.i]] <- length(label.lines)
+}
+n.expected.vec <- ifelse(
+  group.name.vec %in% c("tcell", "bcell"), n.immune, n.other)
+test_that("expected number of lines in each labels.bed file", {
+  expect_equal(n.labels.vec, n.expected.vec)
+})
+
 ## Manually create a data set with two chunks from our benchmark.
 db.prefix <- "http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/"
 set.name <- "H3K4me3_TDH_other"
