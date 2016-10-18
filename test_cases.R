@@ -4,7 +4,7 @@ source("test_functions.R")
 exampleData <- system.file("exampleData", package="PeakSegJoint")
 bigwig.vec <- Sys.glob(file.path(exampleData, "*", "*.bigwig"))
 label.files.list <- list(
-  overlapping=c("overlapping_labels.txt"),
+  overlapping=c("overlapping_labels.txt", "manually_annotated_region_labels.txt"),
   one=c("manually_annotated_region_labels.txt"),
   two=c("manually_annotated_region_labels.txt", "other_labels.txt"))
 for(set.name in names(label.files.list)){
@@ -42,7 +42,7 @@ set.dir <- file.path("test", "PeakSegJoint-one")
 convert.cmd <- paste("Rscript convert_labels.R", set.dir)
 status <- system(convert.cmd)
 test_that("converting one labels file succeeds", {
-  expect_equal(status, 1)
+  expect_equal(status, 0)
 })
 labels.bed.vec <- Sys.glob(file.path(
   set.dir, "samples", "*", "*", "labels.bed"))
@@ -64,7 +64,7 @@ set.dir <- file.path("test", "PeakSegJoint-two")
 convert.cmd <- paste("Rscript convert_labels.R", set.dir)
 status <- system(convert.cmd)
 test_that("converting two labels file succeeds", {
-  expect_equal(status, 1)
+  expect_equal(status, 0)
 })
 labels.bed.vec <- Sys.glob(file.path(
   set.dir, "samples", "*", "*", "labels.bed"))
