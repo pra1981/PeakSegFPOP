@@ -23,3 +23,11 @@ for(sample.dir in sample.dir.vec){
   create.cmd <- paste("Rscript create_problems.R", problems.bed, sample.dir)
   system.or.stop(create.cmd)
 }
+
+## Compute target interval for each problem.
+labels.bed.vec <- Sys.glob(file.path(set.dir, "samples", "*", "*", "problems", "*", "labels.bed"))
+for(labels.bed in labels.bed.vec){
+  sample.dir <- dirname(labels.bed)
+  create.cmd <- paste("Rscript compute_coverage_target.R", sample.dir)
+  system.or.stop(create.cmd)
+}
