@@ -9,7 +9,6 @@ library(namedCapture)
 library(data.table)
 library(PeakSegJoint)
 
-print(argv)
 if(length(argv) == 0){
   stop("usage: convert_labels.R project_dir where there is
 project_dir/samples/* directories and

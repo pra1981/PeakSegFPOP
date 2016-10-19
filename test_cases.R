@@ -148,20 +148,17 @@ for(bigWig.part in bigWig.part.vec){
 labels.url <- paste0(repos.url, "kidney_bcell_Input_labels.txt")
 labels.file <- file.path(set.dir, "labels", "kidney_bcell_Input_labels.txt")
 download.to(labels.url, labels.file)
+problems.bed <- file.path(set.dir, "problems.bed")
+unlink(problems.bed)
+file.symlink(
+  normalizePath("hg19_problems.bed", mustWork=TRUE),
+  problems.bed)
 
-## Conversion.
-convert.cmd <- paste("Rscript convert_labels.R", set.dir)
+## Whole pipeline.
+convert.cmd <- paste("Rscript pipeline.R", set.dir)
 status <- system(convert.cmd)
-test_that("converting one labels file succeeds", {
+test_that("pipeline script succeeds", {
   expect_equal(status, 0)
-})
-sample.dir <- dirname(bigWig.file)
-labels.bed <- file.path(sample.dir, "labels.bed")
-sample.labels <- fread(labels.bed)
-label.lines <- readLines(labels.file)
-n.labels <- sum(label.lines != "")
-test_that("one label in Input/labels.bed for every line in labels.txt", {
-  expect_equal(nrow(sample.labels), n.labels)
 })
 
 ## Manually create a data set with two chunks from our benchmark.
