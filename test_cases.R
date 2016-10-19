@@ -118,6 +118,44 @@ test_that("target.tsv file created", {
   expect_true(file.exists(target.tsv))
 })
 
+## Download trackDb.txt from github.
+bigWig.part.vec <- c(
+  "bcell/MS010302",
+  "bcell/MS026601",
+  "Input/MS002201",
+  "Input/MS002202",
+  "Input/MS010302",
+  "Input/MS026601",
+  "kidney/MS002201",
+  "kidney/MS002202")
+library(httr)
+download.to <- function(u, f){
+  if(!file.exists(f)){
+    f.dir <- dirname(f)
+    dir.create(f.dir, showWarnings=FALSE, recursive=TRUE)
+    request <- GET(u)
+    stop_for_status(request)
+    writeBin(content(request), f)
+  }
+}
+set.dir <- file.path("test", "input")
+repos.url <- "https://raw.githubusercontent.com/tdhock/input-test-data/master/"
+for(bigWig.part in bigWig.part.vec){
+  bigWig.file <- file.path(set.dir, bigWig.part, "coverage.bigWig")
+  bigWig.url <- paste0(repos.url, bigWig.part, ".bigwig")
+  download.to(bigWig.url, bigWig.file)
+}
+labels.url <- paste0(repos.url, "kidney_bcell_Input_labels.txt")
+labels.file <- file.path(set.dir, "labels", "kidney_bcell_Input_labels.txt")
+download.to(labels.url, labels.file)
+
+## Conversion.
+convert.cmd <- paste("Rscript convert_labels.R", set.dir)
+status <- system(convert.cmd)
+test_that("converting one labels file succeeds", {
+  expect_equal(status, 0)
+})
+
 ## Manually create a data set with two chunks from our benchmark.
 db.prefix <- "http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/"
 set.name <- "H3K4me3_TDH_other"
