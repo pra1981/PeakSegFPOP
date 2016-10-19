@@ -141,7 +141,7 @@ download.to <- function(u, f){
 set.dir <- file.path("test", "input")
 repos.url <- "https://raw.githubusercontent.com/tdhock/input-test-data/master/"
 for(bigWig.part in bigWig.part.vec){
-  bigWig.file <- file.path(set.dir, bigWig.part, "coverage.bigWig")
+  bigWig.file <- file.path(set.dir, "samples", bigWig.part, "coverage.bigWig")
   bigWig.url <- paste0(repos.url, bigWig.part, ".bigwig")
   download.to(bigWig.url, bigWig.file)
 }
@@ -154,6 +154,14 @@ convert.cmd <- paste("Rscript convert_labels.R", set.dir)
 status <- system(convert.cmd)
 test_that("converting one labels file succeeds", {
   expect_equal(status, 0)
+})
+sample.dir <- dirname(bigWig.file)
+labels.bed <- file.path(sample.dir, "labels.bed")
+sample.labels <- fread(labels.bed)
+label.lines <- readLines(labels.file)
+n.labels <- sum(label.lines != "")
+test_that("one label in Input/labels.bed for every line in labels.txt", {
+  expect_equal(nrow(sample.labels), n.labels)
 })
 
 ## Manually create a data set with two chunks from our benchmark.

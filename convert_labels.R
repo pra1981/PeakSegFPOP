@@ -1,3 +1,4 @@
+argv <- "test/input"
 argv <- "test/PeakSegJoint-one"
 argv <- "test/PeakSegJoint-overlapping"
 argv <- "test/PeakSegJoint-two"
