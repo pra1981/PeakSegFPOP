@@ -120,13 +120,13 @@ test_that("target.tsv file created", {
 
 ## Download trackDb.txt from github.
 bigWig.part.vec <- c(
-  "bcell/MS010302",
-  "bcell/MS026601",
-  "Input/MS002201",
-  "Input/MS002202",
   "Input/MS010302",
-  "Input/MS026601",
-  "kidney/MS002201",
+  "bcell/MS010302",
+  ## "Input/MS026601",
+  ## "bcell/MS026601",
+  ## "Input/MS002201",
+  ## "kidney/MS002201",
+  "Input/MS002202",
   "kidney/MS002202")
 library(httr)
 download.to <- function(u, f){
