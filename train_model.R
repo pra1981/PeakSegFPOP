@@ -35,6 +35,10 @@ for(target.tsv.i in seq_along(target.tsv.vec)){
 features <- as.matrix(do.call(rbind, features.list))
 targets <- do.call(rbind, targets.list)
 
+squared.hinge <- function(x){
+  ifelse(x<1,(x-1)^2,0)
+}
+
 IntervalRegressionMatrixCV <- function
 ### Use cross-validation to estimate the optimal regularization, by
 ### picking the value that minimize the number of incorrectly
@@ -43,7 +47,7 @@ IntervalRegressionMatrixCV <- function
 ### Numeric feature matrix.
  target.mat,
 ### Numeric target matrix.
- n.folds=5,
+ n.folds=ifelse(nrow(feature.mat) < 10, 3, 5),
 ### Number of cross-validation folds.
  fold.vec=sample(rep(1:n.folds, l=nrow(feature.mat))),
 ### Integer vector of fold id numbers.
@@ -58,7 +62,7 @@ IntervalRegressionMatrixCV <- function
   stopifnot(ncol(target.mat) == 2)
   stopifnot(is.integer(fold.vec))
   stopifnot(length(fold.vec) == n.observations)
-  validation.error.mat.list <- list()
+  ##validation.error.mat.list <- list()
   best.reg.list <- list()
   for(validation.fold in unique(fold.vec)){
     ##print(validation.fold)
@@ -68,17 +72,20 @@ IntervalRegressionMatrixCV <- function
     train.targets <- target.mat[is.train, ]
     fit <- IntervalRegressionMatrixPath(
       train.features, train.targets, max.iterations=1e3, verbose=verbose)
-    validation.features <- feature.mat[is.validation, ]
+    validation.features <- feature.mat[is.validation, , drop=FALSE]
     pred.log.lambda <- fit$predict(validation.features)
-    validation.targets <- target.mat[is.validation, ]
+    validation.targets <- target.mat[is.validation, , drop=FALSE]
     too.small <- pred.log.lambda < validation.targets[, 1]
     too.big <- validation.targets[, 2] < pred.log.lambda
     is.error <- too.small | too.big
+    left.term <- squared.hinge(pred.log.lambda-validation.targets[, 1])
+    right.term <- squared.hinge(validation.targets[, 2]-pred.log.lambda)
+    loss.vec <- colMeans(left.term+right.term)
     error.vec <- colSums(is.error)
-    best.reg.vec <- fit$regularization.vec[error.vec == min(error.vec)]
+    best.reg.vec <- fit$regularization.vec[loss.vec == min(loss.vec)]
     fold.name <- paste("fold", validation.fold)
     best.reg.list[[fold.name]] <- max(best.reg.vec) #simplest model
-    validation.error.mat.list[[fold.name]] <- colSums(is.error)
+    ##validation.error.mat.list[[fold.name]] <- colSums(is.error)
   }
   ##validation.error.mat <- do.call(cbind, validation.error.mat.list)
   ##if(verbose)print(validation.error.mat)
@@ -278,9 +285,6 @@ IntervalRegressionMatrix <- function
   positive.part <- function(x){
     ifelse(x<0, 0, x)
   }
-  squared.hinge <- function(x){
-    ifelse(x<1,(x-1)^2,0)
-  }
   squared.hinge.deriv <- function(x){
     ifelse(x<1,2*(x-1),0)
   }  
@@ -382,7 +386,16 @@ IntervalRegressionMatrix <- function
 ### ones.
 }
 
+set.seed(1)
 model <- IntervalRegressionMatrixCV(features, targets, verbose=0)
+print(model$pred.param.mat)
+pred.log.penalty <- as.numeric(model$predict(features))
+data.table(
+  too.lo=as.logical(pred.log.penalty < targets[,1]),
+  lower.limit=targets[,1],
+  pred.log.penalty,
+  upper.limit=targets[,2],
+  too.hi=as.logical(targets[,2] < pred.log.penalty))
 
 save(model, features, targets, file=model.RData)
 
