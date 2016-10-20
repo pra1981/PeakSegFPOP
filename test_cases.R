@@ -104,7 +104,7 @@ create.cmd <- paste("Rscript create_problems.R hg19_problems.bed", sample.dir)
 system(create.cmd)
 labels.bed.vec <- Sys.glob(file.path(sample.dir, "problems", "*", "labels.bed"))
 test_that("at least one labeled problem", {
-  expect_more_than(length(labels.bed.vec), 0)
+  expect_gt(length(labels.bed.vec), 0)
 })
 
 ## Compute target interval.
