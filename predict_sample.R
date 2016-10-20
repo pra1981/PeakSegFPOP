@@ -1,11 +1,11 @@
 arg.vec <- c(
   "test/H3K4me3_TDH_other/model.RData",
-  "test/H3K4me3_TDH_other/samples/McGill0036")
+  "test/H3K4me3_TDH_other/samples/FUBAR/McGill0036")
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
 if(length(arg.vec) != 2){
-  stop("usage: Rscript predict_problem.R model.RData sample_dir")
+  stop("usage: Rscript predict_sample.R model.RData sample_dir")
 }
 model.RData <- normalizePath(arg.vec[1], mustWork=TRUE)
 sample.dir <- normalizePath(arg.vec[2], mustWork=TRUE)
