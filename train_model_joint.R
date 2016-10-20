@@ -37,9 +37,6 @@ fold.vec <- sample(rep(1:n.folds, l=n.observations))
 squared.hinge <- function(x){
   ifelse(x<1,(x-1)^2,0)
 }
-calc.loss <- function(targets, linear.predictor){
-  mean(left.term+right.term)
-}
 
 error.loss.list <- list()
 for(validation.fold in unique(fold.vec)){
