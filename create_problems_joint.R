@@ -184,7 +184,7 @@ joint.model.RData <- file.path(data.dir, "joint.model.RData")
 makeProblem <- function(problem.i){
   problem <- problem.info[problem.i,]
   pname <- problem$problem.name
-  cat(sprintf("%4d / %4d problems %s\n", problem.i, nrow(problem.info), pname))
+  ##cat(sprintf("%4d / %4d problems %s\n", problem.i, nrow(problem.info), pname))
   problem.dir <- file.path(jointProblems, pname)
   dir.create(problem.dir, showWarnings=FALSE, recursive=TRUE)
   pout <- data.table(
@@ -233,6 +233,10 @@ joint.model.RData, " ", problem.dir, "
   writeLines(script.txt, sh.file)
 }
 
+cat(
+  "Creating ", nrow(problem.info),
+  " joint segmentation problems for ", problem.name,
+  "\n", sep="")
 library(parallel)
 nothing <- lapply(1:nrow(problem.info), makeProblem)
 
