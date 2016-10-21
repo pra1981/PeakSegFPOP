@@ -15,7 +15,7 @@ project_dir/samples/* directories and
 project_dir/labels/* files")
 }
 project.dir <- normalizePath(argv, mustWork=TRUE)
-labels.file.vec <- Sys.glob(file.path(project.dir, "labels", "*"))
+labels.file.vec <- Sys.glob(file.path(project.dir, "labels", "*.txt"))
 
 g.pos.pattern <-
   paste0("(?<chrom>chr.+?)",
