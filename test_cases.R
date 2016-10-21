@@ -5,6 +5,11 @@ test_that("PeakSegFPOP fails for non-integer data", {
   expect_false(status == 0)
 })
 
+status <- system("PeakSegFPOP missing.bedGraph 0.1")
+test_that("PeakSegFPOP fails for missing data", {
+  expect_false(status == 0)
+})
+
 ## PeakSegJoint example data.
 exampleData <- system.file("exampleData", package="PeakSegJoint")
 bigwig.vec <- Sys.glob(file.path(exampleData, "*", "*.bigwig"))
