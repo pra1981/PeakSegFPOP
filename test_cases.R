@@ -263,7 +263,7 @@ test_that("target interval includes no errors", {
 })
 
 model.RData <- file.path(set.dir, "model.RData")
-train.cmd <- paste("Rscript train_model.R", samples.dir, model.RData)
+train.cmd <- paste("Rscript train_model.R", set.dir)
 system(train.cmd)
 test_that("models file created", {
   obj.name.vec <- load(model.RData)
@@ -370,11 +370,10 @@ for(chunk.id in chunk.vec){
   cmd <- paste("Rscript create_problems_joint.R", samples.dir, chunk.id)
   system(cmd)
 }
-jointProblems <- file.path(set.dir, "jointProblems")
 target.sh.vec <- Sys.glob(file.path(
-  jointProblems, "*", "target.tsv.sh"))
+  set.dir, "problems", "*", "jointProblems", "*", "target.tsv.sh"))
 peaks.sh.vec <- Sys.glob(file.path(
-  jointProblems, "*", "peaks.bed.sh"))
+  set.dir, "problems", "*", "jointProblems", "*", "peaks.bed.sh"))
 test_that("more peaks.bed.sh prediction scripts than target.sh training", {
   expect_true(length(target.sh.vec) < length(peaks.sh.vec))
 })
@@ -394,8 +393,7 @@ test_that("target intervals computed", {
 
 ## train joint model.
 joint.model.RData <- file.path(set.dir, "joint.model.RData")
-train.joint.cmd <- paste(
-  "Rscript train_model_joint.R", jointProblems, joint.model.RData)
+train.joint.cmd <- paste("Rscript train_model_joint.R", set.dir)
 system(train.joint.cmd)
 test_that("joint.model.RData created", {
   expect_true(file.exists(joint.model.RData))

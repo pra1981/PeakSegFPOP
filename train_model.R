@@ -1,14 +1,13 @@
-arg.vec <- c(
-  "test/H3K4me3_TDH_other/samples",
-  "test/H3K4me3_TDH_other/model.RData")
+arg.vec <- "test/H3K4me3_TDH_other"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
-if(length(arg.vec) != 2){
-  stop("usage: Rscript train_model.R samples_dir model.RData")
+if(length(arg.vec) != 1){
+  stop("usage: Rscript train_model.R data_dir")
 }
-samples.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
-model.RData <- arg.vec[2]
+data.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
+samples.dir <- file.path(data.dir, "samples")
+model.RData <- file.path(data.dir, "model.RData")
 
 library(coseg)
 library(data.table)
@@ -388,14 +387,21 @@ IntervalRegressionMatrix <- function
 
 set.seed(1)
 model <- IntervalRegressionMatrixCV(features, targets, verbose=0)
+cat("Learned regularization parameter and weights:\n")
 print(model$pred.param.mat)
 pred.log.penalty <- as.numeric(model$predict(features))
-data.table(
+pred.dt <- data.table(
   too.lo=as.logical(pred.log.penalty < targets[,1]),
   lower.limit=targets[,1],
   pred.log.penalty,
   upper.limit=targets[,2],
   too.hi=as.logical(targets[,2] < pred.log.penalty))
+pred.dt[, status := ifelse(
+  too.lo, "low",
+  ifelse(too.hi, "high", "correct"))]
+cat("Train errors:\n")
+pred.dt[, list(targets=.N), by=status]
 
+cat("Writing model to", model.RData, "\n")
 save(model, features, targets, file=model.RData)
 

@@ -1,19 +1,18 @@
 arg.vec <- c(
-  "test/H3K4me3_TDH_other/jointProblems",
-  "test/H3K4me3_TDH_other/joint.model.RData")
+  "test/H3K4me3_TDH_other")
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
-if(length(arg.vec) != 2){
-  stop("usage: Rscript train_model_joint.R data_dir model.RData")
+if(length(arg.vec) != 1){
+  stop("usage: Rscript train_model_joint.R data_dir")
 }
-jointProblems <- normalizePath(arg.vec[1], mustWork=TRUE)
-joint.model.RData <- arg.vec[2]
+data.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
+joint.model.RData <- file.path(data.dir, "joint.model.RData")
 
 library(PeakSegJoint)
 
 target.tsv.vec <- Sys.glob(file.path(
-  jointProblems, "*", "target.tsv"))
+  data.dir, "problems", "*", "jointProblems", "*", "target.tsv"))
 cat("Found", length(target.tsv.vec), "target.tsv files for training.\n")
 
 problems.list <- list()
@@ -44,7 +43,8 @@ for(validation.fold in unique(fold.vec)){
   is.validation <- fold.vec == validation.fold
   is.train <- !is.validation
   train.problems <- problems.list[is.train]
-  fit <- IntervalRegressionProblems(train.problems, max.iterations=1e3)
+  fit <- IntervalRegressionProblems(
+    train.problems, max.iterations=1e3, verbose=0)
   for(problem.i in seq_along(problems.list)){
     problem <- problems.list[[problem.i]]
     log.penalty.vec <- fit$predict(problem$features)
@@ -103,7 +103,25 @@ mean.reg <- mean(validation.min.simplest$regularization)
 joint.model <- IntervalRegressionProblems(
   problems.list,
   initial.regularization=mean.reg,
-  factor.regularization=NULL)
+  factor.regularization=NULL,
+  verbose=0)
+cat("Learned regularization parameter and weights:\n")
+is.selected <- joint.model$param.mat != 0
+print(joint.model$param.mat[is.selected, , drop=FALSE])
+pred.log.penalty <- sapply(problems.list, with, joint.model$predict(features))
+lower.limit <- sapply(problems.list, with, target[1])
+upper.limit <- sapply(problems.list, with, target[2])
+pred.dt <- data.table(
+  too.lo=as.logical(pred.log.penalty < lower.limit),
+  lower.limit,
+  pred.log.penalty,
+  upper.limit,
+  too.hi=as.logical(upper.limit < pred.log.penalty))
+pred.dt[, status := ifelse(
+  too.lo, "low",
+  ifelse(too.hi, "high", "correct"))]
+cat("Train errors:\n")
+pred.dt[, list(targets=.N), by=status]
 
 save(joint.model, problems.list, file=joint.model.RData)
 
