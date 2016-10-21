@@ -16,7 +16,7 @@ library(parallel)
 
 problem.bed.vec <- Sys.glob(
   file.path(sample.dir, "problems", "*", "problem.bed"))
-peaks.list <- mclapply(seq_along(problem.bed.vec), function(problem.i){
+peaks.list <- mclapply.or.stop(seq_along(problem.bed.vec), function(problem.i){
   problem.bed <- problem.bed.vec[[problem.i]]
   cat(sprintf("%4d / %4d %s\n", problem.i, length(problem.bed.vec), problem.bed))
   problem.dir <- dirname(problem.bed)
