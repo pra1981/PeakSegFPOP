@@ -83,7 +83,7 @@ int main(int argc, char *argv[]){//data_count x 2
   double min_log_mean=INFINITY, max_log_mean=-INFINITY, log_data;
   int data_i = 0;
   double weight;
-  int first_chromStart;
+  int first_chromStart, prev_chromEnd;
   while(std::getline(bedGraph_file, line)){
     line_i++;
     items = sscanf
@@ -106,7 +106,16 @@ int main(int argc, char *argv[]){//data_count x 2
     cum_weighted_count += weight*coverage;
     if(line_i == 1){
       first_chromStart = chromStart;
-    }
+    }else{
+      if(chromStart != prev_chromEnd){
+	printf
+	  ("error: chromStart %d != prev_chromEnd %d on line %d\n",
+	   chromStart, prev_chromEnd, line_i);
+	std::cout << line << "\n";
+	return 5;
+      }
+    }      
+    prev_chromEnd = chromEnd;
     log_data = log(coverage);
     if(log_data < min_log_mean){
       min_log_mean = log_data;
@@ -327,7 +336,7 @@ int main(int argc, char *argv[]){//data_count x 2
     (&best_cost, &best_log_mean,
      &prev_seg_end, &prev_log_mean);
   //printf("mean=%f end_i=%d chromEnd=%d\n", exp(best_log_mean), prev_seg_end, down_cost.chromEnd);
-  int prev_chromEnd = down_cost.chromEnd;
+  prev_chromEnd = down_cost.chromEnd;
   // mean_vec[0] = exp(best_log_mean);
   // end_vec[0] = prev_seg_end;
   bool feasible = true;
