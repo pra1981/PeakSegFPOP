@@ -1,5 +1,10 @@
 source("test_functions.R")
 
+status <- system("PeakSegFPOP notIntBad.bedGraph 0.1")
+test_that("PeakSegFPOP fails for non-integer data", {
+  expect_false(status == 0)
+})
+
 ## PeakSegJoint example data.
 exampleData <- system.file("exampleData", package="PeakSegJoint")
 bigwig.vec <- Sys.glob(file.path(exampleData, "*", "*.bigwig"))
@@ -155,6 +160,7 @@ unlink(problems.bed)
 system(paste("grep chr10 hg19_problems.bed >", problems.bed))
 
 ## Whole pipeline.
+system(paste("bigWigToBedGraph", bigWig.file, "/dev/stdout|head"))
 convert.cmd <- paste("Rscript pipeline.R", set.dir)
 status <- system(convert.cmd)
 test_that("pipeline script succeeds", {

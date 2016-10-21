@@ -1,5 +1,6 @@
 arg.vec <- "test/H3K4me3_TDH_other/jointProblems/chr4:88923952-88935469"
 arg.vec <- "test/H3K4me3_TDH_other/jointProblems/chr11:110160402-110172255"
+arg.vec <- "test/input/problems/chr10:38868835-39154935/jointProblems/chr10:39128731-39140858"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
