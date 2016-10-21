@@ -178,7 +178,8 @@ if(FALSE){
 }
 
 data.dir <- dirname(samples.dir)
-jointProblems <- file.path(data.dir, "jointProblems")
+jointProblems <- file.path(
+  data.dir, "problems", problem.name, "jointProblems")
 joint.model.RData <- file.path(data.dir, "joint.model.RData")
 ## TODO make directories with sh files for each.
 makeProblem <- function(problem.i){
@@ -240,3 +241,10 @@ cat(
 library(parallel)
 nothing <- lapply(1:nrow(problem.info), makeProblem)
 
+write.table(
+  problem.info[, .(chrom, problemStart, problemEnd)],
+  paste0(jointProblems, ".bed"),
+  quote=FALSE,
+  sep="\t",
+  col.names=FALSE,
+  row.names=FALSE)

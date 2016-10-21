@@ -100,7 +100,7 @@ test_that("expected number of lines in each labels.bed file", {
 
 ## Create problems.
 sample.dir <- dirname(labels.bed)
-create.cmd <- paste("Rscript create_problems.R hg19_problems.bed", sample.dir)
+create.cmd <- paste("Rscript create_problems_sample.R hg19_problems.bed", sample.dir)
 system(create.cmd)
 labels.bed.vec <- Sys.glob(file.path(sample.dir, "problems", "*", "labels.bed"))
 test_that("at least one labeled problem", {
@@ -618,7 +618,7 @@ for(labels.name in names(labels.list)){
     labels, labels.bed,
     quote=FALSE, sep="\t",
     row.names=FALSE, col.names=FALSE)
-  test.cmd <- paste("Rscript create_problems.R hg19_problems.bed", sample.dir)
+  test.cmd <- paste("Rscript create_problems_sample.R hg19_problems.bed", sample.dir)
   system(test.cmd)
   labels.bed <- Sys.glob(paste0(sample.dir, "/problems/*/labels.bed"))
   problem.dir <- dirname(labels.bed)
@@ -687,12 +687,12 @@ test_that("first segments chromStart == first coverage chromStart", {
   expect_equal(first.segments$chromStart, start.vec)
 })
 
-## Make sure create_problems.R works for samples with no labels.
+## Make sure create_problems_sample.R works for samples with no labels.
 unlink(file.path(sample.dir, "labels.bed"))
 peaks.bed <- file.path(sample.dir, "peaks.bed")
 peaks.bed.sh <- paste0(peaks.bed, ".sh")
 unlink(peaks.bed.sh)
-test.cmd <- paste("Rscript create_problems.R hg19_problems.bed", sample.dir)
+test.cmd <- paste("Rscript create_problems_sample.R hg19_problems.bed", sample.dir)
 status <- system(test.cmd)
 test_that("script finishes successfully", {
   expect_equal(status, 0)
@@ -729,7 +729,8 @@ write.table(
   labels, labels.bed,
   quote=FALSE, sep="\t",
   row.names=FALSE, col.names=FALSE)
-test.cmd <- paste("Rscript create_problems.R hg19_problems.bed", sample.dir)
+test.cmd <- paste(
+  "Rscript create_problems_sample.R hg19_problems.bed", sample.dir)
 
 test_that("overlapping labels is an error", {
   status <- system(test.cmd)

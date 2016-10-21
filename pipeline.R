@@ -21,7 +21,7 @@ samples.dir <- file.path(set.dir, "samples")
 sample.dir.vec <- Sys.glob(file.path(samples.dir, "*", "*"))
 problems.bed <- file.path(set.dir, "problems.bed")
 for(sample.dir in sample.dir.vec){
-  create.cmd <- paste("Rscript create_problems.R", problems.bed, sample.dir)
+  create.cmd <- paste("Rscript create_problems_sample.R", problems.bed, sample.dir)
   system.or.stop(create.cmd)
 }
 

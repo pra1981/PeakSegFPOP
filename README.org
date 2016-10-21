@@ -124,14 +124,14 @@ directory should contain a sub-directory for each sample group
 (experimental conditions or cell types, e.g. =bcell= or =tcell=). Each
 sample group directory should contain a sub-directory for each sample
 (e.g. =McGill0091= or =McGill0322=). Then use the
-[[file:create_problems.R]] script on each sample
+[[file:create_problems_sample.R]] script on each sample
 
 #+BEGIN_SRC shell-script
-Rscript create_problems.R hg19_problems.bed H3K4me3_project/samples/bcell/McGill0091
+Rscript create_problems_sample.R hg19_problems.bed H3K4me3_project/samples/bcell/McGill0091
 #+END_SRC
 
 If you don't use hg19, then you can create another problems.bed file
-([[file:gap2problems.R]]). The =create_problems.R= script creates a
+([[file:gap2problems.R]]). The =create_problems_sample.R= script creates a
 problem sub-directory for each line of =hg19_problems.bed=, for
 example
 =H3K4me3_project/samples/bcell/McGill0091/problems/chr4:75452279-191044276=
@@ -142,7 +142,7 @@ sub-directory contains
 - If there are labels in this part of the genome, =labels.bed= and a
   =target.tsv.sh= script.
 - =target.tsv.sh= and =peaks.bed.sh= are shell scripts which can be
-  launched via =bash= or =qsub= (edit the [[file:create_problems.R]]
+  launched via =bash= or =qsub= (edit the [[file:create_problems_sample.R]]
   script to reflect your cluster configuration).
 
 The =target.tsv.sh= files contain one line

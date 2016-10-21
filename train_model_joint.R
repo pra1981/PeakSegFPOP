@@ -5,7 +5,7 @@ arg.vec <- c(
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
 if(length(arg.vec) != 2){
-  stop("usage: Rscript train_model_joint.R samples_dir model.RData")
+  stop("usage: Rscript train_model_joint.R data_dir model.RData")
 }
 jointProblems <- normalizePath(arg.vec[1], mustWork=TRUE)
 joint.model.RData <- arg.vec[2]
