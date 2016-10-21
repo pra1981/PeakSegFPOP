@@ -4,7 +4,8 @@ source("test_functions.R")
 exampleData <- system.file("exampleData", package="PeakSegJoint")
 bigwig.vec <- Sys.glob(file.path(exampleData, "*", "*.bigwig"))
 label.files.list <- list(
-  overlapping=c("overlapping_labels.txt", "manually_annotated_region_labels.txt"),
+  overlapping=c(
+    "overlapping_labels.txt", "manually_annotated_region_labels.txt"),
   one=c("manually_annotated_region_labels.txt"),
   two=c("manually_annotated_region_labels.txt", "other_labels.txt"))
 for(set.name in names(label.files.list)){
@@ -129,13 +130,14 @@ bigWig.part.vec <- c(
   "Input/MS002202",
   "kidney/MS002202")
 library(httr)
-download.to <- function(u, f){
+download.to <- function
+(u, f, writeFun=if(grepl("bigWig", f))writeBin else writeLines){
   if(!file.exists(f)){
     f.dir <- dirname(f)
     dir.create(f.dir, showWarnings=FALSE, recursive=TRUE)
     request <- GET(u)
     stop_for_status(request)
-    writeBin(content(request), f)
+    writeFun(content(request), f)
   }
 }
 set.dir <- file.path("test", "input")
@@ -150,9 +152,7 @@ labels.file <- file.path(set.dir, "labels", "kidney_bcell_Input_labels.txt")
 download.to(labels.url, labels.file)
 problems.bed <- file.path(set.dir, "problems.bed")
 unlink(problems.bed)
-file.symlink(
-  normalizePath("hg19_problems.bed", mustWork=TRUE),
-  problems.bed)
+system(paste("grep chr10 hg19_problems.bed >", problems.bed))
 
 ## Whole pipeline.
 convert.cmd <- paste("Rscript pipeline.R", set.dir)
@@ -392,9 +392,9 @@ test_that("target intervals computed", {
 })
 
 ## train joint model.
-joint.model.RData <- file.path(set.dir, "joint.model.RData")
 train.joint.cmd <- paste("Rscript train_model_joint.R", set.dir)
 system(train.joint.cmd)
+joint.model.RData <- file.path(set.dir, "joint.model.RData")
 test_that("joint.model.RData created", {
   expect_true(file.exists(joint.model.RData))
 })
