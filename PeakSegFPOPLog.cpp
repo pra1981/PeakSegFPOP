@@ -78,6 +78,7 @@ int main(int argc, char *argv[]){//data_count x 2
   std::string line;
   int chromStart, chromEnd, coverage, items, line_i=0;
   char chrom[100];
+  char extra[100] = "";
   double cum_weight_i = 0.0, cum_weight_prev_i, cum_weighted_count;
   double min_log_mean=INFINITY, max_log_mean=-INFINITY, log_data;
   int data_i = 0;
@@ -85,11 +86,20 @@ int main(int argc, char *argv[]){//data_count x 2
   int first_chromStart;
   while(std::getline(bedGraph_file, line)){
     line_i++;
-    items = sscanf(line.c_str(), "%s %d %d %d\n", chrom, &chromStart, &chromEnd, &coverage);
-    if(items!=4){
+    items = sscanf
+      (line.c_str(),
+       "%s %d %d %d%s\n",
+       chrom, &chromStart, &chromEnd, &coverage, extra);
+    //printf("%s %d %d %d%s\n", chrom, chromStart, chromEnd, coverage, extra);
+    if(items < 4){
       printf("error: expected '%%s %%d %%d %%d\\n' on line %d\n", line_i);
       std::cout << line << "\n";
       return 3;
+    }
+    if(0 < strlen(extra)){
+      printf("error: non-integer data on line %d\n", line_i);
+      std::cout << line << "\n";
+      return 4;
     }
     weight = chromEnd-chromStart;
     cum_weight_i += weight;
