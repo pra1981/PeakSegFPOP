@@ -45,10 +45,10 @@ for(sh in sh.vec){
 
 ## Compute target intervals for multi-sample problems... how to
 ## parallelize?
-sh.vec <- Sys.glob(file.path(
-  set.dir, "problems", "*", "jointProblems", "*", "labels.bed"))
-for(sh in sh.vec){
-  target.cmd <- paste("bash", sh)
+labels.tsv.vec <- Sys.glob(file.path(
+  set.dir, "problems", "*", "jointProblems", "*", "labels.tsv"))
+for(labels.tsv in labels.tsv.vec){
+  target.cmd <- paste("Rscript compute_joint_target.R", dirname(labels.tsv))
   system.or.stop(target.cmd)
 }
 
