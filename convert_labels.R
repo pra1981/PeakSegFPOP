@@ -238,3 +238,7 @@ for(sample.path in names(regions.by.sample)){
       " labels to ", labels.bed,
       "\n", sep="")
 }
+
+## Write chunk info.
+chunk.limits.RData <- file.path(project.dir, "chunk.limits.RData")
+save(chunk.limits, regions.by.chunk.file, file=chunk.limits.RData)

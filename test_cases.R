@@ -69,6 +69,10 @@ test_that("no labels.bed files for other samples", {
   expect_equal(sum(group.name.vec=="stem"), 0)
   expect_equal(sum(group.name.vec=="skeletalMuscle"), 0)
 })
+chunk.limits.RData <- file.path(set.dir, "chunk.limits.RData")
+test_that("chunk.limits file is created", {
+  expect_true(file.exists(chunk.limits.RData))
+})
 
 ## Data set with two good label files.
 set.dir <- file.path("test", "PeakSegJoint-two")
@@ -107,6 +111,10 @@ n.expected.vec <- ifelse(
   group.name.vec %in% c("tcell", "bcell"), n.immune, n.other)
 test_that("expected number of lines in each labels.bed file", {
   expect_equal(n.labels.vec, n.expected.vec)
+})
+chunk.limits.RData <- file.path(set.dir, "chunk.limits.RData")
+test_that("chunk.limits file is created", {
+  expect_true(file.exists(chunk.limits.RData))
 })
 
 ## Create problems.
