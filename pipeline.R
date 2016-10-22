@@ -35,7 +35,8 @@ model.RData <- file.path(set.dir, "model.RData")
 train.cmd <- paste("Rscript train_model.R", set.dir)
 system.or.stop(train.cmd)
 
-## Single-sample prediction, one job for each problem.
+## Single-sample prediction and peak clustering, one job for each
+## problem.
 sh.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "jointProblems.bed.sh"))
 for(sh in sh.vec){
@@ -43,3 +44,10 @@ for(sh in sh.vec){
   system.or.stop(predict.cmd)
 }
 
+## Compute target intervals for multi-sample problems.
+sh.vec <- Sys.glob(file.path(
+  set.dir, "problems", "*", "jointProblems", "*", "target.tsv.sh"))
+for(sh in sh.vec){
+  target.cmd <- paste("bash", sh)
+  system.or.stop(target.cmd)
+}
