@@ -5,6 +5,11 @@ partitioning algorithm.
 
 [[https://travis-ci.org/tdhock/PeakSegFPOP][https://travis-ci.org/tdhock/PeakSegFPOP.png?branch=master]]
 
+** Example output
+
+[[http://cbio.mines-paristech.fr/~thocking/PeakSegFPOP-input-data/][Train on four labeled samples (two H3K36me3 + two Input), model yields
+good predictions on four un-labeled samples]].
+
 ** Installation
 
 #+BEGIN_SRC shell-script
