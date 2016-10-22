@@ -99,7 +99,11 @@ one line and the following tab-separated columns:
 The PeakSegFPOP command line program recovers the optimal solution for
 only one segmentation problem and one penalty parameter, but we
 provide several R scripts which make it easy to use on the entire
-genome. First, create sample directories with =coverage.bedGraph= for
+genome. The [[file:pipeline.R]] script contains all the steps necessary
+for running PeakSegFPOP + PeakSegJoint on a whole genome. The details
+of those steps are explained below.
+
+First, create sample directories with =coverage.bedGraph= for
 the whole genome ([[http://bedtools.readthedocs.io/en/latest/content/tools/genomecov.html][bedtools genomecov -bga]]), and =labels.bed= for
 genomic regions with and without peaks (a quick and easy way to create
 labels is by visual inspection as in the [[http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][McGill ChIP-seq peak
