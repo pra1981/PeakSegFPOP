@@ -1,6 +1,6 @@
 arg.vec <- "test/H3K4me3_TDH_other/jointProblems/chr4:88923952-88935469"
 arg.vec <- "test/H3K4me3_TDH_other/jointProblems/chr11:110160402-110172255"
-arg.vec <- "test/input/problems/chr10:38868835-39154935/jointProblems/chr10:39128731-39140858"
+arg.vec <- "test/input/problems/chr10:38868835-39154935/jointProblems/chr10:39124681-39126535"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
@@ -73,5 +73,14 @@ if(FALSE){
     ##              color="green")
 }
 
+cat("Train error:\n")
+data.table(fit.error$modelSelection)[, .(
+  min.log.lambda, max.log.lambda, peaks, errors)]
 target.tsv <- file.path(jointProblem.dir, "target.tsv")
+cat(
+  "Writing target interval (",
+  paste(fit.error$target, collapse=", "),
+  ") to ", 
+  target.tsv,
+  "\n", sep="")
 write(fit.error$target, target.tsv, sep="\t")
