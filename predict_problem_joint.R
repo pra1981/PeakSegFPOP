@@ -2,8 +2,8 @@ arg.vec <- c(
   "test/H3K4me3_TDH_other/joint.model.RData",
   "test/H3K4me3_TDH_other/jointProblems/chr4:88923952-88935469")
 arg.vec <- c(
-  "test/H3K4me3_TDH_other/joint.model.RData",
-  "test/H3K4me3_TDH_other/jointProblems/chr11:110160402-110172255")
+  "test/input/joint.model.RData",
+  "test/input/problems/chr10:18024675-38818835/jointProblems/chr10:33693003-33974944")
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
@@ -22,7 +22,8 @@ converted <- problem.joint(jointProblem.dir)
 log.penalty <- joint.model$predict(converted$features)
 stopifnot(length(log.penalty)==1)
 selected <- subset(
-  converted$modelSelection, min.log.lambda < log.penalty & log.penalty < max.log.lambda)
+  converted$modelSelection,
+  min.log.lambda < log.penalty & log.penalty < max.log.lambda)
 
 pred.dt <- if(selected$peaks == 0){
   data.table()
@@ -36,8 +37,11 @@ pred.dt <- if(selected$peaks == 0){
     name=paste0(sample.group, "/", sample.id),
     mean))
 }
-
 peaks.bed <- file.path(jointProblem.dir, "peaks.bed")
+cat("Writing ",
+    nrow(pred.dt), " peaks to ",
+    peaks.bed,
+    "\n", sep="")
 write.table(
   pred.dt, peaks.bed,
   quote=FALSE,

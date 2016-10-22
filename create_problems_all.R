@@ -136,6 +136,17 @@ model.RData, " ", sample.dir, "
   writeLines(script.txt, sh.file)
 }
 
+chunk.limits.RData <- file.path(data.dir, "chunk.limits.RData")
+if(file.exists(chunk.limits.RData)){
+  objs <- load(chunk.limits.RData)
+  chunks <- data.table(chunk.limits)
+  chunks[, chunk.name := sprintf("%s:%d-%d", chrom, chromStart, chromEnd)]
+  chunks[, chromStart1 := chromStart+1L]
+  setkey(chunks, chrom, chromStart1, chromEnd)
+  chunks.with.problems <- foverlaps(problems, chunks, nomatch=0L)
+  setkey(chunks.with.problems, problem.name)
+}
+
 ## Now write data_dir/problems/*/jointProblems.bed.sh
 cat(
   "Writing ", nrow(problems),
@@ -162,4 +173,42 @@ normalizePath("create_problems_joint.R", mustWork=TRUE),
 " ", samples.dir, " ", problem$problem.name, "
 ")
   writeLines(script.txt, sh.file)
+  if(file.exists(chunk.limits.RData) &&
+       problem$problem.name %in% chunks.with.problems$problem.name){
+    problem.chunks <- chunks.with.problems[problem$problem.name]
+    cat("Writing ", nrow(problem.chunks),
+        " chunks in ", prob.dir,
+        "\n", sep="")
+    for(chunk.i in seq_along(problem.chunks$chunk.name)){
+      chunk <- problem.chunks[chunk.i,]
+      chunk.dir <- file.path(prob.dir, "chunks", chunk$chunk.name)
+      dir.create(chunk.dir, showWarnings=FALSE, recursive=TRUE)
+      chunk.bed <- file.path(chunk.dir, "chunk.bed")
+      fwrite(
+        chunk[, .(chrom, chromStart, chromEnd)],
+        chunk.bed,
+        sep="\t",
+        col.names=FALSE,
+        quote=FALSE)
+      chunk.labels <- regions.by.chunk.file[[paste(chunk$file.and.chunk)]]
+      labels.tsv <- file.path(chunk.dir, "labels.tsv")
+      fwrite(
+        chunk.labels,
+        labels.tsv,
+        sep="\t",
+        col.names=TRUE,
+        quote=FALSE)
+      figure.png <- file.path(chunk.dir, "figure-predictions.png")
+      script.txt <- paste0(PBS.header, "
+#PBS -o ", figure.png, ".out
+#PBS -e ", figure.png, ".err
+#PBS -N FIG", chunk$chunk.name, "
+Rscript ",
+normalizePath("plot_chunk.R", mustWork=TRUE),
+" ", chunk.dir, "
+")
+      sh.file <- paste0(figure.png, ".sh")
+      writeLines(script.txt, sh.file)
+    }
+  }
 }

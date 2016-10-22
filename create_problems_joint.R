@@ -22,13 +22,21 @@ arg.vec <- c(
   "7")
 arg.vec <- c(
   "/home/tdhock/PeakSegFPOP/test/input/samples",
-  "chr10:125919472-128616069")
+  "chr10:18024675-38818835")
+arg.vec <- c(
+  "test/input/samples",
+  "chr10:38868835-39154935")
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
 samples.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
 problem.name <- arg.vec[2]
 
+ann.colors <-
+  c(noPeaks="#f6f4bf",
+    peakStart="#ffafaf",
+    peakEnd="#ff4c4c",
+    peaks="#a445ee")
 library(data.table)
 library(PeakSegJoint)#for clusterPeaks
 
@@ -142,7 +150,35 @@ if(is.data.table(problems) && 0 < nrow(problems)){
   coverage.bedGraph.vec <- Sys.glob(file.path(
     samples.dir, "*", "*", "problems", problem.name, "coverage.bedGraph"))
   if(FALSE){
+
+    ## TODO: click on the problem diagram to show coverage and models
+    ## in one problem?
     
+    problem.diagram <- ggplot()+
+      theme_bw()+
+      theme(panel.margin=grid::unit(0, "lines"))+
+      facet_grid(sample.group ~ ., scales="free", space="free")+
+      geom_tallrect(aes(
+        xmin=clusterStart/1e3, 
+        xmax=clusterEnd/1e3), 
+        alpha=0.5,
+        data=problems)+
+      scale_color_manual(values=ann.colors)+
+      geom_segment(aes(
+        labelStart/1e3, sample.id,
+        xend=labelEnd/1e3, yend=sample.id,
+        color=annotation),
+        size=10,
+        data=labels)+
+      geom_segment(aes(
+        chromStart/1e3, sample.id,
+        xend=chromEnd/1e3, yend=sample.id),
+        size=1,
+        data=peaks)+
+      geom_point(aes(
+        chromStart/1e3, sample.id),
+        data=peaks)
+
     coverage.list <- list()
     for(coverage.bedGraph in coverage.bedGraph.vec){
       problem.dir <- dirname(coverage.bedGraph)
@@ -160,11 +196,6 @@ if(is.data.table(problems) && 0 < nrow(problems)){
     }
     coverage <- do.call(rbind, coverage.list)
 
-    ann.colors <-
-      c(noPeaks="#f6f4bf",
-        peakStart="#ffafaf",
-        peakEnd="#ff4c4c",
-        peaks="#a445ee")
     ggplot()+
       theme_bw()+
       theme(panel.margin=grid::unit(0, "lines"))+

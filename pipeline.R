@@ -31,7 +31,6 @@ for(labels.bed in labels.bed.vec){
 }
 
 ## Train single-sample model.
-model.RData <- file.path(set.dir, "model.RData")
 train.cmd <- paste("Rscript train_model.R", set.dir)
 system.or.stop(train.cmd)
 
@@ -44,10 +43,48 @@ for(sh in sh.vec){
   system.or.stop(predict.cmd)
 }
 
-## Compute target intervals for multi-sample problems.
+## Compute target intervals for multi-sample problems... how to
+## parallelize?
 sh.vec <- Sys.glob(file.path(
-  set.dir, "problems", "*", "jointProblems", "*", "target.tsv.sh"))
+  set.dir, "problems", "*", "jointProblems", "*", "labels.bed"))
 for(sh in sh.vec){
   target.cmd <- paste("bash", sh)
   system.or.stop(target.cmd)
 }
+
+## Train joint model.
+train.cmd <- paste("Rscript train_model_joint.R", set.dir)
+system.or.stop(train.cmd)
+
+## Joint prediction.
+joint.dir.vec <- Sys.glob(file.path(
+  set.dir, "problems", "*", "jointProblems", "*"))
+joint.model.RData <- file.path(set.dir, "joint.model.RData")
+for(joint.dir in joint.dir.vec){
+  predict.cmd <- paste(
+    "Rscript predict_problem_joint.R",
+    joint.model.RData, joint.dir)
+  system.or.stop(predict.cmd)
+}
+
+## Plots.
+chunk.dir.vec <- Sys.glob(file.path(
+  set.dir, "problems", "*", "chunks", "*"))
+for(chunk.dir in chunk.dir.vec){
+  plot.cmd <- paste(
+    "Rscript plot_chunk.R",
+    chunk.dir)
+  system.or.stop(plot.cmd)
+}
+
+## TODO: make this a separate script, summarize other info like
+## predicted peaks, specific peaks, etc.
+figure.png.vec <- Sys.glob(file.path(
+  set.dir, "problems", "*", "chunks", "*", "figure-predictions-zoomout.png"))
+relative.vec <- sub("/", "", sub(set.dir, "", figure.png.vec))
+a.vec <- sprintf('
+<a href="%s">
+  <img src="%s" />
+</a>
+', relative.vec, sub("-zoomout", "", relative.vec))
+writeLines(a.vec, file.path(set.dir, "index.html"))

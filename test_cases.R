@@ -179,6 +179,9 @@ status <- system(convert.cmd)
 test_that("pipeline script succeeds", {
   expect_equal(status, 0)
 })
+test_that("index.html is created", {
+  expect_true(file.exists(file.path(set.dir, "index.html")))
+})
 
 ## Manually create a data set with two chunks from our benchmark.
 db.prefix <- "http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/"
