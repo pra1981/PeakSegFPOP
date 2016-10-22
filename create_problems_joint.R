@@ -105,7 +105,7 @@ if(is.null(labels)){
   cat(
     "Found", nrow(labels.with.no.peaks),
     "labeled regions with no peaks out of",
-    nrow(labels), "total.\n")
+    nrow(label.props), "total.\n")
   problems.list$labels <- labels.with.no.peaks[, data.table(
     clusterStart=labelStart+reduce,
     clusterEnd=labelEnd-reduce)]
