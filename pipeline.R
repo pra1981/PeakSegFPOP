@@ -43,13 +43,3 @@ for(sh in sh.vec){
   system.or.stop(predict.cmd)
 }
 
-## Create problems for multi-sample segmentation (only depends on peak
-## predictions in single-sample problems for which we have labels).
-problem.dir.vec <- grep(sample.dir, dirname(labels.bed.vec), value=TRUE)
-for(problem.dir in problem.dir.vec){
-  problem.name <- basename(problem.dir)
-  create.joint.cmd <- paste(
-    "Rscript create_problems_joint.R", samples.dir, problem.name)
-  system.or.stop(create.joint.cmd)
-}
-

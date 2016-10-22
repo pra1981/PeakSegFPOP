@@ -64,6 +64,8 @@ problems.list <- if(is.data.frame(peaks) && 0 < nrow(peaks)){
   ), by=cluster]
   clusters[, clusterStart1 := clusterStart + 1L]
   setkey(clusters, clusterStart1, clusterEnd)
+  cat(nrow(peaks), "total peaks form",
+      nrow(clusters), "overlapping peak clusters.\n")
   list(
     peaks=clusters[, .(clusterStart, clusterEnd)])
 }else{

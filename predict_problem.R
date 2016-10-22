@@ -22,4 +22,4 @@ problem.dir <- normalizePath(arg.vec[2], mustWork=TRUE)
 library(data.table)
 library(coseg)
 
-problem.predict(problem.dir, model.RData)
+peaks.or.null <- problem.predict(problem.dir, model.RData)
