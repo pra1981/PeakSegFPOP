@@ -230,6 +230,7 @@ if(is.data.table(problems) && 0 < nrow(problems)){
   data.dir <- dirname(samples.dir)
   jointProblems <- file.path(
     data.dir, "problems", problem.name, "jointProblems")
+  unlink(jointProblems, recursive=TRUE)
   joint.model.RData <- file.path(data.dir, "joint.model.RData")
   ## TODO make directories with sh files for each.
   makeProblem <- function(problem.i){
