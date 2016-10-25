@@ -277,7 +277,7 @@ if(is.data.table(problems) && 0 < nrow(problems)){
     peaks.bed <- file.path(problem.dir, "peaks.bed")
     sh.file <- paste0(peaks.bed, ".sh")
     pred.code <- sprintf(
-      'PeakSegJoint::problem.joint.predict("%s")',
+      'PeakSegJoint::problem.joint.predict("%s", "%s")',
       joint.model.RData, problem.dir)
     script.txt <- paste0(PBS.header, "
 #PBS -o ", peaks.bed, ".out
