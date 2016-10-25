@@ -232,6 +232,11 @@ int main(int argc, char *argv[]){//data_count x 2
       // in other words, we need to divide the penalty by the previous cumsum,
       // and add that to the min-less-ified function, before applying the min-env.
       min_prev_cost.set_prev_seg_end(data_i-1);
+      // cost + lambda * model.complexity =
+      // cost + penalty * peaks =>
+      // penalty = lambda * model.complexity / peaks.
+      // lambda is output by exactModelSelection,
+      // penalty is input by PeakSegFPOP.
       min_prev_cost.add(0.0, 0.0, penalty/cum_weight_prev_i);
       if(data_i==1){
 	up_cost = min_prev_cost;
