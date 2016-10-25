@@ -1,7 +1,9 @@
+library(httr)
 library(testthat)
 library(data.table)
 library(PeakSegJoint)
 library(coseg)
+
 writeProblem <- function(data.list, problem.dir){
   file.list <- list(
     coverage=file.path(problem.dir, "coverage.bedGraph"),
@@ -23,3 +25,13 @@ writeProblem <- function(data.list, problem.dir){
   }
 }
 
+download.to <- function
+(u, f, writeFun=if(grepl("bigWig", f))writeBin else writeLines){
+  if(!file.exists(f)){
+    f.dir <- dirname(f)
+    dir.create(f.dir, showWarnings=FALSE, recursive=TRUE)
+    request <- GET(u)
+    stop_for_status(request)
+    writeFun(content(request), f)
+  }
+}

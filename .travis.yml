@@ -22,3 +22,7 @@ notifications:
     on_success: change
     on_failure: change
 
+env:
+  matrix:
+    - TEST_SUITE=test_cases.R
+    - TEST_SUITE=test_input.R
