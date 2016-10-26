@@ -1,5 +1,14 @@
 source("packages.R")
 
+getenv.or <- function(env.var, default){
+  env.value <- Sys.getenv(env.var)
+  if(env.value == ""){
+    default
+  }else{
+    env.value
+  }
+}
+
 writeProblem <- function(data.list, problem.dir){
   file.list <- list(
     coverage=file.path(problem.dir, "coverage.bedGraph"),
