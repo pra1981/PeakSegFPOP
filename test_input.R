@@ -1,6 +1,6 @@
 source("test_functions.R")
 
-## Download trackDb.txt from github.
+## Download bigWig files from github.
 bigWig.part.vec <- c(
   "Input/MS010302",
   "bcell/MS010302",
