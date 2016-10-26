@@ -55,6 +55,8 @@ works_with_R(
   httr="1.0.0",
   ggdendro="0.1.20",
   testthat="1.0.2",
+  RJSONIO="1.3.1",
+  hexbin="1.27.1",
   "Rdatatable/data.table@7515fbe6c6f60114da72067db44fbe78ecdbd8fb",
   "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
   "tdhock/coseg@dfaac254c762be16c50f1f7652f687bca65db2d1",
