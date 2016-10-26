@@ -57,6 +57,7 @@ works_with_R(
   "Rdatatable/data.table@7515fbe6c6f60114da72067db44fbe78ecdbd8fb",
   "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
   "tdhock/coseg@dfaac254c762be16c50f1f7652f687bca65db2d1",
+  "faizan-khan-iit/ggplot2@5fb99d0cece13239bbbc09c6b8a7da7f86ac58e2",
   "tdhock/animint@78974d8788930034109289e42f8c90f1ee804290",
   "tdhock/PeakSegJoint@081389f4e134b0dec8af7a4244ac387805b64dce",
   "tdhock/cosegData@d979741723b38fe083ae513a766b98fca7786309",
