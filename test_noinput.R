@@ -5,12 +5,12 @@ bigWig.part.vec <- c(
   ## "Input/MS010302",
   "bcell/MS010302",
   ## "Input/MS026601",
-  "bcell/MS026601",
+  ## "bcell/MS026601",
   ## "Input/MS002201",
   ## "kidney/MS002201",
   ## "Input/MS002202",
   "kidney/MS002202")
-set.dir <- file.path("test", "input")
+set.dir <- file.path("test", "noinput")
 repos.url <- "https://raw.githubusercontent.com/tdhock/input-test-data/master/"
 for(bigWig.part in bigWig.part.vec){
   bigWig.file <- file.path(set.dir, "samples", bigWig.part, "coverage.bigWig")

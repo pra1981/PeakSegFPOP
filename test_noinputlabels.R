@@ -10,7 +10,7 @@ bigWig.part.vec <- c(
   ## "kidney/MS002201",
   ## "Input/MS002202",
   "kidney/MS002202")
-set.dir <- file.path("test", "input")
+set.dir <- file.path("test", "noinputlabels")
 repos.url <- "https://raw.githubusercontent.com/tdhock/input-test-data/master/"
 for(bigWig.part in bigWig.part.vec){
   bigWig.file <- file.path(set.dir, "samples", bigWig.part, "coverage.bigWig")
@@ -26,8 +26,8 @@ system(paste("grep chr10 hg19_problems.bed | head >", problems.bed))
 
 ## Whole pipeline.
 system(paste("bigWigToBedGraph", bigWig.file, "/dev/stdout|head"))
-convert.cmd <- paste("Rscript pipeline.R", set.dir)
-status <- system(convert.cmd)
+cmd <- paste("Rscript pipeline.R", set.dir)
+status <- system(cmd)
 test_that("pipeline script succeeds", {
   expect_equal(status, 0)
 })

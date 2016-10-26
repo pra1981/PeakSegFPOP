@@ -20,15 +20,17 @@ system.or.stop(convert.cmd)
 create.cmd <- paste("Rscript create_problems_all.R", set.dir)
 system.or.stop(create.cmd)
 
+library(coseg)
+
 ## Compute target interval for each problem.
 samples.dir <- file.path(set.dir, "samples")
 labels.bed.vec <- Sys.glob(file.path(
   samples.dir, "*", "*", "problems", "*", "labels.bed"))
-for(labels.bed in labels.bed.vec){
+mclapply.or.stop(labels.bed.vec, function(labels.bed){
   sample.dir <- dirname(labels.bed)
   target.cmd <- paste("Rscript compute_coverage_target.R", sample.dir)
   system.or.stop(target.cmd)
-}
+})
 
 ## Train single-sample model.
 train.cmd <- paste("Rscript train_model.R", set.dir)
@@ -38,19 +40,19 @@ system.or.stop(train.cmd)
 ## problem.
 sh.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "jointProblems.bed.sh"))
-for(sh in sh.vec){
+mclapply.or.stop(sh.vec, function(sh){
   predict.cmd <- paste("bash", sh)
   system.or.stop(predict.cmd)
-}
+})
 
 ## Compute target intervals for multi-sample problems... does not take
 ## much time, TODO combine with train_model_joint.R step
 labels.tsv.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "jointProblems", "*", "labels.tsv"))
-for(labels.tsv in labels.tsv.vec){
+mclapply.or.stop(labels.tsv.vec, function(labels.tsv){
   target.cmd <- paste("Rscript compute_joint_target.R", dirname(labels.tsv))
   system.or.stop(target.cmd)
-}
+})
 ## Train joint model.
 train.cmd <- paste("Rscript train_model_joint.R", set.dir)
 system.or.stop(train.cmd)
@@ -59,12 +61,12 @@ system.or.stop(train.cmd)
 joint.dir.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "jointProblems", "*"))
 joint.model.RData <- file.path(set.dir, "joint.model.RData")
-for(joint.dir in joint.dir.vec){
+mclapply.or.stop(joint.dir.vec, function(joint.dir), {
   predict.cmd <- paste(
     "Rscript predict_problem_joint.R",
     joint.model.RData, joint.dir)
   system.or.stop(predict.cmd)
-}
+})
 
 ## Summarize peak predictions on a web page.
 final.cmd <- paste("Rscript plot_all.R", set.dir)
