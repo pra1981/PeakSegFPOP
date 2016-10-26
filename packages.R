@@ -49,6 +49,7 @@ works_with_R <- function(Rvers,...){
     }
   }
 }
+options(repos="http://cloud.r-project.org")
 works_with_R(
   "3.3.1",
   httr="1.0.0",
