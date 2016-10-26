@@ -131,7 +131,7 @@ problem.dir <- dirname(labels.bed.vec[1])
 target.tsv <- file.path(problem.dir, "target.tsv")
 unlink(target.tsv)
 unlink(Sys.glob(file.path(problem.dir, "*_loss.tsv")))
-target.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
+target.cmd <- Rscript('coseg::problem.target("%s")', problem.dir)
 system(target.cmd)
 test_that("target.tsv file created", {
   expect_true(file.exists(target.tsv))
@@ -200,7 +200,7 @@ for(chunk.id in chunk.vec){
         sep="\t",
         row.names=FALSE,
         col.names=FALSE)
-      cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
+      target.cmd <- Rscript('coseg::problem.target("%s")', problem.dir)
       status <- system(cmd)
       if(status != 0){
         stop("non-zero exit status")
@@ -510,7 +510,7 @@ f.row <- read.table(
 test_that("features are computed", {
   expect_equal(nrow(f.row), 1)
 })
-test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
+test.cmd <- Rscript('coseg::problem.target("%s")', problem.dir)
 system(test.cmd)
 cat.cmd <- paste0("cat ", problem.dir, "/*loss.tsv")
 loss <- fread(cat.cmd)

@@ -28,7 +28,8 @@ labels.bed.vec <- Sys.glob(file.path(
   samples.dir, "*", "*", "problems", "*", "labels.bed"))
 mclapply.or.stop(labels.bed.vec, function(labels.bed){
   sample.dir <- dirname(labels.bed)
-  target.cmd <- paste("Rscript compute_coverage_target.R", sample.dir)
+  target.code <- sprintf('coseg::problem.target("%s")', sample.dir)
+  target.cmd <- sprintf("Rscript -e '%s'", target.code)
   system.or.stop(target.cmd)
 })
 

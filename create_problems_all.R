@@ -97,11 +97,13 @@ for(sample.i in seq_along(sample.dir.vec)){
     ## Script for coverage.
     target.tsv <- file.path(problem.dir, "target.tsv")
     sh.file <- paste0(target.tsv, ".sh")
+    target.code <- sprintf('coseg::problem.target("%s")', problem.dir)
+    target.cmd <- sprintf("Rscript -e '%s'", target.code)
     script.txt <- paste0(PBS.header, "
 #PBS -o ", target.tsv, ".out
 #PBS -e ", target.tsv, ".err
 #PBS -N Target", problem$problem.name, "
-", "Rscript ", normalizePath("compute_coverage_target.R", mustWork=TRUE), " ", problem.dir, "
+", target.cmd, "
 ")
     writeLines(script.txt, sh.file)
     ## Script for peaks.

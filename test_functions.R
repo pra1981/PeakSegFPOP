@@ -1,5 +1,14 @@
 source("packages.R")
 
+Rscript <- function(...){
+  code <- sprintf(...)
+  if(grepl("'", code)){
+    print(code)
+    stop("there can not be any ' in code")
+  }
+  sprintf("Rscript -e '%s'", code)
+}
+
 getenv.or <- function(env.var, default){
   env.value <- Sys.getenv(env.var)
   if(env.value == ""){
