@@ -12,10 +12,21 @@ good predictions on four un-labeled samples]].
 
 ** Installation
 
+The following commands can be used to install all the required
+dependencies on Ubuntu precise (linux.x86_64 architecture). If you
+have another system, make sure to install R, BerkeleyDB STL, and UCSC
+tools (bigWigToBedGraph, bedToBigBed). Then execute [[file:packages.R]] to
+install all required R packages.
+
 #+BEGIN_SRC shell-script
-sudo aptitude install libdb6.0++-dev libdb6.0-stl-dev
+sudo aptitude install build-essential r-recommended libdb6.0++-dev libdb6.0-stl-dev bedtools
+export BIN=~/bin # or any other directory on your $PATH
+curl -L http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bigWigToBedGraph -o $BIN/bigWigToBedGraph
+curl -L http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bedToBigBed -o $BIN/bedToBigBed
+chmod u+x $BIN/bigWigToBedGraph $BIN/bedToBigBed
 make
-cp PeakSegFPOP ~/bin # or wherever is on your $PATH
+cp PeakSegFPOP $BIN
+Rscript -e 'source("packages.R")'
 #+END_SRC
 
 BerkeleyDB is used by PeakSegFPOP to write a large temporary file to
@@ -39,7 +50,13 @@ tell the compiler where to find it.
 g++ -std=c++0x -o PeakSegFPOP PeakSegFPOPLog.cpp funPieceListLog.cpp -I$HOME/include -L$HOME/lib -ldb_stl -Wl,-rpath=$HOME/lib
 #+END_SRC
 
-** Usage
+Once everything has been installed, you can test your installation by
+executing [[file:test_input.R]]. It will first download some bigWigs and
+labels to the =test/input= directory, then run [[file:pipeline.R]] on
+them. If everything worked, you can view the results by opening 
+=test/input/index.html= in a web browser.
+
+** Detailed usage
 
 *** The PeakSegFPOP command line program
 
@@ -213,6 +230,8 @@ files will contain one line for each sample that has a peak in this
 region of the genome. For a given joint segmentation problem, each
 sample will have the same peak start and end positions, which makes it
 trivial to compute differences between samples.
+
+TODO
 
 ** Related work
 
