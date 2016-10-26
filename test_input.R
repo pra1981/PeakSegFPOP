@@ -8,7 +8,7 @@ bigWig.part.vec <- c(
   ## "bcell/MS026601",
   ## "Input/MS002201",
   ## "kidney/MS002201",
-  "Input/MS002202",
+  ## "Input/MS002202",
   "kidney/MS002202")
 set.dir <- file.path("test", "input")
 repos.url <- "https://raw.githubusercontent.com/tdhock/input-test-data/master/"
@@ -22,7 +22,7 @@ labels.file <- file.path(set.dir, "labels", "kidney_bcell_Input_labels.txt")
 download.to(labels.url, labels.file)
 problems.bed <- file.path(set.dir, "problems.bed")
 unlink(problems.bed)
-system(paste("grep chr10 hg19_problems.bed >", problems.bed))
+system(paste("grep chr10 hg19_problems.bed | head >", problems.bed))
 
 ## Whole pipeline.
 system(paste("bigWigToBedGraph", bigWig.file, "/dev/stdout|head"))
