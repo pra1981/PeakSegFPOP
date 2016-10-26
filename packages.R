@@ -53,6 +53,7 @@ options(repos="http://cloud.r-project.org")
 works_with_R(
   "3.3.1",
   httr="1.0.0",
+  ggdendro="0.1.20",
   testthat="1.0.2",
   "Rdatatable/data.table@7515fbe6c6f60114da72067db44fbe78ecdbd8fb",
   "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
@@ -62,5 +63,4 @@ works_with_R(
   "tdhock/PeakSegJoint@081389f4e134b0dec8af7a4244ac387805b64dce",
   "tdhock/cosegData@d979741723b38fe083ae513a766b98fca7786309",
   "tdhock/namedCapture@05175927a45c301a18e8c6ebae67ea39a842d264",
-  "tdhock/WeightedROC@ef8f35ba7ae85e2995fa66afe13732cebb8b5633",
-  ggdendro="0.1.20")
+  "tdhock/WeightedROC@ef8f35ba7ae85e2995fa66afe13732cebb8b5633")
