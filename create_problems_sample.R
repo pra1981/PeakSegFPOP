@@ -23,6 +23,16 @@ if(length(arg.vec) != 2){
 library(data.table)
 library(PeakError)
 
+Rscript <- function(...){
+  code <- sprintf(...)
+  stopifnot(length(code)==1)
+  if(grepl("'", code)){
+    print(code)
+    stop("there can not be any ' in code")
+  }
+  sprintf("Rscript -e '%s'", code)
+}
+
 problems.bed <- normalizePath(arg.vec[1], mustWork=TRUE)
 sample.dir <- normalizePath(arg.vec[2], mustWork=TRUE)
 group.dir <- dirname(sample.dir)
