@@ -171,7 +171,7 @@ for(problem.i in 1:nrow(problems)){
   jointProblems.bed <- file.path(prob.dir, "jointProblems.bed")
   sh.file <- paste0(jointProblems.bed, ".sh")
   sample.cmd.vec <- Rscript(
-    'coseg:problem.predict("%s", "%s")',
+    'coseg::problem.predict("%s", "%s")',
     file.path(sample.dir.vec, "problems", problem$problem.name),
     model.RData)
   script.txt <- paste0(PBS.header, "
