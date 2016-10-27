@@ -12,6 +12,16 @@ system.or.stop <- function(cmd){
   }
 }
 
+Rscript <- function(...){
+  code <- sprintf(...)
+  stopifnot(length(code)==1)
+  if(grepl("'", code)){
+    print(code)
+    stop("there can not be any ' in code")
+  }
+  sprintf("Rscript -e '%s'", code)
+}
+
 ## First convert labels.
 convert.cmd <- paste("Rscript convert_labels.R", set.dir)
 system.or.stop(convert.cmd)
@@ -28,8 +38,7 @@ labels.bed.vec <- Sys.glob(file.path(
   samples.dir, "*", "*", "problems", "*", "labels.bed"))
 mclapply.or.stop(labels.bed.vec, function(labels.bed){
   sample.dir <- dirname(labels.bed)
-  target.code <- sprintf('coseg::problem.target("%s")', sample.dir)
-  target.cmd <- sprintf("Rscript -e '%s'", target.code)
+  target.cmd <- Rscript('coseg::problem.target("%s")', sample.dir)
   system.or.stop(target.cmd)
 })
 
@@ -51,7 +60,9 @@ mclapply.or.stop(sh.vec, function(sh){
 labels.tsv.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "jointProblems", "*", "labels.tsv"))
 mclapply.or.stop(labels.tsv.vec, function(labels.tsv){
-  target.cmd <- paste("Rscript compute_joint_target.R", dirname(labels.tsv))
+  target.cmd <- Rscript(
+    'PeakSegJoint::problem.joint.target("%s")',
+    dirname(labels.tsv))
   system.or.stop(target.cmd)
 })
 ## Train joint model.

@@ -2,6 +2,7 @@ source("packages.R")
 
 Rscript <- function(...){
   code <- sprintf(...)
+  stopifnot(length(code)==1)
   if(grepl("'", code)){
     print(code)
     stop("there can not be any ' in code")
