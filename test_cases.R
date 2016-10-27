@@ -201,7 +201,7 @@ for(chunk.id in chunk.vec){
         row.names=FALSE,
         col.names=FALSE)
       target.cmd <- Rscript('coseg::problem.target("%s")', problem.dir)
-      status <- system(cmd)
+      status <- system(target.cmd)
       if(status != 0){
         stop("non-zero exit status")
       }
