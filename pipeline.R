@@ -72,7 +72,7 @@ system.or.stop(train.cmd)
 joint.dir.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "jointProblems", "*"))
 joint.model.RData <- file.path(set.dir, "joint.model.RData")
-mclapply.or.stop(joint.dir.vec, function(joint.dir), {
+mclapply.or.stop(joint.dir.vec, function(joint.dir){
   predict.cmd <- Rscript(
     'PeakSegJoint::problem.joint.predict("%s", "%s")',
     joint.model.RData, joint.dir)
