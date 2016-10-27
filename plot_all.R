@@ -8,17 +8,19 @@ library(WeightedROC)
 library(ggdendro)
 library(namedCapture)
 library(data.table)
+library(coseg)
 
 if(length(arg.vec) != 1){
   stop("usage: Rscript plot_all.R project_dir")
 }
 
+## Plot each labeled chunk.
 set.dir <- normalizePath(arg.vec, mustWork=TRUE)
 chunk.dir.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "chunks", "*"))
-for(chunk.dir in chunk.dir.vec){
+mclapply.or.stop(chunk.dir.vec, function(chunk.dir){
   PeakSegJoint::problem.joint.plot(chunk.dir)
-}
+})
 
 ## TODO: make this a separate script, summarize other info like
 ## predicted peaks, specific peaks, etc.
