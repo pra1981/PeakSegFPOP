@@ -22,6 +22,16 @@ if(length(arg.vec) != 1){
 library(data.table)
 library(PeakError)
 
+Rscript <- function(...){
+  code <- sprintf(...)
+  stopifnot(length(code)==1)
+  if(grepl("'", code)){
+    print(code)
+    stop("there can not be any ' in code")
+  }
+  sprintf("Rscript -e '%s'", code)
+}
+
 data.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
 problems.bed <- file.path(data.dir, "problems.bed")
 samples.dir <- file.path(data.dir, "samples")
@@ -97,8 +107,7 @@ for(sample.i in seq_along(sample.dir.vec)){
     ## Script for coverage.
     target.tsv <- file.path(problem.dir, "target.tsv")
     sh.file <- paste0(target.tsv, ".sh")
-    target.code <- sprintf('coseg::problem.target("%s")', problem.dir)
-    target.cmd <- sprintf("Rscript -e '%s'", target.code)
+    target.cmd <- Rscript('coseg::problem.target("%s")', problem.dir)
     script.txt <- paste0(PBS.header, "
 #PBS -o ", target.tsv, ".out
 #PBS -e ", target.tsv, ".err
@@ -109,12 +118,14 @@ for(sample.i in seq_along(sample.dir.vec)){
     ## Script for peaks.
     peaks.bed <- file.path(problem.dir, "peaks.bed")
     sh.file <- paste0(peaks.bed, ".sh")
+    predict.cmd <- Rscript(
+      'coseg::problem.predict("%s", "%s")',
+      model.RData, problem.dir)
     script.txt <- paste0(PBS.header, "
 #PBS -o ", peaks.bed, ".out
 #PBS -e ", peaks.bed, ".err
 #PBS -N Predict", problem$problem.name, "
-", "Rscript ", normalizePath("predict_problem.R", mustWork=TRUE), " ",
-model.RData, " ", problem.dir, " 
+", predict.cmd, " 
 ")
     writeLines(script.txt, sh.file)
   }
@@ -160,9 +171,8 @@ for(problem.i in 1:nrow(problems)){
   dir.create(prob.dir, showWarnings=FALSE, recursive=TRUE)
   jointProblems.bed <- file.path(prob.dir, "jointProblems.bed")
   sh.file <- paste0(jointProblems.bed, ".sh")
-  sample.cmd.vec <- paste(
-    "Rscript",
-    normalizePath("predict_problem.R", mustWork=TRUE), 
+  sample.cmd.vec <- Rscript(
+    'coseg:problem.predict("%s", "%s")',
     model.RData,
     file.path(sample.dir.vec, "problems", problem$problem.name))
   script.txt <- paste0(PBS.header, "

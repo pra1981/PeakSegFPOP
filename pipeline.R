@@ -74,8 +74,8 @@ joint.dir.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "jointProblems", "*"))
 joint.model.RData <- file.path(set.dir, "joint.model.RData")
 mclapply.or.stop(joint.dir.vec, function(joint.dir), {
-  predict.cmd <- paste(
-    "Rscript predict_problem_joint.R",
+  predict.cmd <- Rscript(
+    'coseg::problem.predict("%s", "%s")',
     joint.model.RData, joint.dir)
   system.or.stop(predict.cmd)
 })

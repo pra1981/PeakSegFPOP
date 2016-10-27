@@ -258,7 +258,9 @@ unlink(test.segments.vec)
 unlink(test.loss.vec)
 pred.peaks.list <- list()
 for(test.dir in test.dir.vec){
-  predict.cmd <- paste("Rscript predict_problem.R", model.RData, test.dir)
+  predict.cmd <- Rscript(
+    'coseg::problem.predict("%s", "%s")',
+    model.RData, test.dir)
   status <- system(predict.cmd)
   if(status != 0){
     stop("status code ", status)
@@ -303,7 +305,9 @@ test_that("peaks.bed files created", {
 ## should not have to re-run PeakSegFPOP.
 problem.dir <- "test/H3K4me3_TDH_other/samples/kidney/McGill0023/problems/7"
 loss.files.before <- Sys.glob(file.path("*_loss.tsv"))
-predict.cmd <- paste("Rscript predict_problem.R", model.RData, problem.dir)
+predict.cmd <- Rscript(
+  'coseg::problem.predict("%s", "%s")',
+  model.RData, problem.dir)
 system(predict.cmd)
 loss.files.after <- Sys.glob(file.path("*_loss.tsv"))
 test_that("PeakSegFPOP is not run when we already have the solution", {
@@ -314,7 +318,9 @@ test_that("PeakSegFPOP is not run when we already have the solution", {
 ## return the closest model inside.
 problem.dir <-
   "test/H3K4me3_TDH_other/samples/leukemiaCD19CD10BCells/McGill0267/problems/7"
-predict.cmd <- paste("Rscript predict_problem.R", model.RData, problem.dir)
+predict.cmd <- Rscript(
+  'coseg::problem.predict("%s", "%s")',
+  model.RData, problem.dir)
 system(predict.cmd)
 peaks <- fread(file.path(problem.dir, "peaks.bed"))
 test_that("predict model with 2 peaks", {
@@ -337,7 +343,9 @@ labels.bed.vec <- Sys.glob(file.path(
   samples.dir, "*", "*", "problems", "*", "labels.bed"))
 for(labels.bed in labels.bed.vec){
   problem.dir <- dirname(labels.bed)
-  predict.cmd <- paste("Rscript predict_problem.R", model.RData, problem.dir)
+  predict.cmd <- Rscript(
+    'coseg::problem.predict("%s", "%s")',
+    model.RData, problem.dir)
   system(predict.cmd)
 }
 

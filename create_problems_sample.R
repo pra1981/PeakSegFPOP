@@ -107,12 +107,14 @@ makeProblem <- function(problem.i){
   ## Script for peaks.
   peaks.bed <- file.path(problem.dir, "peaks.bed")
   sh.file <- paste0(peaks.bed, ".sh")
+  predict.cmd <- Rscript(
+    'coseg::problem.predict("%s", "%s")',
+    model.RData, problem.dir)
   script.txt <- paste0(PBS.header, "
 #PBS -o ", peaks.bed, ".out
 #PBS -e ", peaks.bed, ".err
 #PBS -N Predict", problem$problem.name, "
-", "Rscript ", normalizePath("predict_problem.R", mustWork=TRUE), " ",
-model.RData, " ", problem.dir, " 
+", predict.cmd, " 
 ")
   writeLines(script.txt, sh.file)
 }
