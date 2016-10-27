@@ -29,6 +29,10 @@ arg.vec <- c(
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
+if(length(arg.vec) != 2){
+  stop("usage: Rscript create_problems_joint.R samples_dir problemID")
+}
+
 samples.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
 problem.name <- arg.vec[2]
 
