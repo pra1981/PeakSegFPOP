@@ -260,7 +260,7 @@ pred.peaks.list <- list()
 for(test.dir in test.dir.vec){
   predict.cmd <- Rscript(
     'coseg::problem.predict("%s", "%s")',
-    model.RData, test.dir)
+    test.dir, model.RData)
   status <- system(predict.cmd)
   if(status != 0){
     stop("status code ", status)
@@ -307,7 +307,7 @@ problem.dir <- "test/H3K4me3_TDH_other/samples/kidney/McGill0023/problems/7"
 loss.files.before <- Sys.glob(file.path("*_loss.tsv"))
 predict.cmd <- Rscript(
   'coseg::problem.predict("%s", "%s")',
-  model.RData, problem.dir)
+  problem.dir, model.RData)
 system(predict.cmd)
 loss.files.after <- Sys.glob(file.path("*_loss.tsv"))
 test_that("PeakSegFPOP is not run when we already have the solution", {
@@ -320,7 +320,7 @@ problem.dir <-
   "test/H3K4me3_TDH_other/samples/leukemiaCD19CD10BCells/McGill0267/problems/7"
 predict.cmd <- Rscript(
   'coseg::problem.predict("%s", "%s")',
-  model.RData, problem.dir)
+  problem.dir, model.RData)
 system(predict.cmd)
 peaks <- fread(file.path(problem.dir, "peaks.bed"))
 test_that("predict model with 2 peaks", {
@@ -345,7 +345,7 @@ for(labels.bed in labels.bed.vec){
   problem.dir <- dirname(labels.bed)
   predict.cmd <- Rscript(
     'coseg::problem.predict("%s", "%s")',
-    model.RData, problem.dir)
+    problem.dir, model.RData)
   system(predict.cmd)
 }
 

@@ -119,7 +119,7 @@ for(sample.i in seq_along(sample.dir.vec)){
     sh.file <- paste0(peaks.bed, ".sh")
     predict.cmd <- Rscript(
       'coseg::problem.predict("%s", "%s")',
-      model.RData, problem.dir)
+      problem.dir, model.RData)
     script.txt <- paste0(PBS.header, "
 #PBS -o ", peaks.bed, ".out
 #PBS -e ", peaks.bed, ".err
@@ -172,8 +172,8 @@ for(problem.i in 1:nrow(problems)){
   sh.file <- paste0(jointProblems.bed, ".sh")
   sample.cmd.vec <- Rscript(
     'coseg:problem.predict("%s", "%s")',
-    model.RData,
-    file.path(sample.dir.vec, "problems", problem$problem.name))
+    file.path(sample.dir.vec, "problems", problem$problem.name),
+    model.RData)
   script.txt <- paste0(PBS.header, "
 #PBS -o ", jointProblems.bed, ".out
 #PBS -e ", jointProblems.bed, ".err
