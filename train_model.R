@@ -1,4 +1,4 @@
-arg.vec <- "test/noinput"
+arg.vec <- "test/demo"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
@@ -365,15 +365,7 @@ IntervalRegressionMatrix <- function
                   stopping.crit))
     }
     iterate.count <- iterate.count + 1
-    if(iterate.count > max.iterations){
-      Lipschitz <- Lipschitz * 1.5
-      iterate.count <- 1
-      if(verbose >= 1){
-        cat(max.iterations, "iterations, increasing Lipschitz.",
-            "crit =", stopping.crit, "\n")
-      }
-    }
-    if(any(!is.finite(this.iterate)) || 1e100 < stopping.crit){
+    if(any(!is.finite(this.iterate)) || 1e20 < stopping.crit){
       if(verbose >= 1){
         cat("restarting with bigger Lipschitz.\n")
       }
@@ -382,6 +374,14 @@ IntervalRegressionMatrix <- function
       last.iterate <- this.iterate <- y <- initial.param.vec
       this.t <- 1
       Lipschitz <- Lipschitz * 1.5
+    }
+    if(iterate.count > max.iterations){
+      Lipschitz <- Lipschitz * 1.5
+      iterate.count <- 1
+      if(verbose >= 1){
+        cat(max.iterations, "iterations, increasing Lipschitz.",
+            "crit =", stopping.crit, "\n")
+      }
     }
   }
   if(verbose >= 1){
