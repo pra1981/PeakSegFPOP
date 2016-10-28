@@ -52,17 +52,18 @@ works_with_R <- function(Rvers,...){
 options(repos="http://cloud.r-project.org")
 works_with_R(
   "3.3.1",
-  httr="1.0.0",
+  httr="1.2.1",
   ggdendro="0.1.20",
   testthat="1.0.2",
   RJSONIO="1.3.1",
   hexbin="1.27.1",
+  xtable="1.7.4",
   "Rdatatable/data.table@7515fbe6c6f60114da72067db44fbe78ecdbd8fb",
   "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
   "tdhock/coseg@dfaac254c762be16c50f1f7652f687bca65db2d1",
   "faizan-khan-iit/ggplot2@5fb99d0cece13239bbbc09c6b8a7da7f86ac58e2",
   "tdhock/animint@78974d8788930034109289e42f8c90f1ee804290",
-  "tdhock/PeakSegJoint@081389f4e134b0dec8af7a4244ac387805b64dce",
+  "tdhock/PeakSegJoint@b6ee43cfa0dc517f65d548ee2484edf40d360b52",
   "tdhock/cosegData@d979741723b38fe083ae513a766b98fca7786309",
   "tdhock/namedCapture@05175927a45c301a18e8c6ebae67ea39a842d264",
   "tdhock/WeightedROC@ef8f35ba7ae85e2995fa66afe13732cebb8b5633")

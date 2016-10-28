@@ -1,7 +1,8 @@
-arg.vec <- "test/noinput"
+arg.vec <- "test/demo"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
+library(xtable)
 library(ggplot2)
 library(animint)
 library(WeightedROC)
@@ -13,9 +14,9 @@ library(coseg)
 if(length(arg.vec) != 1){
   stop("usage: Rscript plot_all.R project_dir")
 }
+set.dir <- normalizePath(arg.vec, mustWork=TRUE)
 
 ## Plot each labeled chunk.
-set.dir <- normalizePath(arg.vec, mustWork=TRUE)
 chunk.dir.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "chunks", "*"))
 mclapply.or.stop(chunk.dir.vec, function(chunk.dir){
@@ -131,21 +132,26 @@ max.dist.neg <- -max.dist*3
 problems[, dist := (.N:1)*max.dist.neg/.N]
 problem.width <- diff(problems$dist[1:2])/2
 setkey(problems, separate.problem)
-problem.peak.counts <- joint.peaks.dt[, list(
+sample.problem.peaks <- joint.peaks.dt[, list(
   peaks=.N
 ), by=.(sample.path, separate.problem)]
-setkey(problem.peak.counts, separate.problem)
-problem.peak.show <- problems[problem.peak.counts]
+setkey(sample.problem.peaks, separate.problem)
+problem.peak.show <- problems[sample.problem.peaks]
 problem.peak.show[, sample.pos := gg.tree$labels[paste(sample.path), "x"]]
 group.means <- data.table(gg.tree$labels)[, list(
   mean.x=mean(x)
 ), by=sample.group]
-## TODO: display this table on html output!
-peaks.per.problem <- problem.peak.counts[problems][, list(
-  peaks=sum(peaks, na.rm=TRUE)
-), by=.(chrom, problemStart, problemEnd)][order(peaks),]
-## TODO: table with summary of labels/peaks/train errors per labeled
-## chunk, with links to pngs.
+peak.samples.counts <- sample.problem.peaks[, list(
+  samples=.N,
+  peak.samples=sum(peaks)
+  ), by=separate.problem]
+peaks.counts <- input.pred[, list(peaks=.N), by=separate.problem]
+problems[, peaks := 0L]
+problems[, samples := 0L]
+problems[, peak.samples := 0L]
+problems[peaks.counts, peaks := peaks.counts$peaks]
+problems[peak.samples.counts, peak.samples := peak.samples.counts$peak.samples]
+problems[peak.samples.counts, samples := peak.samples.counts$samples]
 
 ggplot()+
   theme_grey()+
@@ -214,6 +220,7 @@ vline.dt <- chrom.limits[, data.table(
 input.pred[, peakBases := peakEnd - peakStart]
 joint.peaks.dt[, peakBases := peakEnd - peakStart]
 viz <- list(
+  title="PeakSegFPOP + PeakSegJoint predictions",
   tree=ggplot()+
     geom_text(aes(
       min.dist-problem.width, n.samples+0.5,
@@ -370,13 +377,52 @@ viz <- list(
   selector.types=list())
 animint2dir(viz, file.path(set.dir, "figure-genome"))
 
-a.vec <- c(
-  '<a href="figure-genome/index.html">Interactive data viz</a>',
-  ## TODO summary table.
-  sprintf('
+chunk.info[, image := sprintf('
 <a href="%s">
   <img src="%s" />
 </a>
-', relative.vec, zoomin.png.vec))
-p.vec <- paste("<p>", a.vec, "</p>")
-writeLines(p.vec, file.path(set.dir, "index.html"))
+', zoomin.png.vec, sub(".png$", "-thumb.png", zoomin.png.vec))]
+chunk.info[, chunk := sprintf({
+  '<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s">%s</a>'
+}, chunk.problem, chunk.problem)]
+
+chunk.counts <- chunk.info[, list(chunks=.N), by=separate.problem]
+label.counts <- all.labels[, list(
+  samples=.N
+  ), by=.(chrom, labelStart, labelEnd)]
+label.counts[, labelStart1 := labelStart + 1L]
+problems[, problemStart1 := problemStart + 1L]
+setkey(label.counts, chrom, labelStart1, labelEnd)
+setkey(problems, chrom, problemStart1, problemEnd)
+labels.in.problems <- foverlaps(label.counts, problems, nomatch=0L)
+label.problem.counts <- labels.in.problems[, list(
+  labels=sum(samples),
+  labeled.regions=.N
+  ), by=separate.problem]
+problems[, labels := 0L]
+setkey(label.problem.counts, separate.problem)
+setkey(chunk.counts, separate.problem)
+setkey(problems, separate.problem)
+problems[label.problem.counts, labels := label.problem.counts$labels]
+problems[, labeled.regions := 0L]
+problems[label.problem.counts, labeled.regions := label.problem.counts$labeled.regions]
+problems[, labeled.chunks := 0L]
+problems[chunk.counts, labeled.chunks := chunk.counts$chunks]
+problems[, problem := sprintf({
+  '<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s">%s</a>'
+}, separate.problem, separate.problem)]
+
+problems.xt <- xtable(problems[, .(problem, samples, peaks, peak.samples, labeled.chunks, labeled.regions, labels)])
+problems.html <- print(problems.xt, type="html", sanitize.text.function=identity)
+chunks.xt <- xtable(chunk.info[, .(chunk, image)])
+chunks.html <- print(chunks.xt, type="html", sanitize.text.function=identity)
+html.vec <- c(
+  '<title>PeakSegFPOP + PeakSegJoint predictions</title>',
+  '<h2>Interactive data viz</h2>',
+  '<a href="figure-genome/index.html">Interactive data viz</a>',
+  '<h2>Chunks</h2>',
+  chunks.html,
+  '<h2>Problems</h2>',
+  problems.html
+  )
+writeLines(html.vec, file.path(set.dir, "index.html"))

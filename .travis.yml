@@ -26,4 +26,4 @@ env:
     - TEST_SUITE=test_cases.R
     - TEST_SUITE=test_input.R
     - TEST_SUITE=test_noinput.R
-    - TEST_SUITE=test_noinputlabels.R
+

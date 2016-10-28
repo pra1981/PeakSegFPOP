@@ -1,4 +1,4 @@
-arg.vec <- "test/input"
+arg.vec <- "test/demo"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
