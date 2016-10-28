@@ -1,5 +1,13 @@
 source("test_functions.R")
 
+options(warn=2)
+test_that("downloaded hg19 problems is the same as stored", {
+  system("Rscript downloadProblems.R hg19 hg19_test.bed")
+  diff.lines <- system("diff hg19_test.bed hg19_problems.bed", intern=TRUE)
+  expect_equal(length(diff.lines), 0)
+})
+options(warn=0)
+
 status <- system("PeakSegFPOP notIntBad.bedGraph 0.1")
 test_that("PeakSegFPOP fails for non-integer data", {
   expect_false(status == 0)
@@ -131,8 +139,7 @@ problem.dir <- dirname(labels.bed.vec[1])
 target.tsv <- file.path(problem.dir, "target.tsv")
 unlink(target.tsv)
 unlink(Sys.glob(file.path(problem.dir, "*_loss.tsv")))
-target.cmd <- Rscript('coseg::problem.target("%s")', problem.dir)
-system(target.cmd)
+coseg::problem.target(problem.dir)
 test_that("target.tsv file created", {
   expect_true(file.exists(target.tsv))
 })
@@ -200,11 +207,7 @@ for(chunk.id in chunk.vec){
         sep="\t",
         row.names=FALSE,
         col.names=FALSE)
-      target.cmd <- Rscript('coseg::problem.target("%s")', problem.dir)
-      status <- system(target.cmd)
-      if(status != 0){
-        stop("non-zero exit status")
-      }
+      coseg::problem.target(problem.dir)
     }
   }
 }
@@ -258,13 +261,7 @@ unlink(test.segments.vec)
 unlink(test.loss.vec)
 pred.peaks.list <- list()
 for(test.dir in test.dir.vec){
-  predict.cmd <- Rscript(
-    'coseg::problem.predict("%s", "%s")',
-    test.dir, model.RData)
-  status <- system(predict.cmd)
-  if(status != 0){
-    stop("status code ", status)
-  }
+  coseg::problem.predict(test.dir, model.RData)
   peaks.bed <- file.path(test.dir, "peaks.bed")
   tryCatch({
     sample.peaks <- fread(peaks.bed)
@@ -278,6 +275,25 @@ for(test.dir in test.dir.vec){
 test_that("peaks.bed files created", {
   expect_true(all(file.exists(peaks.bed.vec)))
 })
+
+## TODO Create problems test -- this one does not make sense, since this data set does not use hg19_problems.bed
+## create.cmd <- paste("Rscript create_problems_all.R", set.dir)
+## joint.glob <- file.path(set.dir, "problems", "*", "jointProblems.bed.sh")
+## unlink(Sys.glob(joint.glob))
+## problems.bed <- file.path(set.dir, "problems.bed")
+## unlink(problems.bed)
+## file.symlink(
+##   normalizePath("hg19_problems.bed", mustWork=TRUE),
+##   problems.bed)
+## system(create.cmd)
+## sh.vec <- Sys.glob(joint.glob)
+## problems <- fread(problems.bed)
+## test_that("one joint script created for each problem", {
+##   expect_equal(length(sh.vec), nrow(problems))
+## })
+
+## predict and create joint problems.
+## TODO test that jointProblems.bed.sh makes peaks.bed files and jointProblems.bed.
 
 ## pred.peaks <- do.call(rbind, pred.peaks.list)
 ## ggplot()+
@@ -305,10 +321,7 @@ test_that("peaks.bed files created", {
 ## should not have to re-run PeakSegFPOP.
 problem.dir <- "test/H3K4me3_TDH_other/samples/kidney/McGill0023/problems/7"
 loss.files.before <- Sys.glob(file.path("*_loss.tsv"))
-predict.cmd <- Rscript(
-  'coseg::problem.predict("%s", "%s")',
-  problem.dir, model.RData)
-system(predict.cmd)
+coseg::problem.predict(problem.dir, model.RData)
 loss.files.after <- Sys.glob(file.path("*_loss.tsv"))
 test_that("PeakSegFPOP is not run when we already have the solution", {
   expect_equal(length(loss.files.before), length(loss.files.after))
@@ -318,10 +331,7 @@ test_that("PeakSegFPOP is not run when we already have the solution", {
 ## return the closest model inside.
 problem.dir <-
   "test/H3K4me3_TDH_other/samples/leukemiaCD19CD10BCells/McGill0267/problems/7"
-predict.cmd <- Rscript(
-  'coseg::problem.predict("%s", "%s")',
-  problem.dir, model.RData)
-system(predict.cmd)
+coseg::problem.predict(problem.dir, model.RData)
 peaks <- fread(file.path(problem.dir, "peaks.bed"))
 test_that("predict model with 2 peaks", {
   expect_equal(nrow(peaks), 2)
@@ -343,9 +353,7 @@ labels.bed.vec <- Sys.glob(file.path(
   samples.dir, "*", "*", "problems", "*", "labels.bed"))
 for(labels.bed in labels.bed.vec){
   problem.dir <- dirname(labels.bed)
-  predict.cmd <- Rscript(
-    'coseg::problem.predict("%s", "%s")',
-    problem.dir, model.RData)
+  coseg::problem.predict(problem.dir, model.RData)
   system(predict.cmd)
 }
 
@@ -518,8 +526,7 @@ f.row <- read.table(
 test_that("features are computed", {
   expect_equal(nrow(f.row), 1)
 })
-test.cmd <- Rscript('coseg::problem.target("%s")', problem.dir)
-system(test.cmd)
+coseg::problem.target(problem.dir)
 cat.cmd <- paste0("cat ", problem.dir, "/*loss.tsv")
 loss <- fread(cat.cmd)
 setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))

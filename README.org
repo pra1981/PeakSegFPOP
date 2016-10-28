@@ -8,7 +8,8 @@ partitioning algorithm.
 ** Example output
 
 [[http://cbio.mines-paristech.fr/~thocking/PeakSegFPOP-input-data/][Train on four labeled samples (two H3K36me3 + two Input), model yields
-good predictions on four un-labeled samples]].
+good predictions on four other un-labeled samples, and several
+un-labeled genomic regions]].
 
 ** Installation
 
@@ -51,17 +52,207 @@ g++ -std=c++0x -o PeakSegFPOP PeakSegFPOPLog.cpp funPieceListLog.cpp -I$HOME/inc
 #+END_SRC
 
 Once everything has been installed, you can test your installation by
-executing [[file:test_input.R]]. It will first download some bigWigs and
-labels to the =test/input= directory, then run [[file:pipeline.R]] on
-them. If everything worked, you can view the results by opening 
-=test/input/index.html= in a web browser.
+executing [[file:test_demo.R]]. It will first download some bigWigs and
+labels to the =test/demo= directory, then run [[file:pipeline.R]] on
+them. If everything worked, you can view the results by opening
+=test/demo/index.html= in a web browser, and it should be the same as
+the results shown on
+http://cbio.mines-paristech.fr/~thocking/PeakSegFPOP-input-data/
 
-** Detailed usage
+** Multi-sample peak prediction pipeline
 
-*** The PeakSegFPOP command line program
+The [[file:pipeline.R]] script uses PeakSegFPOP + [[https://github.com/tdhock/PeakSegJoint][PeakSegJoint]] to predict
+common and different peaks in multiple samples. It requires three
+input data:
+- coverage data under =project/samples=,
+- labels in =project/labels=,
+- genomic segmentation problems in =project/problems.bed=.
+
+To give a concrete example, let us consider the data set that is used
+when you run [[file:test_demo.R]].
+
+*** Coverage data
+
+Each coverage data file should contain counts of aligned sequence
+reads at every genomic position, for one sample. These files can be in
+either [[https://genome.ucsc.edu/goldenpath/help/bedgraph.html][bedGraph]] or [[https://genome.ucsc.edu/goldenpath/help/bigWig.html][bigWig]] format. For example [[file:test_demo.R]]
+downloads 8 files:
+
+#+BEGIN_SRC 
+test/demo/samples/bcell/MS026601/coverage.bigWig
+test/demo/samples/bcell_/MS010302/coverage.bigWig
+test/demo/samples/Input/MS002201/coverage.bigWig
+test/demo/samples/Input/MS026601/coverage.bigWig
+test/demo/samples/Input_/MS002202/coverage.bigWig
+test/demo/samples/Input_/MS010302/coverage.bigWig
+test/demo/samples/kidney/MS002201/coverage.bigWig
+test/demo/samples/kidney_/MS002202/coverage.bigWig
+#+END_SRC
+
+In the example above we have the =test/demo= directory which will
+contain all data sets, labels, and peak calls for this particular
+project. The =samples= directory contains a sub-directory for each
+sample group (experimental conditions or cell types, e.g. =bcell= or
+=kidney=). Each sample group directory should contain a sub-directory
+for each sample (e.g. =MS002201= or =MS010302=). Each sample
+sub-directory should contain either a =coverage.bedGraph= or
+=coverage.bigWig= file with counts of aligned sequence reads.
+
+Note that in this demonstration project, the groups with underscores
+are un-labeled samples (e.g. =bcell_=), and the groups without
+underscores are labeled samples (e.g. =bcell=). In real projects
+typically you would combine those two groups into a single labeled
+group, but in this project we keep them separate in order to
+demonstrate the prediction accuracy of the learning algorithm.
+
+*** Label data
+
+The =labels/*.txt= files contain genomic regions with or without
+peaks. These labels will be used to train the peak prediction models
+(automatically select model parameters that yield optimal peak
+prediction accuracy). A quick and easy way to create labels is by
+visual inspection as in the
+[[http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][McGill ChIP-seq peak detection benchmark]]. 
+For more details please read
+[[http://bioinformatics.oxfordjournals.org/content/early/2016/10/23/bioinformatics.btw672.abstract][Hocking et al, Bioinformatics 2016]]. 
+
+In [[file:test_demo.R]] the data set contains only one labels file,
+
+#+BEGIN_SRC 
+test/demo/labels/some_labels.txt
+#+END_SRC
+
+which contains lines such as the following
+
+#+BEGIN_SRC 
+chr10:33,061,897-33,162,814 noPeaks
+chr10:33,456,000-33,484,755 peakStart kidney
+chr10:33,597,317-33,635,209 peakEnd kidney
+chr10:33,662,034-33,974,942 noPeaks
+
+chr10:35,182,820-35,261,001 noPeaks
+chr10:35,261,418-35,314,654 peakStart bcell kidney
+#+END_SRC
+
+The labels file is divided into separate chunks by empty lines. Each
+chunk should contain lines for several nearby genomic regions, the
+corresponding label (noPeaks, peakStart, peakEnd, peaks), and the
+sample groups to which that label should be assigned (all other groups
+mentioned in the labels file will receive the noPeaks label).
+
+*** Genomic segmentation problems
+
+The last input file that you need to provide is a list of separate
+segmentation problems for your reference genome (regions without
+gaps). This file should be in [[https://genome.ucsc.edu/FAQ/FAQformat#format1][BED]] format
+(e.g. [[file:hg19_problems.bed]]).
+
+If you don't use hg19, then you can create download another
+problems.bed file from a UCSC reference genome, 
+
+#+BEGIN_SRC shell-script
+Rscript downloadProblems.R hg38 hg38_problems.bed
+#+END_SRC
+
+If your reference genome does not exist on UCSC, you can use
+[[file:gap2problems.R]] to make a =problems.bed= file:
+
+#+BEGIN_SRC shell-script
+Rscript gap2problems.R yourGenome_gap.bed yourGenome_chromInfo.txt yourGenome_problems.bed
+#+END_SRC
+
+where the chromInfo file contains one line for every chromosome, and
+the gap file contains one line for every gap in the reference (unknown
+/ NNN sequence).
+
+** Running steps of the pipeline in parallel
+
+Since the human genome is so large, it is much faster to do model
+training and peak prediction in parallel. Begin by running
+
+#+BEGIN_SRC shell-script
+cd PeakSegFPOP
+Rscript convert_labels.R test/demo
+Rscript create_problems_all.R test/demo
+#+END_SRC
+
+That will create problem sub-directories in
+=test/demo/samples/*/*/problems/*=. Each problem sub-directory
+contains
+- =problem.bed= with one line for the coordinates of this part of the
+  genome, and a =peaks.bed.sh= script.
+- If there are labels in this part of the genome, =labels.bed= and a
+  =target.tsv.sh= script.
+- =target.tsv.sh= and =peaks.bed.sh= are shell scripts which can be
+  launched via =bash= or =qsub= (edit the [[file:create_problems_all.R]]
+  script to reflect your cluster configuration).
+
+Begin model training by computing =target.tsv= files:
+
+#+BEGIN_SRC shell-script
+for sh in test/demo/samples/*/*/problems/*/target.tsv.sh;do qsub $sh;done
+#+END_SRC
+
+The target is the largest interval of log(penalty) values for which
+PeakSegFPOP returns peak models that have the minimum number of
+incorrect labels in =labels.bed=. The =target.tsv= files are used as
+input for training a machine learning model that can predict optimal
+penalty values, even for un-labeled parts of the genome. To train a
+model, use
+
+#+BEGIN_SRC shell-script
+Rscript train_model.R test/demo
+#+END_SRC
+
+which trains a model using
+=test/demo/samples/*/*/problems/*/target.tsv= files, and saves it to
+=test/demo/model.RData=. 
+
+To compute peak predictions independently for each sample and genomic
+segmentation problem, 
+
+#+BEGIN_SRC shell-script
+for sh in test/demo/problems/*/jointProblems.bed.sh;do qsub $sh;done
+#+END_SRC
+
+which will launch one job for each genomic segmentation problem. Each job will make peak predictions in all samples, 
+
+The next step is *joint* peak calling, which can be used to determine
+genomic regions with similar or different peak patterns in the
+different samples. To do that, run
+
+#+BEGIN_SRC shell-script
+Rscript create_problems_joint.R H3K4me3_project/samples chr4:75452279-191044276
+#+END_SRC
+
+which will create some =H3K4me3_project/jointProblems/chr4:*=
+directories with =target.tsv.sh= and =peaks.bed.sh= scripts. One
+directory and joint segmentation problem will be created for each
+genomic region which has at least one sample with a predicted peak. To
+train a joint peak calling model, first run =target.tsv.sh= scripts to
+create =target.tsv= files, which contain an interval of log(penalty)
+values that result in the minimal number of incorrectly predicted
+labels for each joint segmentation problem. Then run
+
+#+BEGIN_SRC shell-script
+Rscript train_model_joint.R H3K4me3_project/jointProblems H3K4me3_project/joint.model.RData
+#+END_SRC
+
+which will train a joint peak calling model using the
+=H3K4me3_project/jointProblems/*/target.tsv= files, saving the model
+to =H3K4me3_project/joint.model.RData=. Finally, to make joint peak
+predictions, run the =H3K4me3_project/jointProblems/*/peaks.bed.sh=
+scripts, which will create corresponding =peaks.bed= files. These
+files will contain one line for each sample that has a peak in this
+region of the genome. For a given joint segmentation problem, each
+sample will have the same peak start and end positions, which makes it
+trivial to compute differences between samples.
+
+
+** The PeakSegFPOP command line program
 
 The PeakSegFPOP program finds the peak positions and corresponding
-piecewise constant segment means which optimize the Poisson
+piecewise constant segment means which optimize the penalized Poisson
 likelihood.
 
 #+BEGIN_SRC shell-script
@@ -115,123 +306,6 @@ one line and the following tab-separated columns:
   pieces) over all the 2*N cost function models computed by the
   algorithm.
 - =max.intervals= maximum number of intervals.
-
-*** Running PeakSegFPOP on a whole genome
-
-The PeakSegFPOP command line program recovers the optimal solution for
-only one segmentation problem and one penalty parameter, but we
-provide several R scripts which make it easy to use on the entire
-genome. The [[file:pipeline.R]] script contains all the steps necessary
-for running PeakSegFPOP + PeakSegJoint on a whole genome. The details
-of those steps are explained below.
-
-First, create sample directories with =coverage.bedGraph= for
-the whole genome ([[http://bedtools.readthedocs.io/en/latest/content/tools/genomecov.html][bedtools genomecov -bga]]), and =labels.bed= for
-genomic regions with and without peaks (a quick and easy way to create
-labels is by visual inspection as in the [[http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][McGill ChIP-seq peak
-detection benchmark]]). For example, to run it on the =bcell= and
-=tcell= samples of the [[https://github.com/tdhock/PeakSegJoint/tree/master/inst/exampleData][PeakSegJoint example data set]], convert them to
-
-#+BEGIN_SRC 
-H3K4me3_project/samples/bcell/McGill0091/coverage.bedGraph
-H3K4me3_project/samples/bcell/McGill0091/labels.bed
-H3K4me3_project/samples/bcell/McGill0322/coverage.bedGraph
-H3K4me3_project/samples/bcell/McGill0322/labels.bed
-H3K4me3_project/samples/tcell/McGill0107/coverage.bedGraph
-H3K4me3_project/samples/tcell/McGill0107/labels.bed
-H3K4me3_project/samples/tcell/McGill0322/coverage.bedGraph
-H3K4me3_project/samples/tcell/McGill0322/labels.bed
-#+END_SRC
-
-In the example above we have the =H3K4me3_project= directory which
-will contain all data sets, labels, and peak calls for a particular
-project (in this example, all H3K4me3 samples). The =samples=
-directory should contain a sub-directory for each sample group
-(experimental conditions or cell types, e.g. =bcell= or =tcell=). Each
-sample group directory should contain a sub-directory for each sample
-(e.g. =McGill0091= or =McGill0322=). Then use the
-[[file:create_problems_sample.R]] script on each sample
-
-#+BEGIN_SRC shell-script
-Rscript create_problems_sample.R hg19_problems.bed H3K4me3_project/samples/bcell/McGill0091
-#+END_SRC
-
-If you don't use hg19, then you can create another problems.bed file
-([[file:gap2problems.R]]). The =create_problems_sample.R= script creates a
-problem sub-directory for each line of =hg19_problems.bed=, for
-example
-=H3K4me3_project/samples/bcell/McGill0091/problems/chr4:75452279-191044276=
-which is the largest region without gaps in hg19. Each problem
-sub-directory contains
-- =problem.bed= with one line for the coordinates of this part of the
-  genome, and a =peaks.bed.sh= script.
-- If there are labels in this part of the genome, =labels.bed= and a
-  =target.tsv.sh= script.
-- =target.tsv.sh= and =peaks.bed.sh= are shell scripts which can be
-  launched via =bash= or =qsub= (edit the [[file:create_problems_sample.R]]
-  script to reflect your cluster configuration).
-
-The =target.tsv.sh= files contain one line
-
-#+BEGIN_SRC shell-script
-Rscript compute_coverage_target.R /path/to/H3K4me3_project/samples/bcell/McGill0091/problems/chr4:75452279-191044276
-#+END_SRC
-
-The [[file:compute_coverage_target.R]] script first creates
-=coverage.bedGraph= for this problem ([[http://bedtools.readthedocs.io/en/latest/content/tools/intersect.html][intersectBed]] is required). If
-there is a =labels.bed= file for this problem, it is used to compute
-the target interval and save it to =target.tsv=. The target is the
-largest interval of log(penalty) values for which PeakSegFPOP returns
-peak models that have the minimum number of incorrect
-=labels.bed=. The =target.tsv= files are used as input for training a
-machine learning model that can predict optimal penalty values, even
-for un-labeled parts of the genome. To train a model, use
-
-#+BEGIN_SRC shell-script
-Rscript train_model.R H3K4me3_project/samples H3K4me3_project/model.RData
-#+END_SRC
-
-which trains a model using
-=H3K4me3_project/samples/*/*/problems/*/target.tsv= files, and saves
-it to =H3K4me3_project/model.RData=. To make predictions, use =bash=
-or =qsub= on the =H3K4me3_project/samples/*/*/problems/*/peaks.bed.sh=
-scripts, which will create a =peaks.bed= file in each problem
-sub-directory. These =peaks.bed= files can be collated to obtain peak
-calls for the whole genome. For example, =cat H3K4me3_project/samples/bcell/McGill0091/problems/*/peaks.bed > H3K4me3_project/samples/bcell/McGill0091/peaks.bed= 
-will create a file with all peak predictions for the =bcell/McGill0091= sample.
-
-The next step is *joint* peak calling, which can be used to determine
-genomic regions with similar or different peak patterns in the
-different samples. To do that, run
-
-#+BEGIN_SRC shell-script
-Rscript create_problems_joint.R H3K4me3_project/samples chr4:75452279-191044276
-#+END_SRC
-
-which will create some =H3K4me3_project/jointProblems/chr4:*=
-directories with =target.tsv.sh= and =peaks.bed.sh= scripts. One
-directory and joint segmentation problem will be created for each
-genomic region which has at least one sample with a predicted peak. To
-train a joint peak calling model, first run =target.tsv.sh= scripts to
-create =target.tsv= files, which contain an interval of log(penalty)
-values that result in the minimal number of incorrectly predicted
-labels for each joint segmentation problem. Then run
-
-#+BEGIN_SRC shell-script
-Rscript train_model_joint.R H3K4me3_project/jointProblems H3K4me3_project/joint.model.RData
-#+END_SRC
-
-which will train a joint peak calling model using the
-=H3K4me3_project/jointProblems/*/target.tsv= files, saving the model
-to =H3K4me3_project/joint.model.RData=. Finally, to make joint peak
-predictions, run the =H3K4me3_project/jointProblems/*/peaks.bed.sh=
-scripts, which will create corresponding =peaks.bed= files. These
-files will contain one line for each sample that has a peak in this
-region of the genome. For a given joint segmentation problem, each
-sample will have the same peak start and end positions, which makes it
-trivial to compute differences between samples.
-
-TODO
 
 ** Related work
 

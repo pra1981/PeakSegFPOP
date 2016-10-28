@@ -1,4 +1,4 @@
-arg.vec <- "test/input"
+arg.vec <- "test/demo"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
@@ -44,8 +44,6 @@ mclapply.or.stop(chunk.dir.vec, function(chunk.dir){
   PeakSegJoint::problem.joint.plot(chunk.dir)
 })
 
-## TODO: make this a separate script, summarize other info like
-## predicted peaks, specific peaks, etc.
 unsorted.problems <- fread(file.path(set.dir, "problems.bed"))
 setnames(unsorted.problems, c("chrom", "problemStart", "problemEnd"))
 chr.pattern <- paste0(

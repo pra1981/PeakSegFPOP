@@ -170,15 +170,14 @@ for(problem.i in 1:nrow(problems)){
   dir.create(prob.dir, showWarnings=FALSE, recursive=TRUE)
   jointProblems.bed <- file.path(prob.dir, "jointProblems.bed")
   sh.file <- paste0(jointProblems.bed, ".sh")
-  sample.cmd.vec <- Rscript(
-    'coseg::problem.predict("%s", "%s")',
-    file.path(sample.dir.vec, "problems", problem$problem.name),
-    model.RData)
+  pred.cmd <- Rscript(
+    'coseg::problem.predict.allSamples("%s", "%s")',
+    data.dir, problem$problem.name)
   script.txt <- paste0(PBS.header, "
 #PBS -o ", jointProblems.bed, ".out
 #PBS -e ", jointProblems.bed, ".err
 #PBS -N P", problem$problem.name, "
-", paste(sample.cmd.vec, collapse="\n"), " 
+", pred.cmd, " 
 Rscript ",
 normalizePath("create_problems_joint.R", mustWork=TRUE),
 " ", samples.dir, " ", problem$problem.name, "

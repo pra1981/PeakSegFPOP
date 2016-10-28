@@ -42,11 +42,7 @@ sample.dir.vec <- Sys.glob(file.path(samples.dir, "*", "*"))
 model.RData <- file.path(set.dir, "model.RData")
 for(problem.dir in problem.dir.vec){
   problem.name <- basename(problem.dir)
-  mclapply.or.stop(sample.dir.vec, function(sample.dir){
-    coseg::problem.predict(
-      file.path(sample.dir, "problems", problem.name),
-      model.RData)
-  })
+  coseg::problem.predict.allSamples(set.dir, problem.name)
   create.cmd <- paste("Rscript create_problems_joint.R", samples.dir, problem.name)
   system.or.stop(create.cmd)
 }
