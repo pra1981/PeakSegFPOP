@@ -1,4 +1,4 @@
-arg.vec <- "test/demo"
+arg.vec <- "test/input"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
@@ -15,6 +15,27 @@ if(length(arg.vec) != 1){
   stop("usage: Rscript plot_all.R project_dir")
 }
 set.dir <- normalizePath(arg.vec, mustWork=TRUE)
+
+orderChrom <- function(chrom.vec, ...){
+  stopifnot(is.character(chrom.vec))
+  chr.pattern <- paste0(
+    "chr",
+    "(?<before>[^_]+)",
+    "(?<after>_.*)?")
+  value.vec <- unique(chrom.vec)
+  chr.mat <- str_match_named(value.vec, chr.pattern)
+  did.not.match <- is.na(chr.mat[, 1])
+  if(any(did.not.match)){
+    print(value.vec[did.not.match])
+    stop("chroms did not match ", chr.pattern)
+  }
+  rank.vec <- order(
+    suppressWarnings(as.numeric(chr.mat[, "before"])),
+    chr.mat[, "before"],
+    chr.mat[, "after"])
+  names(rank.vec) <- value.vec
+  order(rank.vec[chrom.vec], ...)
+} 
 
 ## Plot each labeled chunk.
 chunk.dir.vec <- Sys.glob(file.path(
@@ -74,7 +95,7 @@ for(loss.tsv in loss.tsv.vec){
     separate.problem, prob.peaks)
 }
 joint.peaks.dt <- do.call(rbind, joint.peaks.dt.list)
-input.pred <- do.call(rbind, input.pred.list)
+input.pred <- do.call(rbind, input.pred.list)[orderChrom(chrom, peakStart),]
 sample.dir.vec <- Sys.glob(file.path(set.dir, "samples", "*", "*"))
 sample.path.vec <- sub(".*samples/", "", sample.dir.vec)
 peak.mat <- matrix(
@@ -385,7 +406,6 @@ chunk.info[, image := sprintf('
 chunk.info[, chunk := sprintf({
   '<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s">%s</a>'
 }, chunk.problem, chunk.problem)]
-
 chunk.counts <- chunk.info[, list(chunks=.N), by=separate.problem]
 label.counts <- all.labels[, list(
   samples=.N
@@ -418,11 +438,71 @@ chunks.xt <- xtable(chunk.info[, .(chunk, image)])
 chunks.html <- print(chunks.xt, type="html", sanitize.text.function=identity)
 html.vec <- c(
   '<title>PeakSegFPOP + PeakSegJoint predictions</title>',
-  '<h2>Interactive data viz</h2>',
-  '<a href="figure-genome/index.html">Interactive data viz</a>',
-  '<h2>Chunks</h2>',
+  '<h2>Output: predicted peaks</h2>',
+  '<ul>',
+  sprintf('<li>
+%d genomic regions were found to have
+at least one sample with a peak
+(<a href="peaks_summary.bigBed">peaks_summary.bigBed</a>,
+ <a href="peaks_summary.tsv">peaks_summary.tsv</a>).
+</li>', nrow(input.pred)),
+  sprintf('<li>
+%d peaks were detected overall, across %d samples
+(<a href="peaks_matrix.tsv">peaks_matrix.tsv</a>).
+</li>',
+    nrow(joint.peaks.dt),
+    length(unique(sample.problem.peaks$sample.path))),
+  '<li>
+<a href="figure-genome/index.html">Interactive heatmap, cluster tree, peak predictions</a>.
+</li>',
+  '</ul>',
+  '<h2>Input: labeled genomic windows</h2>',
+  sprintf(
+    '%d labeled genomic windows (chunks) were defined in <a href="%s">labels/*.txt</a>',
+    nrow(chunk.info),
+    file.path(set.dir, "labels")),
   chunks.html,
-  '<h2>Problems</h2>',
+  '<h2>Input: genomic segmentation problems</h2>',
+  sprintf(
+    '%d problems were defined in <a href="%s">problems.bed</a>',
+    nrow(problems),
+    file.path(set.dir, "problems.bed")),
   problems.html
   )
 writeLines(html.vec, file.path(set.dir, "index.html"))
+
+## Write peaks_summary.bigBed 
+peak.mat.dt <- data.table(
+  peak=colnames(peak.mat),
+  ifelse(t(peak.mat), 1, 0))
+fwrite(
+  peak.mat.dt,
+  file.path(set.dir, "peaks_matrix.tsv"),
+  sep="\t")
+fwrite(
+  input.pred,
+  file.path(set.dir, "peaks_summary.tsv"),
+  sep="\t")
+peaks.bed <- file.path(set.dir, "peaks_summary.bed")
+bed.dt <- input.pred[, .(chrom, peakStart, peakEnd, sample.counts)]
+fwrite(
+  bed.dt,
+  peaks.bed,
+  sep="\t",
+  col.names=FALSE)
+sizes.dt <- problems[, list(chromEnd=max(problemEnd)), by=chrom]
+sizes.tsv <- file.path(set.dir, "chrom_sizes.tsv")
+fwrite(
+  sizes.dt,
+  sizes.tsv,
+  sep="\t",
+  col.names=FALSE)
+cmd <- paste(
+  "bedToBigBed",
+  peaks.bed, sizes.tsv,
+  file.path(set.dir, "peaks_summary.bigBed"))
+status <- system(cmd)
+if(status != 0){
+  stop("error code ", status, " for command\n", cmd)
+}
+
