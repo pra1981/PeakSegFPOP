@@ -1,4 +1,4 @@
-arg.vec <- "test/H3K4me3_TDH_other"
+arg.vec <- "test/noinput"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
@@ -62,34 +62,38 @@ IntervalRegressionMatrixCV <- function
   stopifnot(is.integer(fold.vec))
   stopifnot(length(fold.vec) == n.observations)
   ##validation.error.mat.list <- list()
-  best.reg.list <- list()
-  for(validation.fold in unique(fold.vec)){
-    ##print(validation.fold)
-    is.validation <- fold.vec == validation.fold
-    is.train <- !is.validation
-    train.features <- feature.mat[is.train, ]
-    train.targets <- target.mat[is.train, ]
-    fit <- IntervalRegressionMatrixPath(
-      train.features, train.targets, max.iterations=1e3, verbose=verbose)
-    validation.features <- feature.mat[is.validation, , drop=FALSE]
-    pred.log.lambda <- fit$predict(validation.features)
-    validation.targets <- target.mat[is.validation, , drop=FALSE]
-    too.small <- pred.log.lambda < validation.targets[, 1]
-    too.big <- validation.targets[, 2] < pred.log.lambda
-    is.error <- too.small | too.big
-    left.term <- squared.hinge(pred.log.lambda-validation.targets[, 1])
-    right.term <- squared.hinge(validation.targets[, 2]-pred.log.lambda)
-    loss.vec <- colMeans(left.term+right.term)
-    error.vec <- colSums(is.error)
-    best.reg.vec <- fit$regularization.vec[loss.vec == min(loss.vec)]
-    fold.name <- paste("fold", validation.fold)
-    best.reg.list[[fold.name]] <- max(best.reg.vec) #simplest model
-    ##validation.error.mat.list[[fold.name]] <- colSums(is.error)
+  mean.reg <- if(n.observations < 6){
+    feature.mat <- feature.mat[, c("log.quartile.100%", "log.bases")]
+    0
+  }else{
+    best.reg.list <- list()
+    for(validation.fold in unique(fold.vec)){
+      ##print(validation.fold)
+      is.validation <- fold.vec == validation.fold
+      is.train <- !is.validation
+      train.features <- feature.mat[is.train, , drop=FALSE]
+      train.targets <- target.mat[is.train, , drop=FALSE]
+      fit <- IntervalRegressionMatrixPath(
+        train.features, train.targets, max.iterations=1e3, verbose=verbose)
+      validation.features <- feature.mat[is.validation, , drop=FALSE]
+      pred.log.lambda <- fit$predict(validation.features)
+      validation.targets <- target.mat[is.validation, , drop=FALSE]
+      too.small <- pred.log.lambda < validation.targets[, 1]
+      too.big <- validation.targets[, 2] < pred.log.lambda
+      is.error <- too.small | too.big
+      left.term <- squared.hinge(pred.log.lambda-validation.targets[, 1])
+      right.term <- squared.hinge(validation.targets[, 2]-pred.log.lambda)
+      loss.vec <- colMeans(left.term+right.term)
+      error.vec <- colSums(is.error)
+      best.reg.vec <- fit$regularization.vec[loss.vec == min(loss.vec)]
+      fold.name <- paste("fold", validation.fold)
+      best.reg.list[[fold.name]] <- max(best.reg.vec) #simplest model
+      ##validation.error.mat.list[[fold.name]] <- colSums(is.error)
+    }
+    ##validation.error.mat <- do.call(cbind, validation.error.mat.list)
+    ##if(verbose)print(validation.error.mat)
+    mean(unlist(best.reg.list))
   }
-  ##validation.error.mat <- do.call(cbind, validation.error.mat.list)
-  ##if(verbose)print(validation.error.mat)
-  ## TODO: try minimizing squared hinge on validation set instead!
-  mean.reg <- mean(unlist(best.reg.list))
   IntervalRegressionMatrixPath(
     feature.mat, target.mat,
     initial.regularization=mean.reg,
@@ -127,12 +131,16 @@ IntervalRegressionMatrixPath <- function
   stopifnot(is.finite(initial.regularization))
 
   is.trivial.target <- apply(!is.finite(target.mat), 1, all)
-  nontrivial.features <- feature.mat[!is.trivial.target, ]
-  nontrivial.targets <- target.mat[!is.trivial.target, ]
+  nontrivial.features <- feature.mat[!is.trivial.target, , drop=FALSE]
+  nontrivial.targets <- target.mat[!is.trivial.target, , drop=FALSE]
   is.finite.feature <- apply(is.finite(nontrivial.features), 2, all)
   finite.features <- nontrivial.features[, is.finite.feature, drop=FALSE]
   all.mean.vec <- colMeans(finite.features)
-  all.sd.vec <- apply(finite.features, 2, sd)
+  all.sd.vec <- if(nrow(finite.features)==1){
+    1
+  }else{
+    apply(finite.features, 2, sd)
+  }
   is.invariant <- all.sd.vec == 0
   train.feature.i <- which(!is.invariant)
   train.feature.names <- colnames(finite.features)[train.feature.i]
@@ -185,7 +193,7 @@ IntervalRegressionMatrixPath <- function
                nrow(param.mat), " features x ",
                ncol(param.mat), " regularization parameters)\n"))
   }
-  feature.not.used <- apply(param.mat[-1, ,drop=FALSE] == 0, 1, all)
+  feature.not.used <- apply(param.mat[-1, , drop=FALSE] == 0, 1, all)
   pred.feature.names <- train.feature.names[!feature.not.used]
   pred.param.mat <-
     param.mat[c("(Intercept)", pred.feature.names),,drop=FALSE]
