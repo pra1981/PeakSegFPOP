@@ -12,15 +12,6 @@ system.or.stop <- function(cmd){
   }
 }
 
-Rscript <- function(...){
-  code <- sprintf(...)
-  if(any(grepl("'", code))){
-    print(code)
-    stop("there can not be any ' in code")
-  }
-  sprintf("Rscript -e '%s'", code)
-}
-
 ## First convert labels.
 convert.cmd <- paste("Rscript convert_labels.R", set.dir)
 system.or.stop(convert.cmd)
@@ -37,8 +28,7 @@ labels.bed.vec <- Sys.glob(file.path(
   samples.dir, "*", "*", "problems", "*", "labels.bed"))
 mclapply.or.stop(labels.bed.vec, function(labels.bed){
   sample.dir <- dirname(labels.bed)
-  target.cmd <- Rscript('coseg::problem.target("%s")', sample.dir)
-  system.or.stop(target.cmd)
+  coseg::problem.target(sample.dir)
 })
 
 ## Train single-sample model.
@@ -47,22 +37,26 @@ system.or.stop(train.cmd)
 
 ## Single-sample prediction and peak clustering, one job for each
 ## problem.
-sh.vec <- Sys.glob(file.path(
-  set.dir, "problems", "*", "jointProblems.bed.sh"))
-mclapply.or.stop(sh.vec, function(sh){
-  predict.cmd <- paste("bash", sh)
-  system.or.stop(predict.cmd)
-})
+problem.dir.vec <- Sys.glob(file.path(set.dir, "problems", "*"))
+sample.dir.vec <- Sys.glob(file.path(samples.dir, "*", "*"))
+model.RData <- file.path(set.dir, "model.RData")
+for(problem.dir in problem.dir.vec){
+  problem.name <- basename(problem.dir)
+  mclapply.or.stop(sample.dir.vec, function(sample.dir){
+    coseg::problem.predict(
+      file.path(sample.dir, "problems", problem.name),
+      model.RData)
+  })
+  create.cmd <- paste("Rscript create_problems_joint.R", samples.dir, problem.name)
+  system.or.stop(create.cmd)
+}
 
 ## Compute target intervals for multi-sample problems... does not take
 ## much time, TODO combine with train_model_joint.R step
 labels.tsv.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "jointProblems", "*", "labels.tsv"))
 mclapply.or.stop(labels.tsv.vec, function(labels.tsv){
-  target.cmd <- Rscript(
-    'PeakSegJoint::problem.joint.target("%s")',
-    dirname(labels.tsv))
-  system.or.stop(target.cmd)
+  PeakSegJoint::problem.joint.target(dirname(labels.tsv))
 })
 ## Train joint model.
 train.cmd <- paste("Rscript train_model_joint.R", set.dir)
@@ -73,10 +67,7 @@ joint.dir.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "jointProblems", "*"))
 joint.model.RData <- file.path(set.dir, "joint.model.RData")
 mclapply.or.stop(joint.dir.vec, function(joint.dir){
-  predict.cmd <- Rscript(
-    'PeakSegJoint::problem.joint.predict("%s", "%s")',
-    joint.model.RData, joint.dir)
-  system.or.stop(predict.cmd)
+  PeakSegJoint::problem.joint.predict(joint.model.RData, joint.dir)
 })
 
 ## Summarize peak predictions on a web page.
