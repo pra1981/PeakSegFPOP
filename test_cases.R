@@ -276,25 +276,6 @@ test_that("peaks.bed files created", {
   expect_true(all(file.exists(peaks.bed.vec)))
 })
 
-## TODO Create problems test -- this one does not make sense, since this data set does not use hg19_problems.bed
-## create.cmd <- paste("Rscript create_problems_all.R", set.dir)
-## joint.glob <- file.path(set.dir, "problems", "*", "jointProblems.bed.sh")
-## unlink(Sys.glob(joint.glob))
-## problems.bed <- file.path(set.dir, "problems.bed")
-## unlink(problems.bed)
-## file.symlink(
-##   normalizePath("hg19_problems.bed", mustWork=TRUE),
-##   problems.bed)
-## system(create.cmd)
-## sh.vec <- Sys.glob(joint.glob)
-## problems <- fread(problems.bed)
-## test_that("one joint script created for each problem", {
-##   expect_equal(length(sh.vec), nrow(problems))
-## })
-
-## predict and create joint problems.
-## TODO test that jointProblems.bed.sh makes peaks.bed files and jointProblems.bed.
-
 ## pred.peaks <- do.call(rbind, pred.peaks.list)
 ## ggplot()+
 ##   theme_bw()+
@@ -354,7 +335,6 @@ labels.bed.vec <- Sys.glob(file.path(
 for(labels.bed in labels.bed.vec){
   problem.dir <- dirname(labels.bed)
   coseg::problem.predict(problem.dir, model.RData)
-  system(predict.cmd)
 }
 
 ## Create the scripts that will be used to train the joint algo.
