@@ -1,4 +1,4 @@
-arg.vec <- "test/input"
+arg.vec <- "test/noinput"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
@@ -87,7 +87,7 @@ i.mat <- joint.peaks.dt[, cbind(sample.path, peak.name)]
 peak.mat[i.mat] <- TRUE
 d.mat <- dist(peak.mat, "manhattan")
 tree <- hclust(d.mat, method="average")
-plot(tree, hang=-1)
+##plot(tree, hang=-1)
 
 labels.bed.vec <- Sys.glob(file.path(
   set.dir, "samples", "*", "*", "labels.bed"))
@@ -108,14 +108,18 @@ input.labels <- all.labels[sample.group=="Input", list(
 ), by=.(chrom, labelStart, labelEnd)]
 setkey(input.labels, chrom, labelStart, labelEnd)
 
-setkey(input.pred, chrom, peakStart, peakEnd)
-labeled.input <- foverlaps(input.pred, input.labels, nomatch=0L)
-thresh.dt <- labeled.input[, data.table(WeightedROC(
-  n.Input, ifelse(prop.noPeaks==0, 1, -1)))]
-thresh.best <- thresh.dt[which.min(FP+FN),]
-## threshold is smallest n.Input that is classified as non-specific.
-input.pred[, specificity := ifelse(
-  n.Input >= thresh.best$threshold, "non-specific", "specific")]
+if(nrow(input.labels)){
+  setkey(input.pred, chrom, peakStart, peakEnd)
+  labeled.input <- foverlaps(input.pred, input.labels, nomatch=0L)
+  thresh.dt <- labeled.input[, data.table(WeightedROC(
+    n.Input, ifelse(prop.noPeaks==0, 1, -1)))]
+  thresh.best <- thresh.dt[which.min(FP+FN),]
+  ## threshold is smallest n.Input that is classified as non-specific.
+  input.pred[, specificity := ifelse(
+    n.Input >= thresh.best$threshold, "non-specific", "specific")]
+}else{
+  input.pred[, specificity := "unknown"]
+}
 
 gg.tree <- dendro_data(tree)
 gg.tree$labels$sample.path <- gg.tree$labels$label
@@ -200,7 +204,7 @@ chunk.info <- data.table(
   zoomin.png=zoomin.png.vec)
 
 n.samples <- nrow(gg.tree$labels)
-h.pixels <- (n.samples+3)*15
+h.pixels <- (n.samples+5)*15
 chrom.limits <- problems[, list(
   min.dist=min(dist),
   max.dist=max(dist)
@@ -331,7 +335,11 @@ viz <- list(
     ##   color="grey",
     ##   data=input.pred)+
     ## scale_size_continuous(range=c(1, 9))+
-    scale_linetype_manual(values=c(specific="solid", "non-specific"="dotted"))+
+    scale_linetype_manual(values=c(
+      specific="solid",
+      "non-specific"="dotted",
+      unknown="dashed"
+    ))+
     guides(fill="none")+
     scale_color_continuous(
       low="white", high="red")+
@@ -362,9 +370,13 @@ viz <- list(
   selector.types=list())
 animint2dir(viz, file.path(set.dir, "figure-genome"))
 
-a.vec <- sprintf('
+a.vec <- c(
+  '<a href="figure-genome/index.html">Interactive data viz</a>',
+  ## TODO summary table.
+  sprintf('
 <a href="%s">
   <img src="%s" />
 </a>
-', relative.vec, zoomin.png.vec)
-writeLines(a.vec, file.path(set.dir, "index.html"))
+', relative.vec, zoomin.png.vec))
+p.vec <- paste("<p>", a.vec, "</p>")
+writeLines(p.vec, file.path(set.dir, "index.html"))
