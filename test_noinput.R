@@ -34,3 +34,12 @@ test_that("pipeline script succeeds", {
 test_that("index.html is created", {
   expect_true(file.exists(file.path(set.dir, "index.html")))
 })
+test_that("peaks_summary.bigBed is created", {
+  expect_true(file.exists(file.path(set.dir, "peaks_summary.bigBed")))
+})
+test_that("peaks_summary.tsv is created", {
+  expect_true(file.exists(file.path(set.dir, "peaks_summary.tsv")))
+})
+test_that("peaks_matrix.tsv is created", {
+  expect_true(file.exists(file.path(set.dir, "peaks_matrix.tsv")))
+})
