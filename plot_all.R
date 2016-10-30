@@ -456,15 +456,13 @@ at least one sample with a peak
   '</ul>',
   '<h2>Input: labeled genomic windows</h2>',
   sprintf(
-    '%d labeled genomic windows (chunks) were defined in <a href="%s">labels/*.txt</a>',
-    nrow(chunk.info),
-    file.path(set.dir, "labels")),
+    '%d labeled genomic windows (chunks) were defined in <a href="labels">labels/*.txt</a>',
+    nrow(chunk.info)),
   chunks.html,
   '<h2>Input: genomic segmentation problems</h2>',
   sprintf(
-    '%d problems were defined in <a href="%s">problems.bed</a>',
-    nrow(problems),
-    file.path(set.dir, "problems.bed")),
+    '%d problems were defined in <a href="problems.bed">problems.bed</a>',
+    nrow(problems)),
   problems.html
   )
 writeLines(html.vec, file.path(set.dir, "index.html"))
