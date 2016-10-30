@@ -38,8 +38,6 @@ system.or.stop(train.cmd)
 ## Single-sample prediction and peak clustering, one job for each
 ## problem.
 problem.dir.vec <- Sys.glob(file.path(set.dir, "problems", "*"))
-sample.dir.vec <- Sys.glob(file.path(samples.dir, "*", "*"))
-model.RData <- file.path(set.dir, "model.RData")
 for(problem.dir in problem.dir.vec){
   problem.name <- basename(problem.dir)
   create.cmd <- paste(
@@ -49,16 +47,9 @@ for(problem.dir in problem.dir.vec){
   system.or.stop(create.cmd)
 }
 
-## Compute target intervals for multi-sample problems... does not take
-## much time, TODO combine with train_model_joint.R step
-labels.tsv.vec <- Sys.glob(file.path(
-  set.dir, "problems", "*", "jointProblems", "*", "labels.tsv"))
-mclapply.or.stop(labels.tsv.vec, function(labels.tsv){
-  PeakSegJoint::problem.joint.target(dirname(labels.tsv))
-})
-## Train joint model.
-train.cmd <- paste("Rscript train_model_joint.R", set.dir)
-system.or.stop(train.cmd)
+## Compute target intervals for multi-sample problems, then learn a
+## penalty function for joint peak prediction.
+PeakSegJoint::problem.joint.targets.train(set.dir)
 
 ## Joint prediction.
 joint.dir.vec <- Sys.glob(file.path(

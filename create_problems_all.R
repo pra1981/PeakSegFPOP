@@ -183,6 +183,19 @@ normalizePath("create_problems_joint.R", mustWork=TRUE),
 " ", samples.dir, " ", problem$problem.name, "
 ")
   writeLines(script.txt, sh.file)
+  ## joint prediction script.
+  peaks.bed <- file.path(prob.dir, "peaks.bed")
+  sh.file <- paste0(peaks.bed, ".sh")
+  pred.cmd <- Rscript(
+    'PeakSegJoint::problem.joint.predict.many("%s")',
+    prob.dir)
+  script.txt <- paste0(PBS.header, "
+#PBS -o ", peaks.bed, ".out
+#PBS -e ", peaks.bed, ".err
+#PBS -N J", problem$problem.name, "
+", pred.cmd, " 
+")
+  writeLines(script.txt, sh.file)
   if(file.exists(chunk.limits.RData) &&
        problem$problem.name %in% chunks.with.problems$problem.name){
     problem.chunks <- chunks.with.problems[problem$problem.name]
