@@ -235,3 +235,17 @@ normalizePath("plot_chunk.R", mustWork=TRUE),
     }
   }
 }
+
+## Create joint model script.
+joint.model.RData <- file.path(data.dir, "joint.model.RData")
+sh.file <- paste0(joint.model.RData, ".sh")
+train.cmd <- Rscript(
+  'PeakSegJoint::problem.joint.targets.train("%s")',
+  data.dir)
+script.txt <- paste0(PBS.header, "
+#PBS -o ", joint.model.RData, ".out
+#PBS -e ", joint.model.RData, ".err
+#PBS -N JModel
+", train.cmd, " 
+")
+writeLines(script.txt, sh.file)
