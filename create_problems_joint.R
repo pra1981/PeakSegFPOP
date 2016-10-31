@@ -9,22 +9,7 @@ PBS.header <- "#!/bin/bash
 #PBS -V"
 
 arg.vec <- c(
-  "test/H3K4me3_TDH_other/samples",
-  "chr1:17175658-29878082")
-arg.vec <- c(
-  "test/H3K4me3_TDH_other/samples",
-  "24")
-arg.vec <- c(
-  "test/H3K4me3_TDH_other/samples",
-  "22")
-arg.vec <- c(
-  "test/H3K4me3_TDH_other/samples",
-  "7")
-arg.vec <- c(
-  "/home/tdhock/PeakSegFPOP/test/input/samples",
-  "chr10:18024675-38818835")
-arg.vec <- c(
-  "test/input/samples",
+  "test/demo/samples",
   "chr10:38868835-39154935")
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
@@ -69,11 +54,20 @@ for(sample.i in seq_along(peaks.bed.vec)){
 }
 peaks <- do.call(rbind, peaks.list)
 problems.list <- if(is.data.frame(peaks) && 0 < nrow(peaks)){
-  clustered <- clusterPeaks(peaks)
-  clusters <- data.table(clustered)[, list(
+  all.clustered <- clusterPeaks(peaks)
+  some.peaks <- data.table(all.clustered)[, {
+    sample.path <- paste0(sample.id, "/", sample.group)
+    peaks.per.sample <- table(sample.path)
+    peak.counts <- table(peaks.per.sample)
+    most.frequent.peaks <- as.numeric(names(peak.counts)[which.max(peak.counts)])
+    some.samples <- names(peaks.per.sample)[most.frequent.peaks <= peaks.per.sample]
+    .SD[sample.path %in% some.samples,]
+  }, by=cluster]
+  some.clustered <- clusterPeaks(some.peaks)
+  clusters <- data.table(some.clustered)[, list(
     clusterStart=min(chromStart),
     clusterEnd=max(chromEnd)
-  ), by=cluster]
+    ), by=cluster]
   clusters[, clusterStart1 := clusterStart + 1L]
   setkey(clusters, clusterStart1, clusterEnd)
   cat(nrow(peaks), "total peaks form",
