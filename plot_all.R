@@ -200,34 +200,6 @@ ggplot()+
     shape=21,
     data=input.pred)
 
-figure.png.vec <- Sys.glob(file.path(
-  set.dir, "problems", "*", "chunks", "*", "figure-predictions-zoomout.png"))
-relative.vec <- sub("/", "", sub(set.dir, "", figure.png.vec))
-zoomin.png.vec <- sub("-zoomout", "", relative.vec)
-chunk.dir.vec <- dirname(zoomin.png.vec)
-chunks.dir.vec <- dirname(chunk.dir.vec)
-separate.prob.dir.vec <- dirname(chunks.dir.vec)
-g.pos.pattern <- paste0(
-  "(?<chrom>chr.+?)",
-  ":",
-  "(?<chromStart>[0-9 ,]+)",
-  "-",
-  "(?<chromEnd>[0-9 ,]+)")
-pos2df <- function(path.vec){
-  problem <- basename(path.vec)
-  df <- str_match_named(
-    problem,
-    g.pos.pattern,
-    list(
-      chromStart=as.integer,
-      chromEnd=as.integer))
-  data.frame(problem, df)
-}
-chunk.info <- data.table(
-  separate=pos2df(separate.prob.dir.vec),
-  chunk=pos2df(chunk.dir.vec),
-  zoomin.png=zoomin.png.vec)
-
 n.samples <- nrow(gg.tree$labels)
 h.pixels <- (n.samples+5)*15
 chrom.limits <- problems[, list(
@@ -332,18 +304,6 @@ viz <- list(
       color=NA,
       alpha=0.5,
       data=problems)+
-    geom_tallrect(aes(
-      xmin=chunk.chromStart/1e3,
-      xmax=chunk.chromEnd/1e3,
-      tooltip=paste(
-        "click to plot chunk",
-        chunk.problem),
-      href=file.path("..", zoomin.png),
-      showSelected=separate.problem),
-      color=NA,
-      alpha=0.2,
-      fill="yellow",
-      data=chunk.info)+
     ## geom_vline(aes(
     ##   showSelected=separate.problem,
     ##   xintercept=peakStart/1e3,
@@ -370,7 +330,7 @@ viz <- list(
     scale_color_continuous(
       low="white", high="red")+
     scale_x_continuous("position on chromosome (kb = kilo bases)")+
-    scale_y_discrete("sample")+
+    scale_y_discrete("sample"),
     ## geom_segment(aes(
     ##   peakStart/1e3, sample.path,
     ##   xend=peakEnd/1e3, yend=sample.path,
@@ -378,33 +338,86 @@ viz <- list(
     ##   showSelected2=sample.group,
     ##   showSelected=separate.problem),
     ##   data=joint.peaks.dt)+
-    geom_point(aes(
-      peakStart/1e3, sample.path,
-      fill=sample.group,
-      key=paste(chrom, peakStart, sample.path),
-      tooltip=paste(
-        "click to zoom to peak",
-        peak.name),
-      href=sprintf(
-        "http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d",
-        chrom, peakStart-peakBases, peakEnd+peakBases),
-      showSelected2=sample.group,
-      showSelected=separate.problem),
-      color="black",
-      size=3.5,
-      data=joint.peaks.dt),
   selector.types=list())
-animint2dir(viz, file.path(set.dir, "figure-genome"))
 
-chunk.info[, image := sprintf('
+figure.png.vec <- Sys.glob(file.path(
+  set.dir, "problems", "*", "chunks", "*", "figure-predictions-zoomout.png"))
+if(0 == length(figure.png.vec)){
+  chunk.info <- data.table()
+  chunks.html <- ""
+}else{
+  relative.vec <- sub("/", "", sub(set.dir, "", figure.png.vec))
+  zoomin.png.vec <- sub("-zoomout", "", relative.vec)
+  chunk.dir.vec <- dirname(zoomin.png.vec)
+  chunks.dir.vec <- dirname(chunk.dir.vec)
+  separate.prob.dir.vec <- dirname(chunks.dir.vec)
+  g.pos.pattern <- paste0(
+    "(?<chrom>chr.+?)",
+    ":",
+    "(?<chromStart>[0-9 ,]+)",
+    "-",
+    "(?<chromEnd>[0-9 ,]+)")
+  pos2df <- function(path.vec){
+    problem <- basename(path.vec)
+    df <- str_match_named(
+      problem,
+      g.pos.pattern,
+      list(
+        chromStart=as.integer,
+        chromEnd=as.integer))
+    data.frame(problem, df)
+  }
+  chunk.info <- data.table(
+    separate=pos2df(separate.prob.dir.vec),
+    chunk=pos2df(chunk.dir.vec),
+    zoomin.png=zoomin.png.vec)
+  chunk.info[, image := sprintf('
 <a href="%s">
   <img src="%s" />
 </a>
 ', zoomin.png.vec, sub(".png$", "-thumb.png", zoomin.png.vec))]
-chunk.info[, chunk := sprintf({
-  '<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s">%s</a>'
-}, chunk.problem, chunk.problem)]
-chunk.counts <- chunk.info[, list(chunks=.N), by=separate.problem]
+  chunk.info[, chunk := sprintf({
+    '<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s">%s</a>'
+  }, chunk.problem, chunk.problem)]
+  chunk.counts <- chunk.info[, list(chunks=.N), by=separate.problem]
+  problems[, labeled.chunks := 0L]
+  setkey(chunk.counts, separate.problem)
+  problems[chunk.counts, labeled.chunks := chunk.counts$chunks]
+  viz$genome <- viz$genome+
+    geom_tallrect(aes(
+      xmin=chunk.chromStart/1e3,
+      xmax=chunk.chromEnd/1e3,
+      tooltip=paste(
+        "click to plot chunk",
+        chunk.problem),
+      href=file.path("..", zoomin.png),
+      showSelected=separate.problem),
+      color=NA,
+      alpha=0.2,
+      fill="yellow",
+      data=chunk.info)+
+    chunks.xt <- xtable(chunk.info[, .(chunk, image)])
+  chunks.html <- print(chunks.xt, type="html", sanitize.text.function=identity)
+}
+
+viz$genome <- viz$genome+
+  geom_point(aes(
+    peakStart/1e3, sample.path,
+    fill=sample.group,
+    key=paste(chrom, peakStart, sample.path),
+    tooltip=paste(
+      "click to zoom to peak",
+      peak.name),
+    href=sprintf(
+      "http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d",
+      chrom, peakStart-peakBases, peakEnd+peakBases),
+    showSelected2=sample.group,
+    showSelected=separate.problem),
+    color="black",
+    size=3.5,
+    data=joint.peaks.dt),
+animint2dir(viz, file.path(set.dir, "figure-genome"))
+
 label.counts <- all.labels[, list(
   samples=.N
   ), by=.(chrom, labelStart, labelEnd)]
@@ -419,21 +432,16 @@ label.problem.counts <- labels.in.problems[, list(
   ), by=separate.problem]
 problems[, labels := 0L]
 setkey(label.problem.counts, separate.problem)
-setkey(chunk.counts, separate.problem)
 setkey(problems, separate.problem)
 problems[label.problem.counts, labels := label.problem.counts$labels]
 problems[, labeled.regions := 0L]
 problems[label.problem.counts, labeled.regions := label.problem.counts$labeled.regions]
-problems[, labeled.chunks := 0L]
-problems[chunk.counts, labeled.chunks := chunk.counts$chunks]
 problems[, problem := sprintf({
   '<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s">%s</a>'
 }, separate.problem, separate.problem)]
 
 problems.xt <- xtable(problems[, .(problem, samples, peaks, peak.samples, labeled.chunks, labeled.regions, labels)])
 problems.html <- print(problems.xt, type="html", sanitize.text.function=identity)
-chunks.xt <- xtable(chunk.info[, .(chunk, image)])
-chunks.html <- print(chunks.xt, type="html", sanitize.text.function=identity)
 html.vec <- c(
   '<title>PeakSegFPOP + PeakSegJoint predictions</title>',
   '<h2>Output: predicted peaks</h2>',
