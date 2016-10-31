@@ -62,6 +62,18 @@ problems[, separate.problem := factor(problem.name, problem.name)]
 
 loss.tsv.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "jointProblems", "*", "loss.tsv"))
+cat(
+  "Reading predicted peaks in",
+  length(loss.tsv.vec),
+  "joint problems.\n",
+  sep=" ")
+sample.dir.vec <- Sys.glob(file.path(set.dir, "samples", "*", "*"))
+sample.path.vec <- sub(".*samples/", "", sample.dir.vec)
+sample.group.tab <- table(sub("/.*", "", sample.path.vec))
+sample.group.counts <- data.table(
+  sample.group=names(sample.group.tab),
+  samples.total=as.integer(sample.group.tab))
+setkey(sample.group.counts, sample.group)
 joint.peaks.dt.list <- list()
 input.pred.list <- list()
 for(loss.tsv in loss.tsv.vec){
@@ -75,16 +87,46 @@ for(loss.tsv in loss.tsv.vec){
   prob.peaks[, sample.id := sub(".*/", "", sample.path)]
   prob.peaks[, sample.group := sub("/.*", "", sample.path)]
   prob.peaks[, peak.name := sprintf("%s:%d-%d", chrom, peakStart, peakEnd)]
-  group.dt <- prob.peaks[, list(samples=.N), by=sample.group]
+  group.dt <- prob.peaks[, list(
+    samples.with.peaks=.N
+    ), by=sample.group]
+  setkey(group.dt, sample.group)
+  all.group.counts <- group.dt[sample.group.counts]
+  all.group.counts[is.na(samples.with.peaks), samples.with.peaks := 0L]
+  all.group.counts[, samples.without.peaks := samples.total - samples.with.peaks]
+  all.group.counts[, samples.prop := samples.with.peaks / samples.total]
+  count.mat <- all.group.counts[, rbind(samples.with.peaks, samples.without.peaks)]
+  exact <- fisher.test(count.mat)
+  ##group.ord <- all.group.counts[order(samples.prop),]
+  group.ord <- all.group.counts[order(sample.group), list(
+    groups=paste(sample.group, collapse=",")
+    ), by=samples.prop][order(samples.prop),]
   group.vec <- group.dt[order(sample.group), paste0(
-    sample.group, ":", samples)]
+    sample.group, ":", samples.with.peaks)]
   n.Input <- sum(prob.peaks$sample.group=="Input")
   separate.problem <- factor(basename(prob.dir), problems$problem.name)
+  most1 <- group.ord[.N,]
+  least1 <- group.ord[1,]
+  if(nrow(group.ord)==1){
+    most2 <- least2 <- data.table(samples.prop=NA, groups=NA)
+  }else{
+    most2 <- group.ord[.N-1,]
+    least2 <- group.ord[2,]
+  }
   input.pred.list[[loss.tsv]] <- data.table(
     prob.peaks[1, .(chrom, peakStart, peakEnd, peak.name)],
     n.Input,
     n.samples=nrow(prob.peaks),
     n.groups=nrow(group.dt),
+    most.freq.group=most1$groups,
+    most.freq.prop=most1$samples.prop,
+    most.next.group=most2$groups,
+    most.next.prop=most2$samples.prop,
+    least.freq.group=least1$groups,
+    least.freq.prop=least1$samples.prop,
+    least.next.group=least2$groups,
+    least.next.prop=least2$samples.prop,
+    exact.pvalue=exact$p.value,
     loss.diff,
     sample.counts=paste(group.vec, collapse="/"),
     separate.problem,
@@ -94,8 +136,8 @@ for(loss.tsv in loss.tsv.vec){
 }
 joint.peaks.dt <- do.call(rbind, joint.peaks.dt.list)
 input.pred <- do.call(rbind, input.pred.list)[orderChrom(chrom, peakStart),]
-sample.dir.vec <- Sys.glob(file.path(set.dir, "samples", "*", "*"))
-sample.path.vec <- sub(".*samples/", "", sample.dir.vec)
+input.pred[, peakBases := peakEnd - peakStart]
+joint.peaks.dt[, peakBases := peakEnd - peakStart]
 peak.mat <- matrix(
   FALSE,
   length(sample.path.vec),
@@ -108,6 +150,52 @@ peak.mat[i.mat] <- TRUE
 d.mat <- dist(peak.mat, "manhattan")
 tree <- hclust(d.mat, method="average")
 ##plot(tree, hang=-1)
+
+specific.html.list <- list()
+for(sg in sample.group.counts$sample.group){
+  specific.html.list[[sg]] <- sprintf(
+    '<h3>%s</h3>', sg)
+  group.peak.list <- list(
+    most=input.pred[
+      most.freq.group==sg &
+      most.freq.prop==1 &
+      most.next.prop==0,][order(-loss.diff), .(
+        peak.name, loss.diff, samples=sample.counts, chrom, peakStart, peakEnd, peakBases)],
+    least=input.pred[
+      least.freq.group==sg &
+      least.freq.prop==0 &
+      least.next.prop==1,][order(-loss.diff), .(
+        peak.name, loss.diff, samples=least.next.group, chrom, peakStart, peakEnd, peakBases)])
+  for(most.or.least in names(group.peak.list)){
+    group.peaks <- group.peak.list[[most.or.least]]
+    pre.msg <- paste0(
+      "<p>",
+      nrow(group.peaks),
+      " genomic region",
+      ifelse(nrow(group.peaks)==1, " was", "s were"))
+    msg <- if(most.or.least=="most"){
+      paste0(
+        pre.msg,
+        " predicted to have a peak in each ",
+        sg, " sample, and no peaks in other samples.</p>")
+    }else{
+      paste0(
+        pre.msg,
+        " predicted to have no peaks in any ",
+        sg, " samples, and at least one other group with peaks in all samples.</p>")
+    }
+    tab <- if(nrow(group.peaks)){
+      group.peaks[, peak := sprintf({
+        '<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d">%s</a>'
+      }, chrom, peakStart-peakBases, peakEnd+peakBases, peak.name)]
+      xt <- xtable(group.peaks[, .(peak, peakBases, loss.diff, samples)])
+      print(
+        xt, type="html", sanitize.text.function=identity)
+    }else ""
+    specific.html.list[[paste(sg, most.or.least)]] <- c(msg, tab)   
+  }
+}
+specific.html.vec <- do.call(c, specific.html.list)
 
 labels.bed.vec <- Sys.glob(file.path(
   set.dir, "samples", "*", "*", "labels.bed"))
@@ -208,8 +296,6 @@ chrom.limits <- problems[, list(
 ), by=chrom]
 vline.dt <- chrom.limits[, data.table(
   dist=unique(c(min.dist-problem.width, max.dist+problem.width)))]
-input.pred[, peakBases := peakEnd - peakStart]
-joint.peaks.dt[, peakBases := peakEnd - peakStart]
 viz <- list(
   title="PeakSegFPOP + PeakSegJoint predictions",
   tree=ggplot()+
@@ -471,7 +557,10 @@ at least one sample with a peak
   sprintf(
     '%d problems were defined in <a href="problems.bed">problems.bed</a>',
     nrow(problems)),
-  problems.html
+  problems.html,
+  '<h2>Output: predicted group-specific peaks</h2>',
+  '<p>These are great candidates for re-labeling.</p>',
+  specific.html.vec
   )
 writeLines(html.vec, file.path(set.dir, "index.html"))
 
