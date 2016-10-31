@@ -509,4 +509,5 @@ status <- system(cmd)
 if(status != 0){
   stop("error code ", status, " for command\n", cmd)
 }
+## TODO: labels.bigBed and track hub.
 
