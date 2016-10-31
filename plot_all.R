@@ -395,8 +395,8 @@ if(0 == length(figure.png.vec)){
       color=NA,
       alpha=0.2,
       fill="yellow",
-      data=chunk.info)+
-    chunks.xt <- xtable(chunk.info[, .(chunk, image)])
+      data=chunk.info)
+  chunks.xt <- xtable(chunk.info[, .(chunk, image)])
   chunks.html <- print(chunks.xt, type="html", sanitize.text.function=identity)
 }
 
@@ -415,7 +415,7 @@ viz$genome <- viz$genome+
     showSelected=separate.problem),
     color="black",
     size=3.5,
-    data=joint.peaks.dt),
+    data=joint.peaks.dt)
 animint2dir(viz, file.path(set.dir, "figure-genome"))
 
 label.counts <- all.labels[, list(
