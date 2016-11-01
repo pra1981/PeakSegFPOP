@@ -54,10 +54,7 @@ PeakSegJoint::problem.joint.targets.train(set.dir)
 ## Joint prediction.
 joint.dir.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "jointProblems", "*"))
-joint.model.RData <- file.path(set.dir, "joint.model.RData")
-mclapply.or.stop(joint.dir.vec, function(joint.dir){
-  PeakSegJoint::problem.joint.predict(joint.model.RData, joint.dir)
-})
+mclapply.or.stop(joint.dir.vec, PeakSegJoint::problem.joint.predict)
 
 ## Summarize peak predictions on a web page.
 final.cmd <- paste("Rscript plot_all.R", set.dir)

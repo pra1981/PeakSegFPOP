@@ -4,11 +4,10 @@ arg.vec <- c(
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
-if(length(arg.vec) != 2){
-  stop("usage: Rscript predict_sample.R model.RData sample_dir")
+if(length(arg.vec) != 1){
+  stop("usage: Rscript predict_sample.R sample_dir")
 }
-model.RData <- normalizePath(arg.vec[1], mustWork=TRUE)
-sample.dir <- normalizePath(arg.vec[2], mustWork=TRUE)
+sample.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
 
 library(data.table)
 library(coseg)
@@ -20,7 +19,7 @@ peaks.list <- mclapply.or.stop(seq_along(problem.bed.vec), function(problem.i){
   problem.bed <- problem.bed.vec[[problem.i]]
   cat(sprintf("%4d / %4d %s\n", problem.i, length(problem.bed.vec), problem.bed))
   problem.dir <- dirname(problem.bed)
-  problem.predict(problem.dir, model.RData)
+  problem.predict(problem.dir)
 })
 peaks <- do.call(rbind, peaks.list)
 

@@ -261,7 +261,7 @@ unlink(test.segments.vec)
 unlink(test.loss.vec)
 pred.peaks.list <- list()
 for(test.dir in test.dir.vec){
-  coseg::problem.predict(test.dir, model.RData)
+  coseg::problem.predict(test.dir)
   peaks.bed <- file.path(test.dir, "peaks.bed")
   tryCatch({
     sample.peaks <- fread(peaks.bed)
@@ -302,7 +302,7 @@ test_that("peaks.bed files created", {
 ## should not have to re-run PeakSegFPOP.
 problem.dir <- "test/H3K4me3_TDH_other/samples/kidney/McGill0023/problems/7"
 loss.files.before <- Sys.glob(file.path("*_loss.tsv"))
-coseg::problem.predict(problem.dir, model.RData)
+coseg::problem.predict(problem.dir)
 loss.files.after <- Sys.glob(file.path("*_loss.tsv"))
 test_that("PeakSegFPOP is not run when we already have the solution", {
   expect_equal(length(loss.files.before), length(loss.files.after))
@@ -312,7 +312,7 @@ test_that("PeakSegFPOP is not run when we already have the solution", {
 ## return the closest model inside.
 problem.dir <-
   "test/H3K4me3_TDH_other/samples/leukemiaCD19CD10BCells/McGill0267/problems/7"
-coseg::problem.predict(problem.dir, model.RData)
+coseg::problem.predict(problem.dir)
 peaks <- fread(file.path(problem.dir, "peaks.bed"))
 test_that("predict model with 2 peaks", {
   expect_equal(nrow(peaks), 2)
@@ -320,7 +320,7 @@ test_that("predict model with 2 peaks", {
 
 ## Predict for an entire sample using predict_sample.R
 sample.dir <- file.path(samples.dir, "skeletalMuscleCtrl", "McGill0036")
-sample.pred.cmd <- paste("Rscript predict_sample.R", model.RData, sample.dir)
+sample.pred.cmd <- paste("Rscript predict_sample.R", sample.dir)
 system(sample.pred.cmd)
 test_that("sampleID/peaks.bed file created using predict_sample.R", {
   peaks.bed <- file.path(sample.dir, "peaks.bed")
@@ -334,12 +334,13 @@ labels.bed.vec <- Sys.glob(file.path(
   samples.dir, "*", "*", "problems", "*", "labels.bed"))
 for(labels.bed in labels.bed.vec){
   problem.dir <- dirname(labels.bed)
-  coseg::problem.predict(problem.dir, model.RData)
+  coseg::problem.predict(problem.dir)
 }
 
 ## Create the scripts that will be used to train the joint algo.
 for(chunk.id in chunk.vec){
-  cmd <- paste("Rscript create_problems_joint.R", samples.dir, chunk.id)
+  prob.dir <- file.path(set.dir, "problems", chunk.id)
+  cmd <- paste("Rscript create_problems_joint.R", prob.dir)
   system(cmd)
 }
 target.sh.vec <- Sys.glob(file.path(

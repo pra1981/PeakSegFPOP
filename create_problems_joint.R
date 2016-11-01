@@ -8,18 +8,23 @@ PBS.header <- "#!/bin/bash
 #PBS -M tdhock5@gmail.com
 #PBS -V"
 
-arg.vec <- c(
-  "test/demo/samples",
-  "chr10:38868835-39154935")
+arg.vec <- "test/demo/problems/chr10:38868835-39154935"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
-if(length(arg.vec) != 2){
-  stop("usage: Rscript create_problems_joint.R samples_dir problemID")
+if(length(arg.vec) != 1){
+  stop("usage: Rscript create_problems_joint.R project/problems/problemID")
 }
+prob.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
 
-samples.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
-problem.name <- arg.vec[2]
+Rscript <- function(...){
+  code <- sprintf(...)
+  if(any(grepl("'", code))){
+    print(code)
+    stop("there can not be any ' in code")
+  }
+  sprintf("Rscript -e '%s'", code)
+}
 
 ann.colors <-
   c(noPeaks="#f6f4bf",
@@ -29,6 +34,10 @@ ann.colors <-
 library(data.table)
 library(PeakSegJoint)#for clusterPeaks
 
+probs.dir <- dirname(prob.dir)
+data.dir <- dirname(probs.dir)
+samples.dir <- file.path(data.dir, "samples")
+problem.name <- basename(prob.dir)
 peaks.glob <- file.path(
   samples.dir, "*", "*", "problems", problem.name, "peaks.bed")
 peaks.bed.vec <- Sys.glob(peaks.glob)
@@ -225,25 +234,23 @@ if(is.data.table(problems) && 0 < nrow(problems)){
     
   }
 
-  data.dir <- dirname(samples.dir)
   jointProblems <- file.path(
-    data.dir, "problems", problem.name, "jointProblems")
+    probs.dir, problem.name, "jointProblems")
   unlink(jointProblems, recursive=TRUE)
   joint.model.RData <- file.path(data.dir, "joint.model.RData")
   ## TODO make directories with sh files for each.
   makeProblem <- function(problem.i){
     problem <- problem.info[problem.i,]
     pname <- problem$problem.name
-    ##cat(sprintf("%4d / %4d problems %s\n", problem.i, nrow(problem.info), pname))
-    problem.dir <- file.path(jointProblems, pname)
-    dir.create(problem.dir, showWarnings=FALSE, recursive=TRUE)
+    jprob.dir <- file.path(jointProblems, pname)
+    dir.create(jprob.dir, showWarnings=FALSE, recursive=TRUE)
     pout <- data.table(
       chrom,
       problem[, .(problemStart, problemEnd)],
       problem.name)
     write.table(
       pout,
-      file.path(problem.dir, "problem.bed"),
+      file.path(jprob.dir, "problem.bed"),
       quote=FALSE,
       sep="\t",
       row.names=FALSE,
@@ -253,35 +260,35 @@ if(is.data.table(problems) && 0 < nrow(problems)){
       write.table(
         problem.labels[, .(
           chrom, labelStart, labelEnd, annotation, sample.id, sample.group)],
-        file.path(problem.dir, "labels.tsv"),
+        file.path(jprob.dir, "labels.tsv"),
         quote=FALSE,
         sep="\t",
         row.names=FALSE,
         col.names=FALSE)
       ## Script for target.
-      target.tsv <- file.path(problem.dir, "target.tsv")
+      target.tsv <- file.path(jprob.dir, "target.tsv")
       sh.file <- paste0(target.tsv, ".sh")
-      target.code <- sprintf(
-        'PeakSegJoint::problem.joint.target("%s")', problem.dir)
+      target.cmd <- Rscript(
+        'PeakSegJoint::problem.joint.target("%s")', jprob.dir)
       script.txt <- paste0(PBS.header, "
 #PBS -o ", target.tsv, ".out
 #PBS -e ", target.tsv, ".err
 #PBS -N JTarget", pname, "
-", "Rscript -e '", target.code, "'
+", target.cmd, "
 ")
       writeLines(script.txt, sh.file)
     }
     ## Script for peaks.
-    peaks.bed <- file.path(problem.dir, "peaks.bed")
+    peaks.bed <- file.path(jprob.dir, "peaks.bed")
     sh.file <- paste0(peaks.bed, ".sh")
-    pred.code <- sprintf(
-      'PeakSegJoint::problem.joint.predict("%s", "%s")',
-      joint.model.RData, problem.dir)
+    pred.cmd <- Rscript(
+      'PeakSegJoint::problem.joint.predict("%s")',
+      jprob.dir)
     script.txt <- paste0(PBS.header, "
 #PBS -o ", peaks.bed, ".out
 #PBS -e ", peaks.bed, ".err
 #PBS -N JPred", problem$problem.name, "
-", "Rscript -e '", pred.code, "'
+", pred.cmd, "
 ")
     writeLines(script.txt, sh.file)
   }

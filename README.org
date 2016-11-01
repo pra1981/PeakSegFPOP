@@ -215,39 +215,31 @@ segmentation problem,
 for sh in test/demo/problems/*/jointProblems.bed.sh;do qsub $sh;done
 #+END_SRC
 
-which will launch one job for each genomic segmentation problem. Each job will make peak predictions in all samples, 
-
-The next step is *joint* peak calling, which can be used to determine
-genomic regions with similar or different peak patterns in the
-different samples. To do that, run
-
-#+BEGIN_SRC shell-script
-Rscript create_problems_joint.R H3K4me3_project/samples chr4:75452279-191044276
-#+END_SRC
-
-which will create some =H3K4me3_project/jointProblems/chr4:*=
-directories with =target.tsv.sh= and =peaks.bed.sh= scripts. One
-directory and joint segmentation problem will be created for each
-genomic region which has at least one sample with a predicted peak. To
-train a joint peak calling model, first run =target.tsv.sh= scripts to
-create =target.tsv= files, which contain an interval of log(penalty)
-values that result in the minimal number of incorrectly predicted
-labels for each joint segmentation problem. Then run
+which will launch one job for each genomic segmentation problem. Each
+job will make peak predictions in all samples, then write
+=test/demo/problems/*/jointProblems/*= directories with
+=target.tsv.sh= and =peaks.bed.sh= scripts. One directory and joint
+segmentation problem will be created for each genomic region which has
+at least one sample with a predicted peak. To train a joint peak
+calling model, run
 
 #+BEGIN_SRC shell-script
-Rscript train_model_joint.R H3K4me3_project/jointProblems H3K4me3_project/joint.model.RData
+qsub test/demo/joint.model.RData.sh
 #+END_SRC
 
-which will train a joint peak calling model using the
-=H3K4me3_project/jointProblems/*/target.tsv= files, saving the model
-to =H3K4me3_project/joint.model.RData=. Finally, to make joint peak
-predictions, run the =H3K4me3_project/jointProblems/*/peaks.bed.sh=
-scripts, which will create corresponding =peaks.bed= files. These
-files will contain one line for each sample that has a peak in this
-region of the genome. For a given joint segmentation problem, each
-sample will have the same peak start and end positions, which makes it
-trivial to compute differences between samples.
+which will compute =test/demo/joint.model.RData=. To make
+joint peak predictions, run 
 
+#+BEGIN_SRC shell-script
+for sh in test/demo/problems/*/peaks.bed.sh;do qsub $sh;done
+#+END_SRC
+
+Finally, to gather all the peak predictions in a summary on
+=test/demo/index.html=, run
+
+#+BEGIN_SRC shell-script
+Rscript plot_all.R test/demo
+#+END_SRC
 
 ** The PeakSegFPOP command line program
 

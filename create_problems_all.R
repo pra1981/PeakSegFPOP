@@ -34,7 +34,6 @@ Rscript <- function(...){
 data.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
 problems.bed <- file.path(data.dir, "problems.bed")
 samples.dir <- file.path(data.dir, "samples")
-model.RData <- file.path(data.dir, "model.RData")
 
 problems <- fread(problems.bed)
 setnames(problems, c("chrom", "problemStart", "problemEnd"))
@@ -118,8 +117,8 @@ for(sample.i in seq_along(sample.dir.vec)){
     peaks.bed <- file.path(problem.dir, "peaks.bed")
     sh.file <- paste0(peaks.bed, ".sh")
     predict.cmd <- Rscript(
-      'coseg::problem.predict("%s", "%s")',
-      problem.dir, model.RData)
+      'coseg::problem.predict("%s")',
+      problem.dir)
     script.txt <- paste0(PBS.header, "
 #PBS -o ", peaks.bed, ".out
 #PBS -e ", peaks.bed, ".err
@@ -143,7 +142,7 @@ for(sample.i in seq_along(sample.dir.vec)){
 #PBS -e ", peaks.bed, ".err
 #PBS -N Predict", sample.id, "
 ", "Rscript ", normalizePath("predict_sample.R", mustWork=TRUE), " ",
-model.RData, " ", sample.dir, " 
+sample.dir, " 
 ")
   writeLines(script.txt, sh.file)
 }
@@ -171,8 +170,8 @@ for(problem.i in 1:nrow(problems)){
   jointProblems.bed <- file.path(prob.dir, "jointProblems.bed")
   sh.file <- paste0(jointProblems.bed, ".sh")
   pred.cmd <- Rscript(
-    'coseg::problem.predict.allSamples("%s", "%s")',
-    data.dir, problem$problem.name)
+    'coseg::problem.predict.allSamples("%s")',
+    prob.dir)
   script.txt <- paste0(PBS.header, "
 #PBS -o ", jointProblems.bed, ".out
 #PBS -e ", jointProblems.bed, ".err
@@ -180,7 +179,7 @@ for(problem.i in 1:nrow(problems)){
 ", pred.cmd, " 
 Rscript ",
 normalizePath("create_problems_joint.R", mustWork=TRUE),
-" ", samples.dir, " ", problem$problem.name, "
+" ", prob.dir, "
 ")
   writeLines(script.txt, sh.file)
   ## joint prediction script.
