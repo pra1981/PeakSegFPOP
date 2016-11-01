@@ -15,7 +15,7 @@ arg.vec <- commandArgs(trailingOnly=TRUE)
 if(length(arg.vec) != 1){
   stop("usage: Rscript create_problems_joint.R project/problems/problemID")
 }
-prob.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
+prob.dir <- arg.vec[1] #dont need normalizePath.
 
 Rscript <- function(...){
   code <- sprintf(...)
