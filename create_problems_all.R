@@ -248,3 +248,17 @@ script.txt <- paste0(PBS.header, "
 ", train.cmd, " 
 ")
 writeLines(script.txt, sh.file)
+
+## Create final plotting script.
+peaks.tsv <- file.path(data.dir, "peaks_matrix.tsv")
+sh.file <- paste0(peaks.tsv, ".sh")
+script.txt <- paste0(
+  PBS.header, "
+#PBS -o ", peaks.tsv, ".out
+#PBS -e ", peaks.tsv, ".err
+#PBS -N JModel
+Rscript ",
+  normalizePath("plot_all.R", mustWork=TRUE),
+  " ", data.dir, " 
+")
+writeLines(script.txt, sh.file)
