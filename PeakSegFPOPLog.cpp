@@ -78,25 +78,44 @@ int main(int argc, char *argv[]){//data_count x 2
   std::string line;
   int chromStart, chromEnd, coverage, items, line_i=0;
   char chrom[100];
+  char extra[100] = "";
   double cum_weight_i = 0.0, cum_weight_prev_i, cum_weighted_count;
   double min_log_mean=INFINITY, max_log_mean=-INFINITY, log_data;
   int data_i = 0;
   double weight;
-  int first_chromStart;
+  int first_chromStart, prev_chromEnd;
   while(std::getline(bedGraph_file, line)){
     line_i++;
-    items = sscanf(line.c_str(), "%s %d %d %d\n", chrom, &chromStart, &chromEnd, &coverage);
-    if(items!=4){
+    items = sscanf
+      (line.c_str(),
+       "%s %d %d %d%s\n",
+       chrom, &chromStart, &chromEnd, &coverage, extra);
+    //printf("%s %d %d %d%s\n", chrom, chromStart, chromEnd, coverage, extra);
+    if(items < 4){
       printf("error: expected '%%s %%d %%d %%d\\n' on line %d\n", line_i);
       std::cout << line << "\n";
       return 3;
+    }
+    if(0 < strlen(extra)){
+      printf("error: non-integer data on line %d\n", line_i);
+      std::cout << line << "\n";
+      return 4;
     }
     weight = chromEnd-chromStart;
     cum_weight_i += weight;
     cum_weighted_count += weight*coverage;
     if(line_i == 1){
       first_chromStart = chromStart;
-    }
+    }else{
+      if(chromStart != prev_chromEnd){
+	printf
+	  ("error: chromStart %d != prev_chromEnd %d on line %d\n",
+	   chromStart, prev_chromEnd, line_i);
+	std::cout << line << "\n";
+	return 5;
+      }
+    }      
+    prev_chromEnd = chromEnd;
     log_data = log(coverage);
     if(log_data < min_log_mean){
       min_log_mean = log_data;
@@ -213,6 +232,11 @@ int main(int argc, char *argv[]){//data_count x 2
       // in other words, we need to divide the penalty by the previous cumsum,
       // and add that to the min-less-ified function, before applying the min-env.
       min_prev_cost.set_prev_seg_end(data_i-1);
+      // cost + lambda * model.complexity =
+      // cost + penalty * peaks =>
+      // penalty = lambda * model.complexity / peaks.
+      // lambda is output by exactModelSelection,
+      // penalty is input by PeakSegFPOP.
       min_prev_cost.add(0.0, 0.0, penalty/cum_weight_prev_i);
       if(data_i==1){
 	up_cost = min_prev_cost;
@@ -317,7 +341,7 @@ int main(int argc, char *argv[]){//data_count x 2
     (&best_cost, &best_log_mean,
      &prev_seg_end, &prev_log_mean);
   //printf("mean=%f end_i=%d chromEnd=%d\n", exp(best_log_mean), prev_seg_end, down_cost.chromEnd);
-  int prev_chromEnd = down_cost.chromEnd;
+  prev_chromEnd = down_cost.chromEnd;
   // mean_vec[0] = exp(best_log_mean);
   // end_vec[0] = prev_seg_end;
   bool feasible = true;

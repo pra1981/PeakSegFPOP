@@ -1,5 +1,149 @@
 source("test_functions.R")
 
+options(warn=2)
+test_that("downloaded hg19 problems is the same as stored", {
+  system("Rscript downloadProblems.R hg19 hg19_test.bed")
+  diff.lines <- system("diff hg19_test.bed hg19_problems.bed", intern=TRUE)
+  expect_equal(length(diff.lines), 0)
+})
+options(warn=0)
+
+status <- system("PeakSegFPOP notIntBad.bedGraph 0.1")
+test_that("PeakSegFPOP fails for non-integer data", {
+  expect_false(status == 0)
+})
+
+status <- system("PeakSegFPOP missing.bedGraph 0.1")
+test_that("PeakSegFPOP fails for missing data", {
+  expect_false(status == 0)
+})
+
+## PeakSegJoint example data.
+exampleData <- system.file("exampleData", package="PeakSegJoint")
+bigwig.vec <- Sys.glob(file.path(exampleData, "*", "*.bigwig"))
+label.files.list <- list(
+  overlapping=c(
+    "overlapping_labels.txt", "manually_annotated_region_labels.txt"),
+  one=c("manually_annotated_region_labels.txt"),
+  two=c("manually_annotated_region_labels.txt", "other_labels.txt"))
+for(set.name in names(label.files.list)){
+  set.dir <- file.path("test", paste0("PeakSegJoint-", set.name))
+  for(bigwig.old in bigwig.vec){
+    group.dir.old <- dirname(bigwig.old)
+    sample.group <- basename(group.dir.old)
+    base.old <- basename(bigwig.old)
+    sample.id <- sub("[.]bigwig$", "", base.old)
+    bigwig.new <- file.path(
+      set.dir, "samples", sample.group, sample.id, "coverage.bigWig")
+    sample.dir.new <- dirname(bigwig.new)
+    dir.create(sample.dir.new, showWarnings=FALSE, recursive=TRUE)
+    file.symlink(bigwig.old, bigwig.new)
+  }
+  label.files <- label.files.list[[set.name]]
+  labels.dir <- file.path(set.dir, "labels")
+  dir.create(labels.dir, showWarnings=FALSE)
+  for(label.file in label.files){
+    label.old <- file.path(exampleData, label.file)
+    label.new <- file.path(labels.dir, label.file)
+    file.symlink(label.old, label.new)
+  }
+}
+
+## Data set with one bad overlapping label file that should error.
+convert.cmd <- "Rscript convert_labels.R test/PeakSegJoint-overlapping"
+status <- system(convert.cmd)
+test_that("stop for overlapping labels", {
+  expect_equal(status, 1)
+})
+
+## Data set with one good label file.
+set.dir <- file.path("test", "PeakSegJoint-one")
+convert.cmd <- paste("Rscript convert_labels.R", set.dir)
+status <- system(convert.cmd)
+test_that("converting one labels file succeeds", {
+  expect_equal(status, 0)
+})
+labels.bed.vec <- Sys.glob(file.path(
+  set.dir, "samples", "*", "*", "labels.bed"))
+sample.dir.vec <- dirname(labels.bed.vec)
+group.dir.vec <- dirname(sample.dir.vec)
+group.name.vec <- basename(group.dir.vec)
+test_that("labels.bed files for tcell and bcell samples", {
+  expect_equal(sum(group.name.vec=="bcell"), 2)
+  expect_equal(sum(group.name.vec=="tcell"), 2)
+})
+test_that("no labels.bed files for other samples", {
+  expect_equal(sum(group.name.vec=="kidney"), 0)
+  expect_equal(sum(group.name.vec=="stem"), 0)
+  expect_equal(sum(group.name.vec=="skeletalMuscle"), 0)
+})
+chunk.limits.RData <- file.path(set.dir, "chunk.limits.RData")
+test_that("chunk.limits file is created", {
+  expect_true(file.exists(chunk.limits.RData))
+})
+
+## Data set with two good label files.
+set.dir <- file.path("test", "PeakSegJoint-two")
+convert.cmd <- paste("Rscript convert_labels.R", set.dir)
+status <- system(convert.cmd)
+test_that("converting two labels file succeeds", {
+  expect_equal(status, 0)
+})
+labels.bed.vec <- Sys.glob(file.path(
+  set.dir, "samples", "*", "*", "labels.bed"))
+sample.dir.vec <- dirname(labels.bed.vec)
+group.dir.vec <- dirname(sample.dir.vec)
+group.name.vec <- basename(group.dir.vec)
+test_that("labels.bed files for tcell and bcell samples", {
+  expect_equal(sum(group.name.vec=="bcell"), 2)
+  expect_equal(sum(group.name.vec=="tcell"), 2)
+})
+test_that("labels.bed files for other samples", {
+  expect_equal(sum(group.name.vec=="kidney"), 1)
+  expect_equal(sum(group.name.vec=="stem"), 1)
+  expect_equal(sum(group.name.vec=="skeletalMuscle"), 2)
+})
+immune.lines <- readLines(file.path(
+  set.dir, "labels", "manually_annotated_region_labels.txt"))
+n.immune <- sum(immune.lines != "")
+other.lines <- readLines(file.path(
+  set.dir, "labels", "other_labels.txt"))
+n.other <- sum(other.lines != "")
+n.labels.vec <- rep(NA_integer_, length(labels.bed.vec))
+for(labels.bed.i in seq_along(labels.bed.vec)){
+  labels.bed <- labels.bed.vec[[labels.bed.i]]
+  label.lines <- readLines(labels.bed)
+  n.labels.vec[[labels.bed.i]] <- length(label.lines)
+}
+n.expected.vec <- ifelse(
+  group.name.vec %in% c("tcell", "bcell"), n.immune, n.other)
+test_that("expected number of lines in each labels.bed file", {
+  expect_equal(n.labels.vec, n.expected.vec)
+})
+chunk.limits.RData <- file.path(set.dir, "chunk.limits.RData")
+test_that("chunk.limits file is created", {
+  expect_true(file.exists(chunk.limits.RData))
+})
+
+## Create problems.
+sample.dir <- dirname(labels.bed)
+create.cmd <- paste("Rscript create_problems_sample.R hg19_problems.bed", sample.dir)
+system(create.cmd)
+labels.bed.vec <- Sys.glob(file.path(sample.dir, "problems", "*", "labels.bed"))
+test_that("at least one labeled problem", {
+  expect_gt(length(labels.bed.vec), 0)
+})
+
+## Compute target interval.
+problem.dir <- dirname(labels.bed.vec[1])
+target.tsv <- file.path(problem.dir, "target.tsv")
+unlink(target.tsv)
+unlink(Sys.glob(file.path(problem.dir, "*_loss.tsv")))
+coseg::problem.target(problem.dir)
+test_that("target.tsv file created", {
+  expect_true(file.exists(target.tsv))
+})
+
 ## Manually create a data set with two chunks from our benchmark.
 db.prefix <- "http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/"
 set.name <- "H3K4me3_TDH_other"
@@ -63,11 +207,7 @@ for(chunk.id in chunk.vec){
         sep="\t",
         row.names=FALSE,
         col.names=FALSE)
-      cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
-      status <- system(cmd)
-      if(status != 0){
-        stop("non-zero exit status")
-      }
+      coseg::problem.target(problem.dir)
     }
   }
 }
@@ -102,7 +242,7 @@ test_that("target interval includes no errors", {
 })
 
 model.RData <- file.path(set.dir, "model.RData")
-train.cmd <- paste("Rscript train_model.R", samples.dir, model.RData)
+train.cmd <- paste("Rscript train_model.R", set.dir)
 system(train.cmd)
 test_that("models file created", {
   obj.name.vec <- load(model.RData)
@@ -121,11 +261,7 @@ unlink(test.segments.vec)
 unlink(test.loss.vec)
 pred.peaks.list <- list()
 for(test.dir in test.dir.vec){
-  predict.cmd <- paste("Rscript predict_problem.R", model.RData, test.dir)
-  status <- system(predict.cmd)
-  if(status != 0){
-    stop("status code ", status)
-  }
+  coseg::problem.predict(test.dir)
   peaks.bed <- file.path(test.dir, "peaks.bed")
   tryCatch({
     sample.peaks <- fread(peaks.bed)
@@ -166,8 +302,7 @@ test_that("peaks.bed files created", {
 ## should not have to re-run PeakSegFPOP.
 problem.dir <- "test/H3K4me3_TDH_other/samples/kidney/McGill0023/problems/7"
 loss.files.before <- Sys.glob(file.path("*_loss.tsv"))
-predict.cmd <- paste("Rscript predict_problem.R", model.RData, problem.dir)
-system(predict.cmd)
+coseg::problem.predict(problem.dir)
 loss.files.after <- Sys.glob(file.path("*_loss.tsv"))
 test_that("PeakSegFPOP is not run when we already have the solution", {
   expect_equal(length(loss.files.before), length(loss.files.after))
@@ -177,8 +312,7 @@ test_that("PeakSegFPOP is not run when we already have the solution", {
 ## return the closest model inside.
 problem.dir <-
   "test/H3K4me3_TDH_other/samples/leukemiaCD19CD10BCells/McGill0267/problems/7"
-predict.cmd <- paste("Rscript predict_problem.R", model.RData, problem.dir)
-system(predict.cmd)
+coseg::problem.predict(problem.dir)
 peaks <- fread(file.path(problem.dir, "peaks.bed"))
 test_that("predict model with 2 peaks", {
   expect_equal(nrow(peaks), 2)
@@ -186,7 +320,7 @@ test_that("predict model with 2 peaks", {
 
 ## Predict for an entire sample using predict_sample.R
 sample.dir <- file.path(samples.dir, "skeletalMuscleCtrl", "McGill0036")
-sample.pred.cmd <- paste("Rscript predict_sample.R", model.RData, sample.dir)
+sample.pred.cmd <- paste("Rscript predict_sample.R", sample.dir)
 system(sample.pred.cmd)
 test_that("sampleID/peaks.bed file created using predict_sample.R", {
   peaks.bed <- file.path(sample.dir, "peaks.bed")
@@ -200,20 +334,19 @@ labels.bed.vec <- Sys.glob(file.path(
   samples.dir, "*", "*", "problems", "*", "labels.bed"))
 for(labels.bed in labels.bed.vec){
   problem.dir <- dirname(labels.bed)
-  predict.cmd <- paste("Rscript predict_problem.R", model.RData, problem.dir)
-  system(predict.cmd)
+  coseg::problem.predict(problem.dir)
 }
 
 ## Create the scripts that will be used to train the joint algo.
 for(chunk.id in chunk.vec){
-  cmd <- paste("Rscript create_problems_joint.R", samples.dir, chunk.id)
+  prob.dir <- file.path(set.dir, "problems", chunk.id)
+  cmd <- paste("Rscript create_problems_joint.R", prob.dir)
   system(cmd)
 }
-jointProblems <- file.path(set.dir, "jointProblems")
 target.sh.vec <- Sys.glob(file.path(
-  jointProblems, "*", "target.tsv.sh"))
+  set.dir, "problems", "*", "jointProblems", "*", "target.tsv.sh"))
 peaks.sh.vec <- Sys.glob(file.path(
-  jointProblems, "*", "peaks.bed.sh"))
+  set.dir, "problems", "*", "jointProblems", "*", "peaks.bed.sh"))
 test_that("more peaks.bed.sh prediction scripts than target.sh training", {
   expect_true(length(target.sh.vec) < length(peaks.sh.vec))
 })
@@ -232,10 +365,9 @@ test_that("target intervals computed", {
 })
 
 ## train joint model.
-joint.model.RData <- file.path(set.dir, "joint.model.RData")
-train.joint.cmd <- paste(
-  "Rscript train_model_joint.R", jointProblems, joint.model.RData)
+train.joint.cmd <- paste("Rscript train_model_joint.R", set.dir)
 system(train.joint.cmd)
+joint.model.RData <- file.path(set.dir, "joint.model.RData")
 test_that("joint.model.RData created", {
   expect_true(file.exists(joint.model.RData))
 })
@@ -375,8 +507,7 @@ f.row <- read.table(
 test_that("features are computed", {
   expect_equal(nrow(f.row), 1)
 })
-test.cmd <- paste("Rscript compute_coverage_target.R", problem.dir)
-system(test.cmd)
+coseg::problem.target(problem.dir)
 cat.cmd <- paste0("cat ", problem.dir, "/*loss.tsv")
 loss <- fread(cat.cmd)
 setnames(loss, c("penalty", "segments", "peaks", "bases", "mean.pen.cost", "total.cost", "status", "mean.intervals", "max.intervals"))
@@ -457,7 +588,7 @@ for(labels.name in names(labels.list)){
     labels, labels.bed,
     quote=FALSE, sep="\t",
     row.names=FALSE, col.names=FALSE)
-  test.cmd <- paste("Rscript create_problems.R hg19_problems.bed", sample.dir)
+  test.cmd <- paste("Rscript create_problems_sample.R hg19_problems.bed", sample.dir)
   system(test.cmd)
   labels.bed <- Sys.glob(paste0(sample.dir, "/problems/*/labels.bed"))
   problem.dir <- dirname(labels.bed)
@@ -526,12 +657,12 @@ test_that("first segments chromStart == first coverage chromStart", {
   expect_equal(first.segments$chromStart, start.vec)
 })
 
-## Make sure create_problems.R works for samples with no labels.
+## Make sure create_problems_sample.R works for samples with no labels.
 unlink(file.path(sample.dir, "labels.bed"))
 peaks.bed <- file.path(sample.dir, "peaks.bed")
 peaks.bed.sh <- paste0(peaks.bed, ".sh")
 unlink(peaks.bed.sh)
-test.cmd <- paste("Rscript create_problems.R hg19_problems.bed", sample.dir)
+test.cmd <- paste("Rscript create_problems_sample.R hg19_problems.bed", sample.dir)
 status <- system(test.cmd)
 test_that("script finishes successfully", {
   expect_equal(status, 0)
@@ -568,7 +699,8 @@ write.table(
   labels, labels.bed,
   quote=FALSE, sep="\t",
   row.names=FALSE, col.names=FALSE)
-test.cmd <- paste("Rscript create_problems.R hg19_problems.bed", sample.dir)
+test.cmd <- paste(
+  "Rscript create_problems_sample.R hg19_problems.bed", sample.dir)
 
 test_that("overlapping labels is an error", {
   status <- system(test.cmd)

@@ -1,6 +1,23 @@
 TODOs
 
-input data error checking.
+Output track hub... how to define reference genome?
+
+2016.11.01
+
+PeakSegFPOP command line program stops with an error for non-integer
+data, inconsistent chromStart/End.
+
+No longer printf when NEWTON_STEPS is reached.
+
+Table that shows problems which have no predicted peaks at all.
+
+Test whole pipeline with (test-input.R) and without (test-noinput.R)
+input samples.
+
+New scripts convert_labels.R, create_problems_all.R,
+downloadProblems.R, packages.R, pipeline.R, plot_all.R, plot_chunk.R
+
+Move most other scripts to functions in coseg and PeakSegJoint.
 
 2016.10.16
 

@@ -23,6 +23,15 @@ if(length(arg.vec) != 2){
 library(data.table)
 library(PeakError)
 
+Rscript <- function(...){
+  code <- sprintf(...)
+  if(any(grepl("'", code))){
+    print(code)
+    stop("there can not be any ' in code")
+  }
+  sprintf("Rscript -e '%s'", code)
+}
+
 problems.bed <- normalizePath(arg.vec[1], mustWork=TRUE)
 sample.dir <- normalizePath(arg.vec[2], mustWork=TRUE)
 group.dir <- dirname(sample.dir)
@@ -95,22 +104,26 @@ makeProblem <- function(problem.i){
   ## Script for coverage.
   target.tsv <- file.path(problem.dir, "target.tsv")
   sh.file <- paste0(target.tsv, ".sh")
+  target.code <- sprintf('coseg::problem.target("%s")', problem.dir)
+  target.cmd <- sprintf("Rscript -e '%s'", target.code)
   script.txt <- paste0(PBS.header, "
 #PBS -o ", target.tsv, ".out
 #PBS -e ", target.tsv, ".err
 #PBS -N Target", problem$problem.name, "
-", "Rscript ", normalizePath("compute_coverage_target.R", mustWork=TRUE), " ", problem.dir, "
+", target.cmd, "
 ")
   writeLines(script.txt, sh.file)
   ## Script for peaks.
   peaks.bed <- file.path(problem.dir, "peaks.bed")
   sh.file <- paste0(peaks.bed, ".sh")
+  predict.cmd <- Rscript(
+    'coseg::problem.predict("%s")',
+    problem.dir)
   script.txt <- paste0(PBS.header, "
 #PBS -o ", peaks.bed, ".out
 #PBS -e ", peaks.bed, ".err
 #PBS -N Predict", problem$problem.name, "
-", "Rscript ", normalizePath("predict_problem.R", mustWork=TRUE), " ",
-model.RData, " ", problem.dir, " 
+", predict.cmd, " 
 ")
   writeLines(script.txt, sh.file)
 }
@@ -127,6 +140,6 @@ script.txt <- paste0(PBS.header, "
 #PBS -e ", peaks.bed, ".err
 #PBS -N Predict", sample.id, "
 ", "Rscript ", normalizePath("predict_sample.R", mustWork=TRUE), " ",
-model.RData, " ", sample.dir, " 
+sample.dir, " 
 ")
 writeLines(script.txt, sh.file)

@@ -1,7 +1,23 @@
-library(testthat)
-library(data.table)
-library(PeakSegJoint)
-library(coseg)
+source("packages.R")
+
+Rscript <- function(...){
+  code <- sprintf(...)
+  if(any(grepl("'", code))){
+    print(code)
+    stop("there can not be any ' in code")
+  }
+  sprintf("Rscript -e '%s'", code)
+}
+
+getenv.or <- function(env.var, default){
+  env.value <- Sys.getenv(env.var)
+  if(env.value == ""){
+    default
+  }else{
+    env.value
+  }
+}
+
 writeProblem <- function(data.list, problem.dir){
   file.list <- list(
     coverage=file.path(problem.dir, "coverage.bedGraph"),
@@ -23,3 +39,13 @@ writeProblem <- function(data.list, problem.dir){
   }
 }
 
+download.to <- function
+(u, f, writeFun=if(grepl("bigWig", f))writeBin else writeLines){
+  if(!file.exists(f)){
+    f.dir <- dirname(f)
+    dir.create(f.dir, showWarnings=FALSE, recursive=TRUE)
+    request <- GET(u)
+    stop_for_status(request)
+    writeFun(content(request), f)
+  }
+}
