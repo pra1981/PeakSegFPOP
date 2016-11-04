@@ -15,13 +15,16 @@ library(data.table)
 ##   hg19.gap[,1:3], "hg19_gap.bed",
 ##   sep="\t", quote=FALSE, row.names=FALSE, col.names=FALSE)
 
-gap.bed <- arg.vec[1]
-chromInfo.txt <- arg.vec[2]
-problems.bed <- arg.vec[3]
+gap.bed <- normalizePath(arg.vec[1], mustWork=TRUE)
+chromInfo.txt <- normalizePath(arg.vec[2], mustWork=TRUE)
+problems.bed <- arg.vec[3] #will be created
 
-gap <- fread(gap.bed)
+gap.all <- fread(gap.bed)
+gap <- gap.all[, 1:3, with=FALSE]
 setnames(gap, c("chrom", "chromStart", "chromEnd"))
 setkey(gap, chrom)
+
+options(warn=2)
 
 chromInfo <- fread(chromInfo.txt)
 chromSizes <- chromInfo[, 1:2, with=FALSE]

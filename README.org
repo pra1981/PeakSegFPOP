@@ -5,38 +5,290 @@ partitioning algorithm.
 
 [[https://travis-ci.org/tdhock/PeakSegFPOP][https://travis-ci.org/tdhock/PeakSegFPOP.png?branch=master]]
 
+** Example output
+
+[[http://cbio.mines-paristech.fr/~thocking/PeakSegFPOP-input-data/][Train on four labeled samples (two H3K36me3 + two Input), model yields
+good predictions on four other un-labeled samples, and several
+un-labeled genomic regions]].
+
 ** Installation
 
+The following commands can be used to install all the required
+dependencies on Ubuntu precise (linux.x86_64 architecture). If you
+have another system, make sure to install R, BerkeleyDB STL, and UCSC
+tools (bigWigToBedGraph, bedToBigBed). Then execute [[file:packages.R]] to
+install all required R packages.
+
 #+BEGIN_SRC shell-script
-sudo aptitude install libdb6.0++-dev libdb6.0-stl-dev
+sudo aptitude install build-essential r-recommended libdb6.0++-dev libdb6.0-stl-dev bedtools
+export BIN=~/bin # or any other directory on your $PATH
+curl -L http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bigWigToBedGraph -o $BIN/bigWigToBedGraph
+curl -L http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bedToBigBed -o $BIN/bedToBigBed
+chmod u+x $BIN/bigWigToBedGraph $BIN/bedToBigBed
 make
+cp PeakSegFPOP $BIN
+Rscript -e 'source("packages.R")'
 #+END_SRC
 
-** Usage
+BerkeleyDB is used by PeakSegFPOP to write a large temporary file to
+disk. If you don't have root or aptitude, then you can always install
+BerkeleyDB by hand to your home directory
+
+#+BEGIN_SRC shell-script
+wget http://download.oracle.com/berkeley-db/db-6.2.23.NC.tar.gz
+tar xf db-6.2.23.NC.tar.gz
+cd db-6.2.23.NC/build_unix
+../dist/configure --prefix=$HOME --enable-stl
+make
+make install
+#+END_SRC 
+
+If BerkeleyDB is installed to your home directory or some other
+non-standard directory, then make sure to edit the [[file:Makefile]] to
+tell the compiler where to find it.
+
+#+BEGIN_SRC 
+g++ -std=c++0x -o PeakSegFPOP PeakSegFPOPLog.cpp funPieceListLog.cpp -I$HOME/include -L$HOME/lib -ldb_stl -Wl,-rpath=$HOME/lib
+#+END_SRC
+
+Once everything has been installed, you can test your installation by
+executing [[file:test_demo.R]]. It will first download some bigWigs and
+labels to the =test/demo= directory, then run [[file:pipeline.R]] on
+them. If everything worked, you can view the results by opening
+=test/demo/index.html= in a web browser, and it should be the same as
+the results shown on
+http://cbio.mines-paristech.fr/~thocking/PeakSegFPOP-input-data/
+
+** Multi-sample peak prediction pipeline
+
+The [[file:pipeline.R]] script uses PeakSegFPOP + [[https://github.com/tdhock/PeakSegJoint][PeakSegJoint]] to predict
+common and different peaks in multiple samples. It requires three
+input data:
+- coverage data under =project/samples=,
+- labels in =project/labels=,
+- genomic segmentation problems in =project/problems.bed=.
+
+To give a concrete example, let us consider the data set that is used
+when you run [[file:test_demo.R]].
+
+*** Coverage data
+
+Each coverage data file should contain counts of aligned sequence
+reads at every genomic position, for one sample. These files can be in
+either [[https://genome.ucsc.edu/goldenpath/help/bedgraph.html][bedGraph]] or [[https://genome.ucsc.edu/goldenpath/help/bigWig.html][bigWig]] format. For example [[file:test_demo.R]]
+downloads 8 files:
+
+#+BEGIN_SRC 
+test/demo/samples/bcell/MS026601/coverage.bigWig
+test/demo/samples/bcell_/MS010302/coverage.bigWig
+test/demo/samples/Input/MS002201/coverage.bigWig
+test/demo/samples/Input/MS026601/coverage.bigWig
+test/demo/samples/Input_/MS002202/coverage.bigWig
+test/demo/samples/Input_/MS010302/coverage.bigWig
+test/demo/samples/kidney/MS002201/coverage.bigWig
+test/demo/samples/kidney_/MS002202/coverage.bigWig
+#+END_SRC
+
+In the example above we have the =test/demo= directory which will
+contain all data sets, labels, and peak calls for this particular
+project. The =samples= directory contains a sub-directory for each
+sample group (experimental conditions or cell types, e.g. =bcell= or
+=kidney=). Each sample group directory should contain a sub-directory
+for each sample (e.g. =MS002201= or =MS010302=). Each sample
+sub-directory should contain either a =coverage.bedGraph= or
+=coverage.bigWig= file with counts of aligned sequence reads.
+
+Note that in this demonstration project, the groups with underscores
+are un-labeled samples (e.g. =bcell_=), and the groups without
+underscores are labeled samples (e.g. =bcell=). In real projects
+typically you would combine those two groups into a single labeled
+group, but in this project we keep them separate in order to
+demonstrate the prediction accuracy of the learning algorithm.
+
+*** Label data
+
+The =labels/*.txt= files contain genomic regions with or without
+peaks. These labels will be used to train the peak prediction models
+(automatically select model parameters that yield optimal peak
+prediction accuracy). A quick and easy way to create labels is by
+visual inspection as in the
+[[http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][McGill ChIP-seq peak detection benchmark]]. 
+For more details please read
+[[http://bioinformatics.oxfordjournals.org/content/early/2016/10/23/bioinformatics.btw672.abstract][Hocking et al, Bioinformatics 2016]]. 
+
+In [[file:test_demo.R]] the data set contains only one labels file,
+
+#+BEGIN_SRC 
+test/demo/labels/some_labels.txt
+#+END_SRC
+
+which contains lines such as the following
+
+#+BEGIN_SRC 
+chr10:33,061,897-33,162,814 noPeaks
+chr10:33,456,000-33,484,755 peakStart kidney
+chr10:33,597,317-33,635,209 peakEnd kidney
+chr10:33,662,034-33,974,942 noPeaks
+
+chr10:35,182,820-35,261,001 noPeaks
+chr10:35,261,418-35,314,654 peakStart bcell kidney
+#+END_SRC
+
+The labels file is divided into separate chunks by empty lines. Each
+chunk should contain lines for several nearby genomic regions, the
+corresponding label (noPeaks, peakStart, peakEnd, peaks), and the
+sample groups to which that label should be assigned (all other groups
+mentioned in the labels file will receive the noPeaks label).
+
+*** Genomic segmentation problems
+
+The last input file that you need to provide is a list of separate
+segmentation problems for your reference genome (regions without
+gaps). This file should be in [[https://genome.ucsc.edu/FAQ/FAQformat#format1][BED]] format
+(e.g. [[file:hg19_problems.bed]]).
+
+If you don't use hg19, but you do use another standard genome that is
+hosted on UCSC, then you can use [[file:downloadProblems.R]]
+
+#+BEGIN_SRC shell-script
+Rscript downloadProblems.R hg38 hg38_problems.bed
+#+END_SRC
+
+If your reference genome does not exist on UCSC, you can use
+[[file:gap2problems.R]] to make a =problems.bed= file:
+
+#+BEGIN_SRC shell-script
+Rscript gap2problems.R yourGenome_gap.bed yourGenome_chromInfo.txt yourGenome_problems.bed
+#+END_SRC
+
+where the chromInfo file contains one line for every chromosome, and
+the gap file contains one line for every gap in the reference (unknown
+/ NNN sequence).
+
+** Running steps of the pipeline in parallel
+
+Since the human genome is so large, it is much faster to do model
+training and peak prediction in parallel on a qsub cluster. Begin by
+editing the [[file:create_problems_all.R]] and
+[[file:create_problems_joint.R]] scripts to reflect your cluster
+configuration. Then run
+
+#+BEGIN_SRC shell-script
+cd PeakSegFPOP
+Rscript convert_labels.R test/demo
+Rscript create_problems_all.R test/demo
+#+END_SRC
+
+That will create problem sub-directories in
+=test/demo/samples/*/*/problems/*=. Begin model training by computing
+=target.tsv= files:
+
+#+BEGIN_SRC shell-script
+for sh in test/demo/samples/*/*/problems/*/target.tsv.sh;do qsub $sh;done
+#+END_SRC
+
+The target is the largest interval of log(penalty) values for which
+PeakSegFPOP returns peak models that have the minimum number of
+incorrect labels. The =target.tsv= files are used as input for
+training a machine learning model that can predict optimal penalty
+values, even for un-labeled parts of the genome. To train a model, use
+
+#+BEGIN_SRC shell-script
+Rscript train_model.R test/demo
+#+END_SRC
+
+which trains a model using
+=test/demo/samples/*/*/problems/*/target.tsv= files, and saves it to
+=test/demo/model.RData=. To compute peak predictions independently for
+each sample and genomic segmentation problem,
+
+#+BEGIN_SRC shell-script
+for sh in test/demo/problems/*/jointProblems.bed.sh;do qsub $sh;done
+#+END_SRC
+
+which will launch one job for each genomic segmentation problem. Each
+job will make peak predictions in all samples, then write
+=test/demo/problems/*/jointProblems/*= directories with
+=target.tsv.sh= and =peaks.bed.sh= scripts. One directory and joint
+segmentation problem will be created for each genomic region which has
+at least one sample with a predicted peak. To train a joint peak
+calling model, run
+
+#+BEGIN_SRC shell-script
+qsub test/demo/joint.model.RData.sh
+#+END_SRC
+
+which will compute =test/demo/joint.model.RData=. To make
+joint peak predictions, run 
+
+#+BEGIN_SRC shell-script
+for sh in test/demo/problems/*/peaks.bed.sh;do qsub $sh;done
+#+END_SRC
+
+Finally, to gather all the peak predictions in a summary on
+=test/demo/index.html=, run
+
+#+BEGIN_SRC shell-script
+qsub test/demo/peaks_matrix.tsv.sh
+#+END_SRC
+
+** The PeakSegFPOP command line program
+
+The PeakSegFPOP program finds the peak positions and corresponding
+piecewise constant segment means which optimize the penalized Poisson
+likelihood.
 
 #+BEGIN_SRC shell-script
 PeakSegFPOP coverage.bedGraph penalty [tmp.db]
 #+END_SRC
 
-The first argument =coverage.bedGraph= is a plain text file with 3
-columns: chromStart, chromEnd, coverage (all integers).
+The first argument =coverage.bedGraph= is a plain text file with 4
+tab-separated columns: chrom, chromStart, chromEnd, coverage (chrom is
+character and the others are integers). It should include data for
+only one chromosome, and no gap regions.
 
 The second argument =penalty= is a non-negative penalty value, for
-example 0.1 or 100.
+example 0, 0.1, 1e3, or Inf.
 
 The third argument =tmp.db= is optional. It is the path for a
 temporary file which takes O(N log N) disk space (N = number of lines
 in coverage.bedGraph). In practice you can expect the size of the
 temporary file and the computation time to be as in the table
 below. Min and max values show the variation over several values of
-the penalty parameter, on an Intel(R) Core(TM) i7 CPU 930 @ 2.80GHz.
+the penalty parameter (larger penalties require more time and disk
+space), on an Intel(R) Core(TM) i7 CPU 930 @ 2.80GHz.
 
 |       N | min(MB) | max(MB) | min(time) | max(time) |
 |---------+---------+---------+-----------+-----------|
 |   10000 |      12 |      43 | 1 sec     | 2 sec     |
 |  100000 |     189 |     627 | 12 sec    | 25 sec    |
 | 1000000 |    3462 |    7148 | 3 min     | 5 min     |
-| 4485563 |   20391 |   32930 | 17 min    | 29 min    |
+| 7135956 |    5042 |   41695 | 18 min    | 56 min    |
+| 7806082 |    5270 |   33425 | 35 min    | 167 min   |
+
+For a single run with penalty parameter =X=, the PeakSegFPOP program
+outputs two files. The =coverage.bedGraph_penalty=X_segments.bed= file
+has one line for each segment, and the following tab-separated
+columns: =chrom=, =chromStart=, =chromEnd=, =segment.type=,
+=segment.mean=. The =coverage.bedGraph_penalty=X_loss.tsv= has just
+one line and the following tab-separated columns:
+
+- =penalty= input penalty parameter.
+- =segments= number of segments in the optimal model.
+- =peaks= number of peaks in the optimal model.
+- =bases= number of bases in the bedGraph file.
+- =mean.pen.cost= mean penalized Poisson loss.
+- =total.cost= total un-penalized Poisson loss. The following equation
+  should hold for all data sets and penalty parameters:
+  (total.cost + penalty * peaks)/bases = mean.pen.cost
+- =status= is the optimal model feasible for the PeakSeg problem with
+  strict inequality constraints? If infeasible, then there is at least
+  one pair of adjacent segment means which are equal (and there is no
+  optimal solution to the problem with strict inequality constraints).
+- =mean.intervals= mean count of intervals (Poisson loss function
+  pieces) over all the 2*N cost function models computed by the
+  algorithm.
+- =max.intervals= maximum number of intervals.
 
 ** Related work
 

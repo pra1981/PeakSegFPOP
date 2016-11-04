@@ -1,8 +1,49 @@
 TODOs
 
-test cases.
+Output track hub... how to define reference genome?
 
-input data error checking.
+2016.11.01
+
+PeakSegFPOP command line program stops with an error for non-integer
+data, inconsistent chromStart/End.
+
+No longer printf when NEWTON_STEPS is reached.
+
+Table that shows problems which have no predicted peaks at all.
+
+Test whole pipeline with (test-input.R) and without (test-noinput.R)
+input samples.
+
+New scripts convert_labels.R, create_problems_all.R,
+downloadProblems.R, packages.R, pipeline.R, plot_all.R, plot_chunk.R
+
+Move most other scripts to functions in coseg and PeakSegJoint.
+
+2016.10.16
+
+new scripts compute_joint_target.R and predict_problem_joint.R for
+running PeakSegJoint.
+
+labels/H3K4me3_TDH_other/McGill0016/problems/chr2:110251337-149690582/
+overlapping regions -- problem in the input labels detected by
+create_labels.R which now stops with an error.
+
+feature computation command line program compute_features.R and
+corresponding coseg::problem.features function.
+
+R script train_model.R for training a model based on the target
+interval.
+
+test and implementation for samples with no labels at all -- we may
+want to predict on them.
+
+updated README with some description about how to run PeakSegFPOP on a
+whole genome.
+
+various fixes for min-less/more/env computation.
+
+compute_coverage_target.R uses coseg::problem.target which now uses
+parallel::mclapply.
 
 2016.09.26
 
