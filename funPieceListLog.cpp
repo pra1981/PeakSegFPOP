@@ -278,31 +278,24 @@ void PiecewisePoissonLossLog::set_to_min_less_of
 	// numerically constant (e.g. Linear=156 between -inf and
 	// -44). So now we check to see if the cost on the left and
 	// right of the interval are equal.
-	bool right_left_equal = right_cost - left_cost < NEWTON_EPSILON;
-	bool left_cost_less_than_next;
+	double right_left_diff = right_cost - left_cost;
+	if(verbose)printf("right_cost-left_cost=%e\n", right_left_diff);
+	bool right_left_equal = right_left_diff < NEWTON_EPSILON;
+	bool next_cost_more_than_left;
 	if(next_it == input->piece_list.end()){
-	  left_cost_less_than_next = true;
+	  next_cost_more_than_left = true;
 	}else{
 	  next_left_cost = next_it->getCost(next_it->min_log_mean);
-	  left_cost_less_than_next = NEWTON_EPSILON < next_left_cost-left_cost;
+	  double next_left_diff = next_left_cost-left_cost;
+	  if(verbose)printf("next_left_cost-left_cost=%e\n", next_left_diff);
+	  next_cost_more_than_left = NEWTON_EPSILON < next_left_diff;
 	}
-	// left_cost_less_than_next is true if the cost on the left of
-	// this piece is numerically less than the cost on the left of
-	// the next interval.
-	if(right_left_equal
-	   //&& left_cost_less_than_next
-	   ){
-	  if(verbose){
-	    printf("Constant interval\n");
-	    it->print();
-	  }
-	  // store this numerically constant interval.
-	  piece_list.emplace_back
-	    (it->Linear, it->Log, it->Constant,
-	     prev_min_log_mean, it->max_log_mean,
-	     PREV_NOT_SET, INFINITY); // equality constraint active on convex piece.
-	  prev_min_log_mean = it->max_log_mean;
-	}else{
+	// next_cost_more_than_left is true if the cost on the left of
+	// the next piece is numerically greater than the cost on the
+	// left of this interval => this is a sufficient condition for
+	// finding a minimum on the left and starting a constant
+	// interval.
+	if(next_cost_more_than_left){
 	  // don't store this interval, but store its min cost as a
 	  // constant.
 	  prev_min_cost = left_cost;
@@ -311,6 +304,17 @@ void PiecewisePoissonLossLog::set_to_min_less_of
 	    printf("Increasing interval left_cost=%e(stored) right_cost=%e diff=%e\n", left_cost, right_cost, right_cost-left_cost);
 	    it->print();
 	  }
+	}else{
+	  if(verbose){
+	    printf("Numerically constant convex piece\n");
+	    it->print();
+	  }
+	  // store this numerically constant interval.
+	  piece_list.emplace_back
+	    (it->Linear, it->Log, it->Constant,
+	     prev_min_log_mean, it->max_log_mean,
+	     PREV_NOT_SET, INFINITY); // equality constraint active on convex piece.
+	  prev_min_log_mean = it->max_log_mean;
 	}
       }else{//not degenerate linear
 	double mu = it->argmin();
