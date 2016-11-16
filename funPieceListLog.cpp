@@ -264,6 +264,9 @@ void PiecewisePoissonLossLog::set_to_min_less_of
 	printf("Searching for min in\n");
 	it->print();
       }
+      double next_left_cost;
+      next_it = it;
+      next_it++;
       if(it->Log==0){
 	// degenerate linear function. since the Linear coef is never
 	// negative, we know that this function must be increasing or
@@ -275,7 +278,20 @@ void PiecewisePoissonLossLog::set_to_min_less_of
 	// numerically constant (e.g. Linear=156 between -inf and
 	// -44). So now we check to see if the cost on the left and
 	// right of the interval are equal.
-	if(right_cost - left_cost < NEWTON_EPSILON){
+	bool right_left_equal = right_cost - left_cost < NEWTON_EPSILON;
+	bool left_cost_less_than_next;
+	if(next_it == input->piece_list.end()){
+	  left_cost_less_than_next = true;
+	}else{
+	  next_left_cost = next_it->getCost(next_it->min_log_mean);
+	  left_cost_less_than_next = NEWTON_EPSILON < next_left_cost-left_cost;
+	}
+	// left_cost_less_than_next is true if the cost on the left of
+	// this piece is numerically less than the cost on the left of
+	// the next interval.
+	if(right_left_equal
+	   //&& left_cost_less_than_next
+	   ){
 	  if(verbose){
 	    printf("Constant interval\n");
 	    it->print();
@@ -299,22 +315,20 @@ void PiecewisePoissonLossLog::set_to_min_less_of
       }else{//not degenerate linear
 	double mu = it->argmin();
 	double mu_cost = it->getCost(mu);
+	bool next_ok;
+	if(next_it == input->piece_list.end()){
+	  next_ok = true;
+	}else{
+	  next_left_cost = next_it->getCost(next_it->min_log_mean);
+	  next_ok = NEWTON_EPSILON < next_left_cost-mu_cost;
+	}
 	// Compute the cost at the next interval (interval to the
 	// left), to check if the cost at the minimum is less than the
 	// cost on the edge of the next function piece. This is
 	// necessary because sometimes there are numerical issues.
-	bool next_ok;
-	next_it = it;
-	next_it++;
-	double next_cost = next_it->getCost(next_it->min_log_mean);
-	if(next_it == input->piece_list.end()){
-	  next_ok = true;
-	}else{
-	  next_ok = NEWTON_EPSILON < next_cost-mu_cost;
-	}
-	if(verbose){
+ 	if(verbose){
 	  printf("min cost=%f at log_mean=%f\n", mu_cost, mu);
-	  printf("next-mu=%e right-mu=%e\n", next_cost-mu, right_cost-mu);
+	  printf("next-mu=%e right-mu=%e\n", next_left_cost-mu, right_cost-mu);
 	}
 	bool cost_ok = NEWTON_EPSILON < right_cost-mu_cost && next_ok;
 	if(mu <= it->min_log_mean && cost_ok){
@@ -334,7 +348,7 @@ void PiecewisePoissonLossLog::set_to_min_less_of
 	  if(verbose){
 	    printf("min in this interval at log_mean=%f cost=%f\n", mu, mu_cost);
 	    printf("right_cost=%f right-constant=%e\n", right_cost, right_cost-mu_cost);
-	    printf("next_cost=%f next-constant=%e\n", next_cost, next_cost-mu_cost);
+	    printf("next_left_cost=%f next-constant=%e\n", next_left_cost, next_left_cost-mu_cost);
 	  }
 	  if(prev_min_log_mean < mu){
 	    piece_list.emplace_back
