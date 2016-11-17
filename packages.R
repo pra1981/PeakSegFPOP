@@ -63,7 +63,7 @@ works_with_R(
   "tdhock/coseg@32b3debac00ebf70ec2c88428308281629bc0e70",
   "faizan-khan-iit/ggplot2@5fb99d0cece13239bbbc09c6b8a7da7f86ac58e2",
   "tdhock/animint@78974d8788930034109289e42f8c90f1ee804290",
-  "tdhock/PeakSegJoint@141f6530f73a6e923a4c31c1a78bb938cb84a012",
-  "tdhock/cosegData@d979741723b38fe083ae513a766b98fca7786309",
+  "tdhock/PeakSegJoint@632f061959885fef3d12414c642cb0bd0685a973",
+  "tdhock/cosegData@83e6f787bf4f9f9ec7d299bb9e6b32db522021a2",
   "tdhock/namedCapture@05175927a45c301a18e8c6ebae67ea39a842d264",
   "tdhock/WeightedROC@ef8f35ba7ae85e2995fa66afe13732cebb8b5633")
