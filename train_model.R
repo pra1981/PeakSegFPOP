@@ -459,7 +459,7 @@ pred.dt[, list(targets=.N), by=status]
 ## To check if we are extrapolating when predictions are made later,
 ## we save the range of the data 
 model$train.feature.ranges <- apply(
-  features[, model$pred.feature.names], 2, range)
+  features[, model$pred.feature.names, drop=FALSE], 2, range)
 
 cat("Writing model to", model.RData, "\n")
 save(model, features, targets, file=model.RData)
