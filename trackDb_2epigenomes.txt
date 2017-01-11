@@ -1,0 +1,302 @@
+track ac3-i1-h1348
+compositeTrack on
+shortLabel Histone - CEEHRC
+longLabel Histone Modifications - CEEHRC
+subGroup1 sampleType Sample_Type Bcell=B_cell
+subGroup2 assayType Assay_Type H3K9me3=H3K9me3 H3K27me3=H3K27me3 H3K36me3=H3K36me3 Input=Input H3K4me3=H3K4me3 H3K4me1=H3K4me1 H3K27ac=H3K27ac
+subGroup3 view View peak_calls=Peak_Calls signal=Signal signal_forward=Signal_Forward signal_reverse=Signal_Reverse methylation_profile=Methylation_Profile
+dimensions dimensionX=assayType dimensionY=sampleType dimA=view
+sortOrder assayType=+ sampleType=+
+dividers assayType
+dragAndDrop subTracks  
+priority 1
+type bed 5
+visibility pack
+color 214,39,40
+
+    track track_52763_signal_unstranded
+    type bigWig
+    parent ac3-i1-h1348 on
+    shortLabel MS026601
+    longLabel MS026601 - H3K27ac - signal_unstranded
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52763.CEEHRC.MS026601.H3K27ac.signal_unstranded.bigWig
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K27ac view=signal_unstranded
+    
+    track track_52764_peak_calls
+    type bigBed
+    parent ac3-i1-h1348 on
+    shortLabel MS026601
+    longLabel MS026601 - H3K27ac - peak_calls
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52764.CEEHRC.MS026601.H3K27ac.peak_calls.bigBed
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K27ac view=peak_calls
+    
+    track track_52765_signal_unstranded
+    type bigWig
+    parent ac3-i1-h1348 on
+    shortLabel MS026601
+    longLabel MS026601 - H3K27me3 - signal_unstranded
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52765.CEEHRC.MS026601.H3K27me3.signal_unstranded.bigWig
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K27me3 view=signal_unstranded
+    
+    track track_52766_peak_calls
+    type bigBed
+    parent ac3-i1-h1348 on
+    shortLabel MS026601
+    longLabel MS026601 - H3K27me3 - peak_calls
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52766.CEEHRC.MS026601.H3K27me3.peak_calls.bigBed
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K27me3 view=peak_calls
+    
+    track track_52767_signal_unstranded
+    type bigWig
+    parent ac3-i1-h1348 on
+    shortLabel MS026601
+    longLabel MS026601 - H3K36me3 - signal_unstranded
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52767.CEEHRC.MS026601.H3K36me3.signal_unstranded.bigWig
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K36me3 view=signal_unstranded
+    
+    track track_52768_peak_calls
+    type bigBed
+    parent ac3-i1-h1348 on
+    shortLabel MS026601
+    longLabel MS026601 - H3K36me3 - peak_calls
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52768.CEEHRC.MS026601.H3K36me3.peak_calls.bigBed
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K36me3 view=peak_calls
+    
+    track track_52769_signal_unstranded
+    type bigWig
+    parent ac3-i1-h1348 on
+    shortLabel MS026601
+    longLabel MS026601 - H3K4me1 - signal_unstranded
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52769.CEEHRC.MS026601.H3K4me1.signal_unstranded.bigWig
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K4me1 view=signal_unstranded
+    
+    track track_52770_peak_calls
+    type bigBed
+    parent ac3-i1-h1348 on
+    shortLabel MS026601
+    longLabel MS026601 - H3K4me1 - peak_calls
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52770.CEEHRC.MS026601.H3K4me1.peak_calls.bigBed
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K4me1 view=peak_calls
+    
+    track track_52771_signal_unstranded
+    type bigWig
+    parent ac3-i1-h1348 on
+    shortLabel MS026601
+    longLabel MS026601 - H3K4me3 - signal_unstranded
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52771.CEEHRC.MS026601.H3K4me3.signal_unstranded.bigWig
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K4me3 view=signal_unstranded
+    
+    track track_52772_peak_calls
+    type bigBed
+    parent ac3-i1-h1348 on
+    shortLabel MS026601
+    longLabel MS026601 - H3K4me3 - peak_calls
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52772.CEEHRC.MS026601.H3K4me3.peak_calls.bigBed
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K4me3 view=peak_calls
+    
+    track track_52773_signal_unstranded
+    type bigWig
+    parent ac3-i1-h1348 on
+    shortLabel MS026601
+    longLabel MS026601 - H3K9me3 - signal_unstranded
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52773.CEEHRC.MS026601.H3K9me3.signal_unstranded.bigWig
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K9me3 view=signal_unstranded
+    
+    track track_52774_peak_calls
+    type bigBed
+    parent ac3-i1-h1348 on
+    shortLabel MS026601
+    longLabel MS026601 - H3K9me3 - peak_calls
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52774.CEEHRC.MS026601.H3K9me3.peak_calls.bigBed
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K9me3 view=peak_calls
+    
+    track track_52775_signal_unstranded
+    type bigWig
+    parent ac3-i1-h1348 on
+    shortLabel MS026601
+    longLabel MS026601 - Input - signal_unstranded
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52775.CEEHRC.MS026601.Input.signal_unstranded.bigWig
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=Input view=signal_unstranded
+    
+    track track_52781_signal_unstranded
+    type bigWig
+    parent ac3-i1-h1348 on
+    shortLabel MS026701
+    longLabel MS026701 - H3K27ac - signal_unstranded
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52781.CEEHRC.MS026701.H3K27ac.signal_unstranded.bigWig
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K27ac view=signal_unstranded
+    
+    track track_52782_peak_calls
+    type bigBed
+    parent ac3-i1-h1348 on
+    shortLabel MS026701
+    longLabel MS026701 - H3K27ac - peak_calls
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52782.CEEHRC.MS026701.H3K27ac.peak_calls.bigBed
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K27ac view=peak_calls
+    
+    track track_52783_signal_unstranded
+    type bigWig
+    parent ac3-i1-h1348 on
+    shortLabel MS026701
+    longLabel MS026701 - H3K27me3 - signal_unstranded
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52783.CEEHRC.MS026701.H3K27me3.signal_unstranded.bigWig
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K27me3 view=signal_unstranded
+    
+    track track_52784_peak_calls
+    type bigBed
+    parent ac3-i1-h1348 on
+    shortLabel MS026701
+    longLabel MS026701 - H3K27me3 - peak_calls
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52784.CEEHRC.MS026701.H3K27me3.peak_calls.bigBed
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K27me3 view=peak_calls
+    
+    track track_52785_signal_unstranded
+    type bigWig
+    parent ac3-i1-h1348 on
+    shortLabel MS026701
+    longLabel MS026701 - H3K36me3 - signal_unstranded
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52785.CEEHRC.MS026701.H3K36me3.signal_unstranded.bigWig
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K36me3 view=signal_unstranded
+    
+    track track_52786_peak_calls
+    type bigBed
+    parent ac3-i1-h1348 on
+    shortLabel MS026701
+    longLabel MS026701 - H3K36me3 - peak_calls
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52786.CEEHRC.MS026701.H3K36me3.peak_calls.bigBed
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K36me3 view=peak_calls
+    
+    track track_52787_signal_unstranded
+    type bigWig
+    parent ac3-i1-h1348 on
+    shortLabel MS026701
+    longLabel MS026701 - H3K4me1 - signal_unstranded
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52787.CEEHRC.MS026701.H3K4me1.signal_unstranded.bigWig
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K4me1 view=signal_unstranded
+    
+    track track_52788_peak_calls
+    type bigBed
+    parent ac3-i1-h1348 on
+    shortLabel MS026701
+    longLabel MS026701 - H3K4me1 - peak_calls
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52788.CEEHRC.MS026701.H3K4me1.peak_calls.bigBed
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K4me1 view=peak_calls
+    
+    track track_52789_signal_unstranded
+    type bigWig
+    parent ac3-i1-h1348 on
+    shortLabel MS026701
+    longLabel MS026701 - H3K4me3 - signal_unstranded
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52789.CEEHRC.MS026701.H3K4me3.signal_unstranded.bigWig
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K4me3 view=signal_unstranded
+    
+    track track_52790_peak_calls
+    type bigBed
+    parent ac3-i1-h1348 on
+    shortLabel MS026701
+    longLabel MS026701 - H3K4me3 - peak_calls
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52790.CEEHRC.MS026701.H3K4me3.peak_calls.bigBed
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K4me3 view=peak_calls
+    
+    track track_52791_signal_unstranded
+    type bigWig
+    parent ac3-i1-h1348 on
+    shortLabel MS026701
+    longLabel MS026701 - H3K9me3 - signal_unstranded
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52791.CEEHRC.MS026701.H3K9me3.signal_unstranded.bigWig
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K9me3 view=signal_unstranded
+    
+    track track_52792_peak_calls
+    type bigBed
+    parent ac3-i1-h1348 on
+    shortLabel MS026701
+    longLabel MS026701 - H3K9me3 - peak_calls
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52792.CEEHRC.MS026701.H3K9me3.peak_calls.bigBed
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=H3K9me3 view=peak_calls
+    
+    track track_52793_signal_unstranded
+    type bigWig
+    parent ac3-i1-h1348 on
+    shortLabel MS026701
+    longLabel MS026701 - Input - signal_unstranded
+    visibility pack
+    bigDataUrl /tracks/CEEHRC/hg19/52793.CEEHRC.MS026701.Input.signal_unstranded.bigWig
+    maxHeightPixels 25:25:8
+    autoScale on
+    subGroups sampleType=Bcell assayType=Input view=signal_unstranded
+    
