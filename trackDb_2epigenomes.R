@@ -22,7 +22,7 @@ for(suffix in suffix.vec){
 }
 
 hg19.probs <- fread("hg19_problems.bed")
-setnames(hg19.probs, c("chrom", "chromStart", "chromEnd"))
+setnames(hg19.probs, c("chrom", "problemStart", "problemEnd"))
 hg19.probs[, chrom.fac := factorChrom(chrom)]
 chrom.levs <- levels(hg19.probs$chrom.fac)
 
@@ -51,7 +51,7 @@ for(bigWig in bigWig.vec){
 
     ggplot()+
       scale_y_discrete(limits=chrom.levs)+
-      geom_segment(aes(chromStart/1e6, chrom.fac, xend=chromEnd/1e6, yend=chrom.fac),
+      geom_segment(aes(problemStart/1e6, chrom.fac, xend=problemEnd/1e6, yend=chrom.fac),
                    color="grey",
                    size=1,
                    data=hg19.probs)+
@@ -92,8 +92,19 @@ ggplot()+
   theme_bw()+
   theme(panel.margin=grid::unit(0, "lines"))+
   facet_grid(chrom ~ .)+
-  geom_tallrect(aes(xmin=chromStart/1e6, xmax=chromEnd/1e6),
+  geom_tallrect(aes(xmin=problemStart/1e6, xmax=problemEnd/1e6),
                color="grey",
                size=1,
                data=hg19.probs)+
   geom_point(aes(chromStart/1e6, type, color=donor), data=large, shape=1)
+
+setkey(large, chrom, chromStart, chromEnd)
+setkey(hg19.probs, chrom, problemStart, problemEnd)
+big.in.probs <- foverlaps(large, hg19.probs, nomatch=0L)
+input.big <- big.in.probs[experiment!="Input",]
+input.big[, mid := (chromStart+chromEnd)/2]
+input.big[, left := mid-problemStart]
+input.big[, right := problemEnd-mid]
+input.big[, dist := ifelse(left < right, left, right)]
+input.big[, .SD[which.min(dist),], by=.(chrom, problemStart, problemEnd)][orderChrom(chrom, problemStart),]
+
