@@ -1,7 +1,7 @@
 source("test_functions.R")
 
 options(warn=2)
-test_that("downloaded hg19 problems is the same as stored", {
+test_that("downloaded hg38 problems is the same as stored", {
   system("Rscript downloadProblems.R hg38 hg38_test.bed")
   diff.lines <- system("diff hg38_test.bed hg38_problems.bed", intern=TRUE)
   expect_equal(length(diff.lines), 0)
