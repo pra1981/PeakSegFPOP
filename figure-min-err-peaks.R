@@ -47,11 +47,12 @@ ggplot()+
 ggplot()+
   ggtitle("target interval computation time")+
   scale_x_log10("segmentation problem size, mega bases (Mb)")+
-  geom_hline(aes(yintercept=log10(hours)), data=refs, color="grey")+
-  geom_text(aes(bases/1e6, log10(hours), label=label, hjust=hjust),
+  scale_y_log10("hours to compute target interval of penalty values with minimum label error")+
+  geom_hline(aes(yintercept=hours), data=hour.refs, color="grey")+
+  geom_text(aes(bases/1e6, hours, label=label, hjust=hjust),
             vjust=1.5,
-            data=refs, color="grey")+
-  geom_point(aes(bases/1e6, log10(walltime.hours)),
+            data=hour.refs, color="grey")+
+  geom_point(aes(bases/1e6, walltime.hours),
              shape=1,
              data=only.new)
 
