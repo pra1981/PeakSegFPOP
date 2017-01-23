@@ -487,5 +487,5 @@ model$train.feature.ranges <- apply(
   features[, model$pred.feature.names, drop=FALSE], 2, range)
 
 cat("Writing model to", model.RData, "\n")
-save(model, features, targets, size.model, file=model.RData)
+save(model, features, targets, size.model, correct.peaks, file=model.RData)
 

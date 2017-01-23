@@ -45,16 +45,17 @@ ggplot()+
   geom_abline(slope=1, intercept=0, color="grey")
 
 ggplot()+
-  ggtitle("target interval computation time")+
+  ##ggtitle("target interval computation time")+
   scale_x_log10("segmentation problem size, mega bases (Mb)")+
   scale_y_log10("hours to compute target interval of penalty values with minimum label error")+
   geom_hline(aes(yintercept=hours), data=hour.refs, color="grey")+
   geom_text(aes(bases/1e6, hours, label=label, hjust=hjust),
             vjust=1.5,
             data=hour.refs, color="grey")+
-  geom_point(aes(bases/1e6, walltime.hours),
+  geom_point(aes(bases/1e6, walltime.hours, color=experiment),
              shape=1,
              data=only.new)
+ggsave("~/projects/PeakSegFPOP-paper/figure-target-interval-time.pdf")
 
 ggplot()+
   theme_bw()+
@@ -247,3 +248,4 @@ ggplot()+
     "H3K36me3 peaks",
     limits=c(1, 100),
     breaks=c(1, 10, 100, 1000))
+ggsave("~/projects/PeakSegFPOP-paper/figure-min-err-peaks-compare.pdf")

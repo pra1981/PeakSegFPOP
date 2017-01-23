@@ -5,13 +5,42 @@ arg.vec <- commandArgs(trailingOnly=TRUE)
 if(length(arg.vec) != 4){
   stop("usage: Rscript create_track_hub.R data_dir http://url_prefix hg19 email@domain.com")
 }
+pre <- "http://hgdownload.soe.ucsc.edu/goldenPath/"
+
+system.or.stop <- function(cmd){
+  cat(cmd, "\n")
+  code <- system(cmd)
+  if(code != 0){
+    stop("non-zero exit code ", code)
+  }
+}
+options(warn=2)
 
 library(data.table)
 data.dir <- arg.vec[1]
 url.prefix <- arg.vec[2]
 genome <- arg.vec[3]
 email <- arg.vec[4]
-bigWig.file.vec <- Sys.glob(file.path(data.dir, "samples", "*", "*", "coverage.bigWig"))
+bedGraph.file.vec <- Sys.glob(file.path(data.dir, "samples", "*", "*", "coverage.bedGraph"))
+for(bedGraph.file in bedGraph.file.vec){
+  bigWig <- sub("bedGraph$", "bigWig", bedGraph.file)
+  if(!file.exists(bigWig)){
+    chromInfo.txt <- paste0(genome, "_chromInfo.txt")
+    if(!file.exists(chromInfo.txt)){
+      chromInfo.url <- paste0(pre, genome, "/database/chromInfo.txt.gz")
+      chromInfo.gz <- paste(chromInfo.txt, ".gz")
+      download.file(chromInfo.url, chromInfo.gz)
+      system.or.stop(paste("zcat", gz, ">", chromInfo.txt))
+    }
+    cmd <- paste("bedGraphToBigWig", bedGraph.file, chromInfo.txt, bigWig)
+    system.or.stop(cmd)
+  }
+}
+bigWig.glob <- file.path(data.dir, "samples", "*", "*", "coverage.bigWig")
+bigWig.file.vec <- Sys.glob(bigWig.glob)
+if(length(bigWig.file.vec)==0){
+  stop("no ", bigWig.glob, " files")
+}
 url.vec <- paste0(url.prefix, bigWig.file.vec)
 sample.path.vec <- dirname(bigWig.file.vec)
 sample.id.vec <- basename(sample.path.vec)
@@ -45,7 +74,6 @@ track.vec <- paste0("
     maxHeightPixels 25:25:8
     color ", apply(col2rgb(group.colors[group.id.vec]), 2, paste, collapse=","), "
     autoScale on")
-
 
 track.content <- paste0(
   "track ", data.name, "
