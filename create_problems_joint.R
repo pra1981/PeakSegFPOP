@@ -62,6 +62,7 @@ for(sample.i in seq_along(peaks.bed.vec)){
   })
 }
 peaks <- do.call(rbind, peaks.list)
+##load("weird.peaks.RData")
 problems.list <- if(is.data.frame(peaks) && 0 < nrow(peaks)){
   all.clustered <- clusterPeaks(peaks)
   some.peaks <- data.table(all.clustered)[, {
