@@ -471,7 +471,7 @@ correct.peaks[, log10.bases := log10(bases)]
 size.model <- correct.peaks[, list(
   mean=mean(log10.bases),
   sd=sd(log10.bases)
-), by=experiment]
+)]
 times <- 3
 size.model[, upper.lim := mean + times*sd]
 size.model[, lower.lim := mean - times*sd]
@@ -487,5 +487,5 @@ model$train.feature.ranges <- apply(
   features[, model$pred.feature.names, drop=FALSE], 2, range)
 
 cat("Writing model to", model.RData, "\n")
-save(model, features, targets, size.model, file=model.RData)
+save(model, features, targets, size.model, correct.peaks, file=model.RData)
 
