@@ -64,22 +64,18 @@ for(sample.i in seq_along(peaks.bed.vec)){
 peaks <- do.call(rbind, peaks.list)
 ##load("weird.peaks.RData")
 problems.list <- if(is.data.frame(peaks) && 0 < nrow(peaks)){
-  all.clustered <- clusterPeaks(peaks)
-  some.peaks <- data.table(all.clustered)[, {
-    sample.path <- paste0(sample.id, "/", sample.group)
-    peaks.per.sample <- table(sample.path)
-    peak.counts <- table(peaks.per.sample)
-    most.frequent.peaks <- as.numeric(names(peak.counts)[which.max(peak.counts)])
-    some.samples <- names(peaks.per.sample)[most.frequent.peaks <= peaks.per.sample]
-    .SD[sample.path %in% some.samples,]
-  }, by=cluster]
-  some.clustered <- clusterPeaks(some.peaks)
-  clusters <- data.table(some.clustered)[, list(
+  multi.clustered <- multiClusterPeaks(peaks)
+  overlap <- data.table(multi.clustered)[, list(
+    chromStart=as.integer(median(chromStart)),
+    chromEnd=as.integer(median(chromEnd))
+  ), by=cluster]
+  clustered <- clusterPeaks(overlap)
+  clusters <- data.table(clustered)[, list(
     clusterStart=min(chromStart),
     clusterEnd=max(chromEnd)
     ), by=cluster]
   clusters[, clusterStart1 := clusterStart + 1L]
-  setkey(clusters, clusterStart1, clusterEnd)
+  setkey(clusters, clusterStart1, clusterEnd)#for join with labels later.
   cat(nrow(peaks), "total peaks form",
       nrow(clusters), "overlapping peak clusters.\n")
   list(
@@ -207,7 +203,7 @@ if(is.data.table(problems) && 0 < nrow(problems)){
     ggplot()+
       theme_bw()+
       theme(panel.margin=grid::unit(0, "lines"))+
-      facet_grid(sample.id ~ ., scales="free")+
+      facet_grid(sample.id + sample.group ~ ., scales="free")+
       scale_fill_manual(values=ann.colors)+
       geom_tallrect(aes(
         xmin=labelStart/1e3,
