@@ -100,8 +100,9 @@ IntervalRegressionMatrixCV <- function
     vtall <- melt(validation.data, measure.vars=c("loss", "error"))
     stats <- validation.data[, list(
       mean.loss=mean(loss),
-      sd.loss=sd(loss)
-    ), by=regularization]
+      sd.loss=sd(loss),
+      folds=.N
+    ), by=regularization][folds==max(folds),]
     min.mean <- stats[which.min(mean.loss), ]
     upper.loss.limit <- min.mean[, mean.loss+sd.loss]
     simplest.within.1sd <-
