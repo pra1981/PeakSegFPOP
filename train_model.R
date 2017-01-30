@@ -472,7 +472,7 @@ size.model <- correct.peaks[, list(
   mean=mean(log10.bases),
   sd=sd(log10.bases)
 )]
-times <- 3
+times <- 2
 size.model[, upper.lim := mean + times*sd]
 size.model[, lower.lim := mean - times*sd]
 size.model[, upper.bases := 10^(upper.lim)]
