@@ -130,6 +130,22 @@ only.new[, tooltip := paste0(
 library(animint)
 break.vec <- rev(unique(as.integer(seq(
   0, max(only.new$min.incorrect.labels), l=5))))
+
+ggplot()+
+  xlab("position on chromosome (mega bases)")+
+  ylab("chromosome")+
+  guides(color="none")+
+  geom_segment(aes(problemStart/1e6, chrom.fac,
+                   xend=problemEnd/1e6, yend=chrom.fac),
+               data=hg19.problems)+
+  geom_point(aes(problemStart/1e6, chrom.fac),
+             shape=1,
+             data=hg19.problems)+
+  geom_text(aes(0, chrom.fac, label=paste0(problems, "  ")),
+            data=hg19.problems[, list(problems=.N), by=chrom.fac],
+            hjust=1)
+ggsave("~/projects/PeakSegFPOP-paper/figure-hg19-problems.pdf")
+
 viz <- list(
   title="PeakSegFPOP target intervals versus problem size", 
   heatmap=ggplot()+

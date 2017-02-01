@@ -69,6 +69,9 @@ gg.penalties <- ggplot()+
 png("figure-timing-data-penalties.png")
 print(gg.penalties)
 dev.off()
+pdf("figure-timing-data-penalties.pdf")
+print(gg.penalties)
+dev.off()
 
 refs <- data.table(
   label=c("1 minute", "1 hour", "1 day"),
