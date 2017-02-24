@@ -79,11 +79,16 @@ fwrite(
 jproblems.glob <- file.path(data.dir, "problems", "*", "jointProblems.bed")
 jprobs <- fread(paste("cat", jproblems.glob))
 setnames(jprobs, c("chrom", "problemStart", "problemEnd"))
-setkey(jprobs, chrom, problemStart, problemEnd)
-write.table(jprobs, file.path(data.dir, "jointProblems.bed"),
-            quote=FALSE,
-            row.names=FALSE,
-            col.names=FALSE)
+join.dt <- jprobs[sizes.dt, on=list(chrom)]
+join.dt[, problemStart := ifelse(problemStart < 0, 0, problemStart)]
+join.dt[, problemEnd := ifelse(problemEnd < chromEnd, problemEnd, chromEnd)]
+setkey(join.dt, chrom, problemStart, problemEnd)
+write.table(
+  join.dt[, .(chrom, problemStart, problemEnd)],
+  file.path(data.dir, "jointProblems.bed"),
+  quote=FALSE,
+  row.names=FALSE,
+  col.names=FALSE)
 
 bedToBigBed <- function(bed, opt=""){
   bigBed <- sub("bed$", "bigBed", bed)
