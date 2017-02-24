@@ -564,7 +564,7 @@ at least one sample with a peak
   )
 writeLines(html.vec, file.path(set.dir, "index.html"))
 
-## Write peaks_summary.bigBed 
+## Write peaks_summary.bed
 peak.mat.dt <- data.table(
   peak=colnames(peak.mat),
   ifelse(t(peak.mat), 1, 0))
@@ -583,20 +583,4 @@ fwrite(
   peaks.bed,
   sep="\t",
   col.names=FALSE)
-sizes.dt <- problems[, list(chromEnd=max(problemEnd)), by=chrom]
-sizes.tsv <- file.path(set.dir, "chrom_sizes.tsv")
-fwrite(
-  sizes.dt,
-  sizes.tsv,
-  sep="\t",
-  col.names=FALSE)
-cmd <- paste(
-  "bedToBigBed",
-  peaks.bed, sizes.tsv,
-  file.path(set.dir, "peaks_summary.bigBed"))
-status <- system(cmd)
-if(status != 0){
-  stop("error code ", status, " for command\n", cmd)
-}
-## TODO: labels.bigBed and track hub.
 

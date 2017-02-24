@@ -191,21 +191,25 @@ rownames(positive.regions) <- NULL
 ## save(positive.regions, file=positive.regions.RData)
 
 ## Save labels to bed file for viewing on UCSC.
-bed.gz <- file.path(project.dir, "all_labels.bed.gz")
-con <- gzfile(bed.gz, "w")
-header <- 
-  paste("track",
-        "visibility=pack",
-        "name=PeakSegJointLabels",
-        'description="Visually defined labels',
-        'in regions with and without peaks"',
-        "itemRgb=on")
-writeLines(header, con)
-write.table(bed, con,
+all_labels.bed <- file.path(project.dir, "all_labels.bed")
+## con <- file(all_labels.bed, "w")
+## header <- 
+##   paste("track",
+##         "visibility=pack",
+##         "name=PeakSegJointLabels",
+##         'description="Visually defined labels',
+##         'in regions with and without peaks"',
+##         "itemRgb=on")
+## writeLines(header, con)
+## write.table(bed, con,
+##             row.names=FALSE,
+##             col.names=FALSE,
+##             quote=FALSE)
+## close(con)
+write.table(bed, all_labels.bed,
             row.names=FALSE,
             col.names=FALSE,
             quote=FALSE)
-close(con)
 
 limits.by.chrom <- split(chunk.limits, chunk.limits$chrom)
 for(chrom in names(limits.by.chrom)){

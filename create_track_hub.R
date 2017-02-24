@@ -63,6 +63,63 @@ longLabel ", data.name, "
 genomesFile genomes.txt
 email ", email), file.path(data.dir, "hub.txt"))
 
+## Create chrom_sizes.tsv
+problems.bed <- file.path(data.dir, "problems.bed")
+problems <- fread(problems.bed)
+setnames(problems, c("chrom", "problemStart", "problemEnd"))
+sizes.dt <- problems[, list(chromEnd=max(problemEnd)), by=chrom]
+sizes.tsv <- file.path(set.dir, "chrom_sizes.tsv")
+fwrite(
+  sizes.dt,
+  sizes.tsv,
+  sep="\t",
+  col.names=FALSE)
+
+## create jointProblems.bigBed
+jproblems.glob <- file.path(data.dir, "problems", "*", "jointProblems.bed")
+jprobs <- fread(paste("cat", jproblems.glob))
+setnames(jprobs, c("chrom", "problemStart", "problemEnd"))
+write.table(jprobs, file.path(data.dir, "jointProblems.bed"),
+            quote=FALSE,
+            row.names=FALSE,
+            col.names=FALSE)
+
+bedToBigBed <- function(bed, opt=""){
+  bigBed <- sub("bed$", "bigBed", bed)
+  cmd <- paste(
+    "bedToBigBed",
+    opt,
+    bed, sizes.tsv,
+    bigBed)
+  system.or.stop(cmd)
+  bigBed
+}
+bed.name.vec <- c(
+  "all_labels",
+  "problems",
+  "jointProblems",
+  "peaks_summary")
+bigBed.list <- list()
+for(bed.name in bed.name.vec){
+  bed.file <- file.path(data.dir, paste0(bed.name, ".bed"))
+  if(file.exists(bed.file)){
+    bigBed.list[[bed.name]] <- bedToBigBed(bed.file)
+  }
+}
+
+bed.track.vec <- paste0("
+    track ", names(bigBed.list), "
+    type bigBed
+    parent ", data.name, " on
+    shortLabel ", names(bigBed.list), "
+    longLabel ", names(bigBed.list), "
+    visibility pack
+    bigDataUrl ", paste0(url.prefix, unlist(bigBed.list)))
+## maxHeightPixels 25:25:8
+## autoScale on
+## subGroups sampleType=amygdala assayType=H3K27me3 view=peak_calls
+
+
 track.id.vec <- paste0(group.id.vec, "_", sample.id.vec)
 track.vec <- paste0("
     track ", track.id.vec, "
@@ -84,6 +141,8 @@ dragAndDrop subTracks
 priority 1
 type bed 5
 visibility pack
-", paste(track.vec, collapse="\n"))
+", paste(bed.track.vec, collapse="\n"),
+  paste(track.vec, collapse="\n"), "
+")
 
 writeLines(track.content, file.path(data.dir, "trackDb.txt"))
