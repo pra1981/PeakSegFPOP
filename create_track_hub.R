@@ -68,7 +68,7 @@ problems.bed <- file.path(data.dir, "problems.bed")
 problems <- fread(problems.bed)
 setnames(problems, c("chrom", "problemStart", "problemEnd"))
 sizes.dt <- problems[, list(chromEnd=max(problemEnd)), by=chrom]
-sizes.tsv <- file.path(set.dir, "chrom_sizes.tsv")
+sizes.tsv <- file.path(data.dir, "chrom_sizes.tsv")
 fwrite(
   sizes.dt,
   sizes.tsv,
