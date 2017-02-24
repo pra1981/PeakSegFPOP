@@ -104,7 +104,7 @@ for(labels.file in labels.file.vec){
   commas <- gsub(" +", ",", stripped)
   sample.group.list <- strsplit(commas, split=",")
   bed.list[[labels.file]] <- 
-    data.frame(match.df[,c("chrom", "chromStart", "chromEnd")],
+    data.table(match.df[,c("chrom", "chromStart", "chromEnd")],
                name=paste0(match.df$annotation, ":", commas),
                score=0,
                strand=".",
@@ -179,7 +179,7 @@ for(labels.file in labels.file.vec){
     })
   }
 }
-bed <- do.call(rbind, bed.list)
+bed <- do.call(rbind, bed.list)[order(chrom, chromStart, chromEnd),]
 chunk.limits <- do.call(rbind, chunk.limits.list)
 positive.regions <- do.call(rbind, positive.regions.list)
 rownames(chunk.limits) <- NULL
