@@ -79,6 +79,7 @@ fwrite(
 jproblems.glob <- file.path(data.dir, "problems", "*", "jointProblems.bed")
 jprobs <- fread(paste("cat", jproblems.glob))
 setnames(jprobs, c("chrom", "problemStart", "problemEnd"))
+setkey(jprobs, chrom, problemStart, problemEnd)
 write.table(jprobs, file.path(data.dir, "jointProblems.bed"),
             quote=FALSE,
             row.names=FALSE,
