@@ -90,6 +90,24 @@ write.table(
   row.names=FALSE,
   col.names=FALSE)
 
+'
+table hg18KGchr7
+"UCSC Genes for chr7 with color plus GeneSymbol and SwissProtID"
+(
+string  chrom;		"Reference sequence chromosome or scaffold"
+uint    chromStart;	"Start position of feature on chromosome"
+uint    chromEnd;	"End position of feature on chromosome"
+string  name;		"Name of gene"
+uint    score;		"Score"
+char[1] strand;		"+ or - for strand"
+uint    thickStart;	"Coding region start"
+uint    thickEnd;	"Coding region end"
+uint  	reserved;	"Green on + strand, Red on - strand"
+string  geneSymbol;	"Gene Symbol"
+string  spID;		"SWISS-PROT protein Accession number"
+)
+'
+
 bedToBigBed <- function(bed, opt=""){
   bigBed <- sub("bed$", "bigBed", bed)
   cmd <- paste(
@@ -120,6 +138,7 @@ bed.track.vec <- paste0("
     shortLabel ", names(bigBed.list), "
     longLabel ", names(bigBed.list), "
     visibility pack
+    itemRgb on
     bigDataUrl ", paste0(url.prefix, unlist(bigBed.list)))
 ## maxHeightPixels 25:25:8
 ## autoScale on
@@ -147,8 +166,8 @@ dragAndDrop subTracks
 priority 1
 type bed 5
 visibility pack
-", paste(bed.track.vec, collapse="\n"),
-  paste(track.vec, collapse="\n"), "
+", paste(bed.track.vec, collapse="\n"), "
+", paste(track.vec, collapse="\n"), "
 ")
 
 writeLines(track.content, file.path(data.dir, "trackDb.txt"))
