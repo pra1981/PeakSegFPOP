@@ -131,60 +131,72 @@ for(bed.name in names(bed.num.vec)){
   }
 }
 
-bed.track.vec <- paste0("
+bed.track.vec <- if(length(bigBed.list)==0){
+  ""
+}else{
+  paste0("
  track ", names(bigBed.list), "
  type bigBed ", bed.num.vec[names(bigBed.list)], "
- parent ", data.name, " on
  shortLabel _model_", names(bigBed.list), "
  longLabel _model_", names(bigBed.list), "
  visibility pack
  itemRgb ", ifelse(names(bigBed.list)=="all_labels", "on", "off"), "
  spectrum ", ifelse(names(bigBed.list)=="peaks_summary", "on", "off"), "
  bigDataUrl ", paste0(url.prefix, unlist(bigBed.list)))
+}
 
+group.track.vec <- paste0("
+track ", group.names, "
+superTrack on show
+shortLabel ", group.names, "
+longLabel ", group.names, " ChIP-seq samples
+")
+
+track <- function(url, data.type, color){
+  paste0("
+  track ", track.id.vec, data.type, "
+  bigDataUrl ", url, "
+  shortLabel ", track.id.vec, data.type, "
+  longLabel ", group.id.vec, " | ", sample.id.vec, " | ", data.type, "
+  parent ", track.id.vec, "
+  type bigWig
+  color ", color, "
+")
+}
 track.id.vec <- paste0(group.id.vec, "_", sample.id.vec)
 track.vec <- paste0("
  track ", track.id.vec, "
- type bigWig
+ parent ", group.id.vec, "
  container multiWig
+ type bigWig
  shortLabel ", track.id.vec, "
  longLabel ", group.id.vec, " | ", sample.id.vec, "
- visibility full
- graphType poins
+ graphType points
  aggregate transparentOverlay
  showSubtrackColorOnUi on
- parent ", data.name, " on
  maxHeightPixels 25:20:8
+ visibility full
  autoScale on
-
-  track ", track.id.vec, "Counts
-  bigDataUrl ", url.vec, "
-  shortLabel ", track.id.vec, "Counts
-  longLabel ", group.id.vec, " | ", sample.id.vec, " | Counts
-  parent ", track.id.vec, " on
-  type bigWig
-  color ", apply(col2rgb(group.colors[group.id.vec]), 2, paste, collapse=","), "
-
-  track ", track.id.vec, "Peaks
-  bigDataUrl ", sub("coverage.bigWig$", "joint_peaks.bigWig", url.vec), "
-  shortLabel ", track.id.vec, "Peaks
-  longLabel ", group.id.vec, " | ", sample.id.vec, " | Peaks
-  parent ", track.id.vec, " on
-  type bigWig
-  color 0,0,0
-")
+", {
+  track(
+    url.vec,
+    "Coverage",
+    apply(col2rgb(group.colors[group.id.vec]), 2, paste, collapse=",")
+  )
+}, {
+  track(
+    sub("coverage.bigWig$", "joint_peaks.bigWig", url.vec),
+    "Peaks",
+    "0,0,0"
+  )
+})
 
 u.group.vec <- unique(group.id.vec)
 equals.vec <- paste0(u.group.vec, "=", u.group.vec)
-track.content <- paste0("
-track ", data.name, "
-superTrack on show
-shortLabel ", data.name, "
-longLabel ", data.name, "
-
-", paste(bed.track.vec, collapse="\n"), "
-
-", paste(track.vec, collapse="\n"), "
-")
+track.content <- paste0(
+  paste(group.track.vec, collapse="\n"),
+  paste(bed.track.vec, collapse="\n"),
+  paste(track.vec, collapse="\n"),
+  sep="\n")
 
 writeLines(track.content, file.path(data.dir, "trackDb.txt"))
