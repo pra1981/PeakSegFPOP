@@ -126,6 +126,7 @@ bed.track.vec <- paste0("
     shortLabel ", names(bigBed.list), "
     longLabel ", names(bigBed.list), "
     visibility pack
+    subGroups trackGroup=_model
     itemRgb ", ifelse(names(bigBed.list)=="all_labels", "on", "off"), "
     spectrum ", ifelse(names(bigBed.list)=="peaks_summary", "on", "off"), "
     bigDataUrl ", paste0(url.prefix, unlist(bigBed.list)))
@@ -139,7 +140,7 @@ track.vec <- paste0("
     longLabel ", group.id.vec, " | ", sample.id.vec, "
     bigDataUrl ", url.vec, "
     maxHeightPixels 25:25:8
-    subGroups sampleGroup=", group.id.vec, "
+    subGroups trackGroup=", group.id.vec, "
     color ", apply(col2rgb(group.colors[group.id.vec]), 2, paste, collapse=","), "
     autoScale on")
 
@@ -150,10 +151,10 @@ track.content <- paste0(
 compositeTrack on
 shortLabel ", data.name, "
 longLabel ", data.name, "
-subGroup1 sampleGroup Sample_Group ", paste(equals.vec, collapse=" "), "
-dimensions dimensionX=sampleGroup
-sortOrder sampleGroup=+
-dividers sampleGroup
+subGroup1 trackGroup Track_Group _model=_model ", paste(equals.vec, collapse=" "), "
+dimensions dimensionY=trackGroup
+sortOrder trackGroup=+
+dividers trackGroup
 dragAndDrop subTracks
 priority 1
 type bed 5
