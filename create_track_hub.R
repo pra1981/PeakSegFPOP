@@ -57,7 +57,9 @@ maybe.short <- c(
   "#8DD3C7",
   ##"#FFFFB3",#yellow
   "#BEBADA", "#FB8072", "#80B1D3", "#FDB462", 
-  "#B3DE69", "#FCCDE5", "#D9D9D9", "#BC80BD", "#CCEBC5", "#FFED6F"
+  "#B3DE69", "#FCCDE5",
+  "#D9D9D9",#grey
+  "#BC80BD", "#CCEBC5", "#FFED6F"
 )
 group.colors <- rep(maybe.short, l=length(group.names))
 names(group.colors) <- group.names
@@ -136,7 +138,6 @@ bed.track.vec <- paste0("
  shortLabel _model_", names(bigBed.list), "
  longLabel _model_", names(bigBed.list), "
  visibility pack
- subGroups trackGroup=_model
  itemRgb ", ifelse(names(bigBed.list)=="all_labels", "on", "off"), "
  spectrum ", ifelse(names(bigBed.list)=="peaks_summary", "on", "off"), "
  bigDataUrl ", paste0(url.prefix, unlist(bigBed.list)))
@@ -148,12 +149,12 @@ track.vec <- paste0("
  container multiWig
  shortLabel ", track.id.vec, "
  longLabel ", group.id.vec, " | ", sample.id.vec, "
- visibility pack
+ visibility full
+ graphType poins
  aggregate transparentOverlay
  showSubtrackColorOnUi on
  parent ", data.name, " on
- maxHeightPixels 25:25:8
- subGroups trackGroup=", group.id.vec, "
+ maxHeightPixels 25:20:8
  autoScale on
 
   track ", track.id.vec, "Counts
@@ -177,18 +178,12 @@ u.group.vec <- unique(group.id.vec)
 equals.vec <- paste0(u.group.vec, "=", u.group.vec)
 track.content <- paste0("
 track ", data.name, "
-compositeTrack on
+superTrack on show
 shortLabel ", data.name, "
 longLabel ", data.name, "
-subGroup1 trackGroup Track_Group _model=_model ", paste(equals.vec, collapse=" "), "
-dimensions dimensionY=trackGroup
-sortOrder trackGroup=+
-dividers trackGroup
-dragAndDrop subTracks
-priority 1
-type bed 5
-visibility pack
+
 ", paste(bed.track.vec, collapse="\n"), "
+
 ", paste(track.vec, collapse="\n"), "
 ")
 
