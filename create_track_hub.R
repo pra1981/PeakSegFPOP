@@ -197,6 +197,6 @@ track.content <- paste0(
   paste(group.track.vec, collapse="\n"),
   paste(bed.track.vec, collapse="\n"),
   paste(track.vec, collapse="\n"),
-  sep="\n")
+  sep="\n\n")
 
 writeLines(track.content, file.path(data.dir, "trackDb.txt"))
