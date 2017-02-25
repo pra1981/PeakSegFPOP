@@ -90,24 +90,6 @@ write.table(
   row.names=FALSE,
   col.names=FALSE)
 
-'
-table hg18KGchr7
-"UCSC Genes for chr7 with color plus GeneSymbol and SwissProtID"
-(
-string  chrom;		"Reference sequence chromosome or scaffold"
-uint    chromStart;	"Start position of feature on chromosome"
-uint    chromEnd;	"End position of feature on chromosome"
-string  name;		"Name of gene"
-uint    score;		"Score"
-char[1] strand;		"+ or - for strand"
-uint    thickStart;	"Coding region start"
-uint    thickEnd;	"Coding region end"
-uint  	reserved;	"Green on + strand, Red on - strand"
-string  geneSymbol;	"Gene Symbol"
-string  spID;		"SWISS-PROT protein Accession number"
-)
-'
-
 bedToBigBed <- function(bed, opt=""){
   bigBed <- sub("bed$", "bigBed", bed)
   cmd <- paste(
@@ -118,13 +100,13 @@ bedToBigBed <- function(bed, opt=""){
   system.or.stop(cmd)
   bigBed
 }
-bed.name.vec <- c(
-  "all_labels",
-  "problems",
-  "jointProblems",
-  "peaks_summary")
+bed.num.vec <- c(
+  all_labels=9,
+  problems=3,
+  jointProblems=3,
+  peaks_summary=5)
 bigBed.list <- list()
-for(bed.name in bed.name.vec){
+for(bed.name in names(bed.num.vec)){
   bed.file <- file.path(data.dir, paste0(bed.name, ".bed"))
   if(file.exists(bed.file)){
     bigBed.list[[bed.name]] <- bedToBigBed(bed.file)
@@ -133,17 +115,14 @@ for(bed.name in bed.name.vec){
 
 bed.track.vec <- paste0("
     track ", names(bigBed.list), "
-    type bigBed
+    type bigBed ", bed.num.vec[names(bigBed.list)], "
     parent ", data.name, " on
     shortLabel ", names(bigBed.list), "
     longLabel ", names(bigBed.list), "
     visibility pack
-    itemRgb on
+    itemRgb ", ifelse(names(bigBed.list)=="all_labels", "on", "off"), "
+    spectrum ", ifelse(names(bigBed.list)=="peaks_summary", "on", "off"), "
     bigDataUrl ", paste0(url.prefix, unlist(bigBed.list)))
-## maxHeightPixels 25:25:8
-## autoScale on
-## subGroups sampleType=amygdala assayType=H3K27me3 view=peak_calls
-
 
 track.id.vec <- paste0(group.id.vec, "_", sample.id.vec)
 track.vec <- paste0("
@@ -154,14 +133,21 @@ track.vec <- paste0("
     longLabel ", group.id.vec, " | ", sample.id.vec, "
     bigDataUrl ", url.vec, "
     maxHeightPixels 25:25:8
+    subGroups sampleGroup=", group.id.vec, "
     color ", apply(col2rgb(group.colors[group.id.vec]), 2, paste, collapse=","), "
     autoScale on")
 
+u.group.vec <- unique(group.id.vec)
+equals.vec <- paste0(u.group.vec, "=", u.group.vec)
 track.content <- paste0(
   "track ", data.name, "
 compositeTrack on
 shortLabel ", data.name, "
 longLabel ", data.name, "
+subGroup1 sampleGroup Sample_Group ", paste(equals.vec, collapse=" "), "
+dimensions dimensionX=sampleGroup
+sortOrder sampleGroup=+
+dividers sampleGroup
 dragAndDrop subTracks
 priority 1
 type bed 5
