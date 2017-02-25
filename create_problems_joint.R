@@ -33,11 +33,22 @@ ann.colors <-
     peaks="#a445ee")
 library(data.table)
 library(PeakSegJoint)#for clusterPeaks
+library(namedCapture)
 
 probs.dir <- dirname(prob.dir)
 data.dir <- dirname(probs.dir)
 samples.dir <- file.path(data.dir, "samples")
 problem.name <- basename(prob.dir)
+g.pos.pattern <- paste0(
+  "(?<chrom>chr.+?)",
+  ":",
+  "(?<chromStart>[0-9]+)",
+  "-",
+  "(?<chromEnd>[0-9]+)")
+separate.problem <- str_match_named(problem.name, g.pos.pattern, list(
+  chromStart=as.integer,
+  chromEnd=as.integer))
+
 peaks.glob <- file.path(
   samples.dir, "*", "*", "problems", problem.name, "peaks.bed")
 peaks.bed.vec <- Sys.glob(peaks.glob)
@@ -136,6 +147,12 @@ if(is.data.table(problems) && 0 < nrow(problems)){
   problems[, problemEnd := as.integer(clusterEnd+bases)]
   problems[problemStart < mid.before, problemStart := mid.before]
   problems[mid.after < problemEnd, problemEnd := mid.after]
+  problems[
+    problemStart < separate.problem$chromStart,
+    problemStart := separate.problem$chromStart]
+  problems[
+    separate.problem$chromEnd < problemEnd,
+    problemEnd := separate.problem$chromEnd]
   chrom <- peaks$chrom[1]
   problem.info <- problems[, data.table(
     problemStart,
@@ -289,14 +306,17 @@ if(is.data.table(problems) && 0 < nrow(problems)){
 ")
     writeLines(script.txt, sh.file)
   }
-
+  ## Sanity checks -- make sure no joint problems overlap each other,
+  ## or are outside the separate problem.
+  stopifnot(separate.problem$chromStart <= problem.info$problemStart)
+  stopifnot(problem.info$problemEnd <= separate.problem$chromEnd)
+  problem.info[, stopifnot(problemEnd[-.N] <= problemStart[-1])]
   cat(
     "Creating ", nrow(problem.info),
     " joint segmentation problems for ", problem.name,
     "\n", sep="")
   library(parallel)
   nothing <- lapply(1:nrow(problem.info), makeProblem)
-
   write.table(
     problem.info[, .(chrom, problemStart, problemEnd)],
     paste0(jointProblems, ".bed"),
