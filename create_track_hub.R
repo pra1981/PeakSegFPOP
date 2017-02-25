@@ -174,7 +174,7 @@ track.vec <- paste0("
  graphType points
  aggregate transparentOverlay
  showSubtrackColorOnUi on
- maxHeightPixels 25:20:8
+ maxHeightPixels 25:12:8
  visibility full
  autoScale on
 ", {
