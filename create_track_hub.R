@@ -123,8 +123,8 @@ bed.track.vec <- paste0("
     track ", names(bigBed.list), "
     type bigBed ", bed.num.vec[names(bigBed.list)], "
     parent ", data.name, " on
-    shortLabel ", names(bigBed.list), "
-    longLabel ", names(bigBed.list), "
+    shortLabel _model_", names(bigBed.list), "
+    longLabel _model_", names(bigBed.list), "
     visibility pack
     subGroups trackGroup=_model
     itemRgb ", ifelse(names(bigBed.list)=="all_labels", "on", "off"), "
