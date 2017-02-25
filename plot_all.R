@@ -151,6 +151,21 @@ d.mat <- dist(peak.mat, "manhattan")
 tree <- hclust(d.mat, method="average")
 ##plot(tree, hang=-1)
 
+## Save samples/groupID/sampleID/joint_peaks.bedGraph files.
+setkey(joint.peaks.dt, sample.path)
+out.path.vec <- unique(joint.peaks.dt$sample.path)
+joint.peaks.dt[, mean.str := sprintf("%.2f", mean)]
+for(out.path in out.path.vec){
+  sample.peaks <- joint.peaks.dt[out.path]
+  out.file <- file.path(set.dir, "samples", out.path, "joint_peaks.bedGraph")
+  fwrite(
+    sample.peaks[, .(chrom, peakStart, peakEnd, mean.str)],
+    out.file,
+    sep="\t",
+    col.names=FALSE,
+    quote=FALSE)
+}
+
 specific.html.list <- list()
 for(sg in sample.group.counts$sample.group){
   specific.html.list[[sg]] <- sprintf(
