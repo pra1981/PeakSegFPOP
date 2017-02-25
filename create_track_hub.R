@@ -47,7 +47,13 @@ sample.id.vec <- basename(sample.path.vec)
 group.path.vec <- dirname(sample.path.vec)
 group.id.vec <- basename(group.path.vec)
 group.names <- unique(group.id.vec)
-maybe.short <- RColorBrewer::brewer.pal(length(group.names), "Set3")
+##dput(RColorBrewer::brewer.pal(Inf, "Set3"))
+maybe.short <- c(
+  "#8DD3C7",
+  ##"#FFFFB3",#yellow
+  "#BEBADA", "#FB8072", "#80B1D3", "#FDB462", 
+  "#B3DE69", "#FCCDE5", "#D9D9D9", "#BC80BD", "#CCEBC5", "#FFED6F"
+)
 group.colors <- rep(maybe.short, l=length(group.names))
 names(group.colors) <- group.names
 data.name <- basename(data.dir)
