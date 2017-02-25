@@ -535,7 +535,7 @@ html.vec <- c(
   sprintf('<li>
 %d genomic regions were found to have
 at least one sample with a peak
-(<a href="peaks_summary.bigBed">peaks_summary.bigBed</a>,
+(<a href="hub.txt">track hub</a>,
  <a href="peaks_summary.tsv">peaks_summary.tsv</a>).
 </li>', nrow(input.pred)),
   sprintf('<li>
@@ -577,9 +577,11 @@ fwrite(
   file.path(set.dir, "peaks_summary.tsv"),
   sep="\t")
 peaks.bed <- file.path(set.dir, "peaks_summary.bed")
-bed.dt <- input.pred[, .(chrom, peakStart, peakEnd, sample.counts)]
+bed.dt <- input.pred[specificity != "non-specific",]
+max.samples <- max(bed.dt$n.samples)
+bed.dt[, score := as.integer((n.samples/max.samples)*1000) ]
 fwrite(
-  bed.dt,
+  bed.dt[, .(chrom, peakStart, peakEnd, sample.counts, score)],
   peaks.bed,
   sep="\t",
   col.names=FALSE)
