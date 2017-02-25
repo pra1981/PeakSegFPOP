@@ -97,7 +97,7 @@ jprobs <- fread(paste("cat", jproblems.glob))
 setnames(jprobs, c("chrom", "problemStart", "problemEnd"))
 sizes.dt <- fread(chromInfo.txt)
 names(sizes.dt)[1:2] <- c("chrom", "chromEnd")
-join.dt <- jprobs[sizes.dt, on=list(chrom)]
+join.dt <- sizes.dt[jprobs, on=list(chrom)]
 join.dt[, problemStart := ifelse(problemStart < 0, 0, problemStart)]
 join.dt[, problemEnd := ifelse(problemEnd < chromEnd, problemEnd, chromEnd)]
 setkey(join.dt, chrom, problemStart, problemEnd)
