@@ -200,7 +200,7 @@ track.vec <- paste0("
   )
 }, {
   track(
-    paste(url.prefix, joint.bigWig.list),
+    paste0(url.prefix, joint.bigWig.list),
     "Peaks",
     "0,0,0"
   )
