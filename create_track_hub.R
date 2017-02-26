@@ -123,6 +123,17 @@ bed.num.vec <- c(
   problems=3,
   jointProblems=3,
   peaks_summary=5)
+long.name.vec <- c(
+  all_labels="Manually labeled regions with and without peaks",
+  problems=paste(
+    "Separate problems",
+    "(PeakSegFPOP looks for multiple peaks in each region,",
+    "independently for each sample)"),
+  jointProblems=paste(
+    "Joint problems",
+    "(PeakSegJoint looks for one common peak in each region,",
+    "across all samples)"),
+  peaks_summary="Regions with a peak in at least one sample")
 bigBed.list <- list()
 for(bed.name in names(bed.num.vec)){
   bed.file <- file.path(data.dir, paste0(bed.name, ".bed"))
@@ -138,7 +149,7 @@ bed.track.vec <- if(length(bigBed.list)==0){
  track ", names(bigBed.list), "
  type bigBed ", bed.num.vec[names(bigBed.list)], "
  shortLabel _model_", names(bigBed.list), "
- longLabel _model_", names(bigBed.list), "
+ longLabel ", long.name.vec[names(bigBed.list)], "
  visibility pack
  itemRgb ", ifelse(names(bigBed.list)=="all_labels", "on", "off"), "
  spectrum ", ifelse(names(bigBed.list)=="peaks_summary", "on", "off"), "
