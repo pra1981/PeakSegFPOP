@@ -199,11 +199,15 @@ track.vec <- paste0("
     apply(col2rgb(group.colors[group.id.vec]), 2, paste, collapse=",")
   )
 }, {
-  track(
-    paste0(url.prefix, joint.bigWig.list),
-    "Peaks",
-    "0,0,0"
-  )
+  if(length(joint.bigWig.list)==0){
+    ""
+  }else{
+    track(
+      paste0(url.prefix, joint.bigWig.list),
+      "Peaks",
+      "0,0,0"
+    )
+  }
 })
 
 u.group.vec <- unique(group.id.vec)
