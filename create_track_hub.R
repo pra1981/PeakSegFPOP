@@ -67,13 +67,17 @@ data.name <- basename(data.dir)
 
 joint_peaks.bedGraph.vec <- sub(
   "coverage.bigWig$", "joint_peaks.bedGraph", bigWig.file.vec)
+joint.bigWig.list <- list()
 for(joint_peaks.bedGraph in joint_peaks.bedGraph.vec){
+  joint_peaks.bigWig <- sub("bedGraph$", "bigWig", joint_peaks.bedGraph)
   if(file.exists(joint_peaks.bedGraph)){
-    joint_peaks.bigWig <- sub("bedGraph$", "bigWig", joint_peaks.bedGraph)
     cmd <- paste(
       "bedGraphToBigWig", joint_peaks.bedGraph,
       chromInfo.txt, joint_peaks.bigWig)
     system.or.stop(cmd)
+  }
+  if(file.exists(joint_peaks.bigWig)){
+    joint.bigWig.list[[joint_peaks.bedGraph]] <- joint_peaks.bigWig
   }
 }
 
@@ -196,7 +200,7 @@ track.vec <- paste0("
   )
 }, {
   track(
-    sub("coverage.bigWig$", "joint_peaks.bigWig", url.vec),
+    paste(url.prefix, joint.bigWig.list),
     "Peaks",
     "0,0,0"
   )
