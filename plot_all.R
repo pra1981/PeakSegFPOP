@@ -65,8 +65,15 @@ problems[, problem.name := sprintf(
   "%s:%d-%d", chrom, problemStart, problemEnd)]
 problems[, separate.problem := factor(problem.name, problem.name)]
 
+joint.glob <- file.path(
+  set.dir, "problems", "*")
 loss.tsv.vec <- Sys.glob(file.path(
-  set.dir, "problems", "*", "jointProblems", "*", "loss.tsv"))
+  joint.glob, "jointProblems", "*", "loss.tsv"))
+if(length(loss.tsv.vec)==0){
+  stop(
+    "no predicted joint peaks found; to do joint peak prediction run ",
+    file.path(joint.glob, "peaks.bed.sh"))
+}
 cat(
   "Reading predicted peaks in",
   length(loss.tsv.vec),
