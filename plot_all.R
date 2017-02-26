@@ -11,6 +11,11 @@ library(namedCapture)
 library(data.table)
 library(coseg)
 
+## The UCSC links in the HTML tables will be zoomed out from the peak
+## this number of times.
+zoom.out.times <- 10
+zoom.factor <- (zoom.out.times-1)/2
+
 if(length(arg.vec) != 1){
   stop("usage: Rscript plot_all.R project_dir")
 }
@@ -175,12 +180,14 @@ for(sg in sample.group.counts$sample.group){
       most.freq.group==sg &
       most.freq.prop==1 &
       most.next.prop==0,][order(-loss.diff), .(
-        peak.name, loss.diff, samples=sample.counts, chrom, peakStart, peakEnd, peakBases)],
+        peak.name, loss.diff, samples=sample.counts,
+        chrom, peakStart, peakEnd, peakBases)],
     least=input.pred[
       least.freq.group==sg &
       least.freq.prop==0 &
       least.next.prop==1,][order(-loss.diff), .(
-        peak.name, loss.diff, samples=least.next.group, chrom, peakStart, peakEnd, peakBases)])
+        peak.name, loss.diff, samples=least.next.group,
+        chrom, peakStart, peakEnd, peakBases)])
   for(most.or.least in names(group.peak.list)){
     group.peaks <- group.peak.list[[most.or.least]]
     pre.msg <- paste0(
@@ -197,12 +204,16 @@ for(sg in sample.group.counts$sample.group){
       paste0(
         pre.msg,
         " predicted to have no peaks in any ",
-        sg, " samples, and at least one other group with peaks in all samples.</p>")
+        sg, " samples, and at least one other",
+        " group with peaks in all samples.</p>")
     }
     tab <- if(nrow(group.peaks)){
-      group.peaks[, peak := sprintf({
-        '<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d">%s</a>'
-      }, chrom, peakStart-peakBases, peakEnd+peakBases, peak.name)]
+      group.peaks[, peak := sprintf('
+<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d">%s</a>
+', chrom,
+peakStart-peakBases*zoom.factor,
+peakEnd+peakBases*zoom.factor,
+peak.name)]
       xt <- xtable(group.peaks[, .(peak, peakBases, loss.diff, samples)])
       print(
         xt, type="html", sanitize.text.function=identity)
