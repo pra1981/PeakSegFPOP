@@ -1,23 +1,8 @@
 source("test_functions.R")
 writeProblem <- function(...){}
 
-## Test for target interval after infeasible models.
-obj.name <- "H3K4me3_TDH_immune_tcell_McGill0007_chr10_60000_17974675"
-problem.dir <- file.path("test", obj.name)
-data(list=obj.name, package="cosegData")
-data.list <- get(obj.name)
-writeProblem(data.list, problem.dir)
-test.cmd <- Rscript('coseg::problem.target("%s")', problem.dir)
-system(test.cmd)
-target.vec <- scan(file.path(problem.dir, "target.tsv"), quiet=TRUE)
-models <- fread(file.path(problem.dir, "target_models.tsv"))
-models.above <- models[target.vec[2] < log(penalty), ]
-n.infeasible <- sum(models.above$status == "infeasible")
-test_that("only feasible models above upper penalty limit", {
-  expect_equal(n.infeasible, 0)
-})
-
-## Test for not computing a useless model that does not help find the target interval.
+## Test for not computing a useless model that does not help find the
+## target interval.
 obj.name <- "H3K4me3_TDH_immune_McGill0005_chr1_17175658_29878082"
 problem.dir <- file.path("test", obj.name)
 data(list=obj.name, package="cosegData")
@@ -56,9 +41,6 @@ loss[, log.penalty := log(penalty)]
 in.target <- loss[target.vec[1] < log.penalty & log.penalty < target.vec[2],]
 test_that("target interval contains no fp models", {
   expect_true(all(!peaks.with.fp %in% in.target))
-})
-test_that("target interval contains no infeasible models", {
-  expect_true(all(in.target$status == "feasible"))
 })
 min.peaks <- min(in.target$peaks)
 smaller.present <- (min.peaks-1) %in% loss$peaks
