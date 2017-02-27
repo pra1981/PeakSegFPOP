@@ -7,9 +7,14 @@ partitioning algorithm.
 
 ** Example output
 
-[[http://cbio.mines-paristech.fr/~thocking/PeakSegFPOP-input-data/][Train on four labeled samples (two H3K36me3 + two Input), model yields
-good predictions on four other un-labeled samples, and several
-un-labeled genomic regions]].
+[[http://hubs.hpc.mcgill.ca/~thocking/PeakSegFPOP-labels/H3K36me3_TDH_immune/][Broad H3K36me3 data: Train on 21 immune cell samples, genome-wide prediction on
+29 samples of several cell types]].
+
+[[http://hubs.hpc.mcgill.ca/~thocking/PeakSegFPOP-labels/H3K4me3_TDH_immune/][Sharp H3K4me3 data: train on 27 immune cell samples, genome-wide prediction
+on 37 samples of several cell types]].
+
+[[http://cbio.mines-paristech.fr/~thocking/PeakSegFPOP-input-data/][test_demo.R data: train on four labeled samples (two H3K36me3 +
+two Input), predict on 8 samples in a subset of chr10]].
 
 ** Installation
 
@@ -63,7 +68,7 @@ http://cbio.mines-paristech.fr/~thocking/PeakSegFPOP-input-data/
 
 The [[file:pipeline.R]] script uses PeakSegFPOP + [[https://github.com/tdhock/PeakSegJoint][PeakSegJoint]] to predict
 common and different peaks in multiple samples. It requires three
-input data:
+kinds of input data:
 - coverage data under =project/samples=,
 - labels in =project/labels=,
 - genomic segmentation problems in =project/problems.bed=.
@@ -163,15 +168,16 @@ Rscript gap2problems.R yourGenome_gap.bed yourGenome_chromInfo.txt yourGenome_pr
 
 where the chromInfo file contains one line for every chromosome, and
 the gap file contains one line for every gap in the reference (unknown
-/ NNN sequence).
+/ NNN sequence). If there are no gaps in your genome, then you can use
+=yourGenome_chromInfo.txt= as a =problems.bed= file.
 
 ** Running steps of the pipeline in parallel
 
 Since the human genome is so large, it is much faster to do model
-training and peak prediction in parallel on a qsub cluster. Begin by
-editing the [[file:create_problems_all.R]] and
-[[file:create_problems_joint.R]] scripts to reflect your cluster
-configuration. Then run
+training and peak prediction in parallel (on a qsub cluster such as
+Compute Canada's [[http://www.hpc.mcgill.ca/index.php/guillimin-status][guillimin]]). Begin by editing the
+[[file:create_problems_all.R]] and [[file:create_problems_joint.R]] scripts to
+reflect your cluster configuration. Then run
 
 #+BEGIN_SRC shell-script
 cd PeakSegFPOP
@@ -191,7 +197,8 @@ The target is the largest interval of log(penalty) values for which
 PeakSegFPOP returns peak models that have the minimum number of
 incorrect labels. The =target.tsv= files are used as input for
 training a machine learning model that can predict optimal penalty
-values, even for un-labeled parts of the genome. To train a model, use
+values, even for un-labeled samples and genome subsets. To train a
+model, use
 
 #+BEGIN_SRC shell-script
 Rscript train_model.R test/demo
@@ -231,6 +238,24 @@ Finally, to gather all the peak predictions in a summary on
 #+BEGIN_SRC shell-script
 qsub test/demo/peaks_matrix.tsv.sh
 #+END_SRC
+
+You can create =test/demo/hub.txt= which can be used as a track hub on
+the UCSC genome browser:
+
+#+BEGIN_SRC shell
+Rscript create_track_hub.R test/demo http://hubs.hpc.mcgill.ca/~thocking/PeakSegFPOP- hg19 email@domain.com
+#+END_SRC
+
+The first argument is the data directory. The second argument is the
+URL prefix (appended before the first argument to obtain URLs for the
+trackDb.txt file). The third argument is the UCSC genome ID for the
+genomes.txt file. The fourth argument is the email address for the
+hub.txt file. The script will create
+=test/demo/samples/*/*/coverage.bigWig= and
+=test/demo/samples/*/*/joint_peaks.bigWig= files that will be shown
+together on the track hub in a multiWig container (for each sample, a
+colored coverage profile with superimposed peak calls as horizontal
+black line segments).
 
 ** The PeakSegFPOP command line program
 
