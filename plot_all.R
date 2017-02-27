@@ -218,8 +218,8 @@ for(sg in sample.group.counts$sample.group){
       group.peaks[, peak := sprintf('
 <a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d">%s</a>
 ', chrom,
-peakStart-peakBases*zoom.factor,
-peakEnd+peakBases*zoom.factor,
+as.integer(peakStart-peakBases*zoom.factor),
+as.integer(peakEnd+peakBases*zoom.factor),
 peak.name)]
       xt <- xtable(group.peaks[, .(peak, peakBases, loss.diff, samples)])
       print(
