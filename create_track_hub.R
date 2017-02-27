@@ -150,14 +150,14 @@ bed.track.vec <- if(length(bigBed.list)==0){
   ""
 }else{
   paste0("
- track ", names(bigBed.list), "
- type bigBed ", bed.num.vec[names(bigBed.list)], "
- shortLabel _model_", names(bigBed.list), "
- longLabel ", long.name.vec[names(bigBed.list)], "
- visibility pack
- itemRgb ", ifelse(names(bigBed.list)=="all_labels", "on", "off"), "
- spectrum ", ifelse(names(bigBed.list)=="peaks_summary", "on", "off"), "
- bigDataUrl ", paste0(url.prefix, unlist(bigBed.list)))
+track ", names(bigBed.list), "
+type bigBed ", bed.num.vec[names(bigBed.list)], "
+shortLabel _model_", names(bigBed.list), "
+longLabel ", long.name.vec[names(bigBed.list)], "
+visibility pack
+itemRgb ", ifelse(names(bigBed.list)=="all_labels", "on", "off"), "
+spectrum ", ifelse(names(bigBed.list)=="peaks_summary", "on", "off"), "
+bigDataUrl ", paste0(url.prefix, unlist(bigBed.list)))
 }
 
 group.track.vec <- paste0("
@@ -212,7 +212,7 @@ track.vec <- paste0("
 
 u.group.vec <- unique(group.id.vec)
 equals.vec <- paste0(u.group.vec, "=", u.group.vec)
-track.content <- paste0(
+track.content <- paste(
   paste(group.track.vec, collapse="\n"),
   paste(bed.track.vec, collapse="\n"),
   paste(track.vec, collapse="\n"),
