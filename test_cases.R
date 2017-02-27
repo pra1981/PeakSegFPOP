@@ -127,9 +127,11 @@ test_that("chunk.limits file is created", {
 
 ## Create problems.
 sample.dir <- dirname(labels.bed)
-create.cmd <- paste("Rscript create_problems_sample.R hg19_problems.bed", sample.dir)
+create.cmd <- paste(
+  "Rscript create_problems_sample.R hg19_problems.bed", sample.dir)
 system(create.cmd)
-labels.bed.vec <- Sys.glob(file.path(sample.dir, "problems", "*", "labels.bed"))
+labels.bed.vec <- Sys.glob(file.path(
+  sample.dir, "problems", "*", "labels.bed"))
 test_that("at least one labeled problem", {
   expect_gt(length(labels.bed.vec), 0)
 })
@@ -306,16 +308,6 @@ coseg::problem.predict(problem.dir)
 loss.files.after <- Sys.glob(file.path("*_loss.tsv"))
 test_that("PeakSegFPOP is not run when we already have the solution", {
   expect_equal(length(loss.files.before), length(loss.files.after))
-})
-
-## this problem predicts outside the target interval, so we should
-## return the closest model inside.
-problem.dir <-
-  "test/H3K4me3_TDH_other/samples/leukemiaCD19CD10BCells/McGill0267/problems/7"
-coseg::problem.predict(problem.dir)
-peaks <- fread(file.path(problem.dir, "peaks.bed"))
-test_that("predict model with 2 peaks", {
-  expect_equal(nrow(peaks), 2)
 })
 
 ## Predict for an entire sample using predict_sample.R

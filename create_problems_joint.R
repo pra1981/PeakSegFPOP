@@ -39,15 +39,14 @@ probs.dir <- dirname(prob.dir)
 data.dir <- dirname(probs.dir)
 samples.dir <- file.path(data.dir, "samples")
 problem.name <- basename(prob.dir)
-g.pos.pattern <- paste0(
-  "(?<chrom>chr.+?)",
-  ":",
-  "(?<chromStart>[0-9]+)",
-  "-",
-  "(?<chromEnd>[0-9]+)")
-separate.problem <- str_match_named(problem.name, g.pos.pattern, list(
-  chromStart=as.integer,
-  chromEnd=as.integer))
+problem.bed.glob <- file.path(
+  samples.dir, "*", "*", "problems", problem.name, "problem.bed")
+problem.bed.vec <- Sys.glob(problem.bed.glob)
+if(length(problem.bed.vec)==0){
+  stop("no ", problem.bed.glob, " files")
+}
+separate.problem <- fread(problem.bed.vec[1])
+setnames(separate.problem, c("chrom", "chromStart", "chromEnd"))
 
 peaks.glob <- file.path(
   samples.dir, "*", "*", "problems", problem.name, "peaks.bed")
