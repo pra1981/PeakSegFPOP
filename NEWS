@@ -1,6 +1,29 @@
 TODOs
 
-Output track hub... how to define reference genome?
+hg19_problems_optimized.bed file with biggest problems that have been
+cut into several smaller pieces (the overall time complexity is linear
+in the max problem size). For example current hg19_problems.bed has 76
+problems bigger than 10e6 bases. In a few hours we could probably
+convert them to about 290 problems which are all less than 10e6
+bases. This would result in about a 10x speedup, since the current max
+problem size is 114,547,721 = 100e6 bases.
+
+problems[10e6 < bases, sum((bases %/% 10e6)+1)]
+
+problems/*/peaks.bed files should be sorted.
+
+plot_all.R should read problems/*/peaks.bed files (not too many)
+rather than problems/*/jointProblems/*/peaks.bed files (way too many),
+but the problem is that we need to read the likelihood for each peak
+--- could this be stored in a problems/*/likelihood.tsv file?
+
+2017.02.28
+
+create_track_hub.R creates multiWigs to display coverage overlaid with
+peak predictions on the UCSC genome browser.
+
+Various updates to coseg + PeakSegJoint (infeasible models allowed,
+peak size model).
 
 2016.11.01
 
