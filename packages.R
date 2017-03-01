@@ -60,10 +60,10 @@ works_with_R(
   xtable="1.7.4",
   "Rdatatable/data.table@7515fbe6c6f60114da72067db44fbe78ecdbd8fb",
   "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
-  "tdhock/coseg@b3b48315b0744475384d31f25880a898e00d9f91",
+  "tdhock/coseg@98fba1846fb10c1a8ae83778991d4a55e1f85448",
   "faizan-khan-iit/ggplot2@5fb99d0cece13239bbbc09c6b8a7da7f86ac58e2",
   "tdhock/animint@78974d8788930034109289e42f8c90f1ee804290",
-  "tdhock/PeakSegJoint@78f904a7df133cf7d291644c3858552a917d1b4a",
-  "tdhock/cosegData@d979741723b38fe083ae513a766b98fca7786309",
+  "tdhock/PeakSegJoint@d229b064a1538ac034ed029e599c6ba05a01e1da",
+  "tdhock/cosegData@83e6f787bf4f9f9ec7d299bb9e6b32db522021a2",
   "tdhock/namedCapture@05175927a45c301a18e8c6ebae67ea39a842d264",
   "tdhock/WeightedROC@ef8f35ba7ae85e2995fa66afe13732cebb8b5633")

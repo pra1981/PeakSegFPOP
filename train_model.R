@@ -62,11 +62,12 @@ IntervalRegressionMatrixCV <- function
   stopifnot(is.integer(fold.vec))
   stopifnot(length(fold.vec) == n.observations)
   ##validation.error.mat.list <- list()
-  mean.reg <- if(n.observations < 6){
+  chosen.reg <- if(n.observations < 6){
     feature.mat <- feature.mat[, c("log.quartile.100%", "log.bases")]
     0
   }else{
     best.reg.list <- list()
+    validation.data.list <- list()
     for(validation.fold in unique(fold.vec)){
       ##print(validation.fold)
       is.validation <- fold.vec == validation.fold
@@ -87,18 +88,64 @@ IntervalRegressionMatrixCV <- function
       error.vec <- colSums(is.error)
       best.reg.vec <- fit$regularization.vec[loss.vec == min(loss.vec)]
       fold.name <- paste("fold", validation.fold)
+      validation.data.list[[fold.name]] <- data.table(
+        validation.fold,
+        regularization=fit$regularization.vec,
+        loss=loss.vec,
+        error=error.vec)
       best.reg.list[[fold.name]] <- max(best.reg.vec) #simplest model
-      ##validation.error.mat.list[[fold.name]] <- colSums(is.error)
     }
-    ##validation.error.mat <- do.call(cbind, validation.error.mat.list)
-    ##if(verbose)print(validation.error.mat)
-    mean(unlist(best.reg.list))
+    validation.data <- do.call(rbind, validation.data.list)
+
+    vtall <- melt(validation.data, measure.vars=c("loss", "error"))
+    stats <- validation.data[, list(
+      mean.loss=mean(loss),
+      sd.loss=sd(loss),
+      folds=.N
+    ), by=regularization][folds==max(folds),]
+    min.mean <- stats[which.min(mean.loss), ]
+    upper.loss.limit <- min.mean[, mean.loss+sd.loss]
+    simplest.within.1sd <-
+      stats[mean.loss < upper.loss.limit, ][which.max(regularization),]
+    min.dt <- data.table(
+      type=c("mean(min(loss))", "min(mean(loss))", "1sd"),
+      regularization=c(
+        mean(unlist(best.reg.list)),
+        min.mean$regularization,
+        simplest.within.1sd$regularization))
+    if(FALSE){
+      ggplot()+
+        theme_bw()+
+        geom_vline(aes(xintercept=-log(regularization), color=type),data=min.dt)+
+        geom_hline(aes(yintercept=mean.loss, color=type),
+                   data=data.table(
+                     variable="loss",
+                     simplest.within.1sd, type="1sd"))+
+        theme(panel.margin=grid::unit(0, "lines"))+
+        facet_grid(variable ~ ., scales="free")+
+        geom_ribbon(aes(
+          -log(regularization),
+          ymin=mean.loss-sd.loss,
+          ymax=mean.loss+sd.loss),
+          fill="grey",
+          alpha=0.5,
+          data=data.table(stats, variable="loss"))+
+        geom_line(aes(
+          -log(regularization),
+          mean.loss),
+          data=data.table(stats, variable="loss"))+
+        geom_line(aes(-log(regularization), value, group=validation.fold),
+                  color="grey50",
+                  data=vtall)
+    }
+    simplest.within.1sd$regularization
   }
-  IntervalRegressionMatrixPath(
+  fit <- IntervalRegressionMatrixPath(
     feature.mat, target.mat,
-    initial.regularization=mean.reg,
+    initial.regularization=chosen.reg,
     factor.regularization=NULL,
     verbose=verbose)
+  fit
 }
 
 IntervalRegressionMatrixPath <- function
@@ -399,6 +446,7 @@ cat("Learned regularization parameter and weights:\n")
 print(model$pred.param.mat)
 pred.log.penalty <- as.numeric(model$predict(features))
 pred.dt <- data.table(
+  problem.dir=dirname(target.tsv.vec),
   too.lo=as.logical(pred.log.penalty < targets[,1]),
   lower.limit=targets[,1],
   pred.log.penalty,
@@ -407,9 +455,38 @@ pred.dt <- data.table(
 pred.dt[, status := ifelse(
   too.lo, "low",
   ifelse(too.hi, "high", "correct"))]
+correct.targets <- pred.dt[status=="correct", ]
+correct.peaks <- correct.targets[, {
+  target_models.tsv <- file.path(problem.dir, "target_models.tsv")
+  target.models <- fread(target_models.tsv)
+  closest <- target.models[which.min(abs(log(penalty)-pred.log.penalty)),]
+  coverage.bedGraph <- file.path(problem.dir, "coverage.bedGraph")
+  segments.bed <- paste0(
+    coverage.bedGraph, "_penalty=", closest$penalty, "_segments.bed")
+  segs <- fread(segments.bed)
+  setnames(segs, c("chrom", "chromStart", "chromEnd", "status", "mean"))
+  segs[status=="peak", ]
+}, by=problem.dir]
+correct.peaks[, bases := chromEnd-chromStart]
+correct.peaks[, log10.bases := log10(bases)]
+size.model <- correct.peaks[, list(
+  mean=mean(log10.bases),
+  sd=sd(log10.bases)
+)]
+times <- 2
+size.model[, upper.lim := mean + times*sd]
+size.model[, lower.lim := mean - times*sd]
+size.model[, upper.bases := 10^(upper.lim)]
+size.model[, lower.bases := 10^(lower.lim)]
+
 cat("Train errors:\n")
 pred.dt[, list(targets=.N), by=status]
 
+## To check if we are extrapolating when predictions are made later,
+## we save the range of the data 
+model$train.feature.ranges <- apply(
+  features[, model$pred.feature.names, drop=FALSE], 2, range)
+
 cat("Writing model to", model.RData, "\n")
-save(model, features, targets, file=model.RData)
+save(model, features, targets, size.model, correct.peaks, file=model.RData)
 

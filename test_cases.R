@@ -1,9 +1,9 @@
 source("test_functions.R")
 
 options(warn=2)
-test_that("downloaded hg19 problems is the same as stored", {
-  system("Rscript downloadProblems.R hg19 hg19_test.bed")
-  diff.lines <- system("diff hg19_test.bed hg19_problems.bed", intern=TRUE)
+test_that("downloaded hg38 problems is the same as stored", {
+  system("Rscript downloadProblems.R hg38 hg38_test.bed")
+  diff.lines <- system("diff hg38_test.bed hg38_problems.bed", intern=TRUE)
   expect_equal(length(diff.lines), 0)
 })
 options(warn=0)
@@ -127,9 +127,11 @@ test_that("chunk.limits file is created", {
 
 ## Create problems.
 sample.dir <- dirname(labels.bed)
-create.cmd <- paste("Rscript create_problems_sample.R hg19_problems.bed", sample.dir)
+create.cmd <- paste(
+  "Rscript create_problems_sample.R hg19_problems.bed", sample.dir)
 system(create.cmd)
-labels.bed.vec <- Sys.glob(file.path(sample.dir, "problems", "*", "labels.bed"))
+labels.bed.vec <- Sys.glob(file.path(
+  sample.dir, "problems", "*", "labels.bed"))
 test_that("at least one labeled problem", {
   expect_gt(length(labels.bed.vec), 0)
 })
@@ -306,16 +308,6 @@ coseg::problem.predict(problem.dir)
 loss.files.after <- Sys.glob(file.path("*_loss.tsv"))
 test_that("PeakSegFPOP is not run when we already have the solution", {
   expect_equal(length(loss.files.before), length(loss.files.after))
-})
-
-## this problem predicts outside the target interval, so we should
-## return the closest model inside.
-problem.dir <-
-  "test/H3K4me3_TDH_other/samples/leukemiaCD19CD10BCells/McGill0267/problems/7"
-coseg::problem.predict(problem.dir)
-peaks <- fread(file.path(problem.dir, "peaks.bed"))
-test_that("predict model with 2 peaks", {
-  expect_equal(nrow(peaks), 2)
 })
 
 ## Predict for an entire sample using predict_sample.R
@@ -618,12 +610,12 @@ test_that("Target interval contains one model with 1 peak for peakStart label", 
   expect_equal(results.list$peakStart$peaks, 1)
 })
 
-test_that("Target interval contains one model with 1 peak for peaks label", {
-  expect_equal(results.list$peaks$peaks, 1)
+test_that("Target interval contains a 1 peak model for peaks label", {
+  expect_true(1 %in% results.list$peaks$peaks)
 })
 
-test_that("biggest min error model for noPeaks label has 1 peak", {
-  expect_equal(max(results.list$noPeaks$peaks), 1)
+test_that("Target interval contains a 0 peak model for noPeaks label", {
+  expect_true(0 %in% results.list$noPeaks$peaks)
 })
 
 test_that("smallest min error model for noPeaks label has 0 peaks", {

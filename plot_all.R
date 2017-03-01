@@ -11,6 +11,11 @@ library(namedCapture)
 library(data.table)
 library(coseg)
 
+## The UCSC links in the HTML tables will be zoomed out from the peak
+## this number of times.
+zoom.out.times <- 10
+zoom.factor <- (zoom.out.times-1)/2
+
 if(length(arg.vec) != 1){
   stop("usage: Rscript plot_all.R project_dir")
 }
@@ -60,8 +65,15 @@ problems[, problem.name := sprintf(
   "%s:%d-%d", chrom, problemStart, problemEnd)]
 problems[, separate.problem := factor(problem.name, problem.name)]
 
+joint.glob <- file.path(
+  set.dir, "problems", "*")
 loss.tsv.vec <- Sys.glob(file.path(
-  set.dir, "problems", "*", "jointProblems", "*", "loss.tsv"))
+  joint.glob, "jointProblems", "*", "loss.tsv"))
+if(length(loss.tsv.vec)==0){
+  stop(
+    "no predicted joint peaks found; to do joint peak prediction run ",
+    file.path(joint.glob, "peaks.bed.sh"))
+}
 cat(
   "Reading predicted peaks in",
   length(loss.tsv.vec),
@@ -151,6 +163,21 @@ d.mat <- dist(peak.mat, "manhattan")
 tree <- hclust(d.mat, method="average")
 ##plot(tree, hang=-1)
 
+## Save samples/groupID/sampleID/joint_peaks.bedGraph files.
+setkey(joint.peaks.dt, sample.path)
+out.path.vec <- unique(joint.peaks.dt$sample.path)
+joint.peaks.dt[, mean.str := sprintf("%.2f", mean)]
+for(out.path in out.path.vec){
+  sample.peaks <- joint.peaks.dt[out.path]
+  out.file <- file.path(set.dir, "samples", out.path, "joint_peaks.bedGraph")
+  fwrite(
+    sample.peaks[, .(chrom, peakStart, peakEnd, mean.str)],
+    out.file,
+    sep="\t",
+    col.names=FALSE,
+    quote=FALSE)
+}
+
 specific.html.list <- list()
 for(sg in sample.group.counts$sample.group){
   specific.html.list[[sg]] <- sprintf(
@@ -160,12 +187,14 @@ for(sg in sample.group.counts$sample.group){
       most.freq.group==sg &
       most.freq.prop==1 &
       most.next.prop==0,][order(-loss.diff), .(
-        peak.name, loss.diff, samples=sample.counts, chrom, peakStart, peakEnd, peakBases)],
+        peak.name, loss.diff, samples=sample.counts,
+        chrom, peakStart, peakEnd, peakBases)],
     least=input.pred[
       least.freq.group==sg &
       least.freq.prop==0 &
       least.next.prop==1,][order(-loss.diff), .(
-        peak.name, loss.diff, samples=least.next.group, chrom, peakStart, peakEnd, peakBases)])
+        peak.name, loss.diff, samples=least.next.group,
+        chrom, peakStart, peakEnd, peakBases)])
   for(most.or.least in names(group.peak.list)){
     group.peaks <- group.peak.list[[most.or.least]]
     pre.msg <- paste0(
@@ -182,12 +211,16 @@ for(sg in sample.group.counts$sample.group){
       paste0(
         pre.msg,
         " predicted to have no peaks in any ",
-        sg, " samples, and at least one other group with peaks in all samples.</p>")
+        sg, " samples, and at least one other",
+        " group with peaks in all samples.</p>")
     }
     tab <- if(nrow(group.peaks)){
-      group.peaks[, peak := sprintf({
-        '<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d">%s</a>'
-      }, chrom, peakStart-peakBases, peakEnd+peakBases, peak.name)]
+      group.peaks[, peak := sprintf('
+<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d">%s</a>
+', chrom,
+as.integer(peakStart-peakBases*zoom.factor),
+as.integer(peakEnd+peakBases*zoom.factor),
+peak.name)]
       xt <- xtable(group.peaks[, .(peak, peakBases, loss.diff, samples)])
       print(
         xt, type="html", sanitize.text.function=identity)
@@ -535,7 +568,7 @@ html.vec <- c(
   sprintf('<li>
 %d genomic regions were found to have
 at least one sample with a peak
-(<a href="peaks_summary.bigBed">peaks_summary.bigBed</a>,
+(<a href="hub.txt">track hub</a>,
  <a href="peaks_summary.tsv">peaks_summary.tsv</a>).
 </li>', nrow(input.pred)),
   sprintf('<li>
@@ -564,7 +597,7 @@ at least one sample with a peak
   )
 writeLines(html.vec, file.path(set.dir, "index.html"))
 
-## Write peaks_summary.bigBed 
+## Write peaks_summary.bed
 peak.mat.dt <- data.table(
   peak=colnames(peak.mat),
   ifelse(t(peak.mat), 1, 0))
@@ -577,26 +610,12 @@ fwrite(
   file.path(set.dir, "peaks_summary.tsv"),
   sep="\t")
 peaks.bed <- file.path(set.dir, "peaks_summary.bed")
-bed.dt <- input.pred[, .(chrom, peakStart, peakEnd, sample.counts)]
+bed.dt <- input.pred[specificity != "non-specific",]
+max.samples <- max(bed.dt$n.samples)
+bed.dt[, score := as.integer((n.samples/max.samples)*1000) ]
 fwrite(
-  bed.dt,
+  bed.dt[, .(chrom, peakStart, peakEnd, sample.counts, score)],
   peaks.bed,
   sep="\t",
   col.names=FALSE)
-sizes.dt <- problems[, list(chromEnd=max(problemEnd)), by=chrom]
-sizes.tsv <- file.path(set.dir, "chrom_sizes.tsv")
-fwrite(
-  sizes.dt,
-  sizes.tsv,
-  sep="\t",
-  col.names=FALSE)
-cmd <- paste(
-  "bedToBigBed",
-  peaks.bed, sizes.tsv,
-  file.path(set.dir, "peaks_summary.bigBed"))
-status <- system(cmd)
-if(status != 0){
-  stop("error code ", status, " for command\n", cmd)
-}
-## TODO: labels.bigBed and track hub.
 
