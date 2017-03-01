@@ -13,8 +13,8 @@ partitioning algorithm.
 [[http://hubs.hpc.mcgill.ca/~thocking/PeakSegFPOP-labels/H3K4me3_TDH_immune/][Sharp H3K4me3 data: train on 27 immune cell samples, genome-wide prediction
 on 37 samples of several cell types]].
 
-[[http://cbio.mines-paristech.fr/~thocking/PeakSegFPOP-input-data/][test_demo.R data: train on four labeled samples (two H3K36me3 +
-two Input), predict on 8 samples in a subset of chr10]].
+[[http://cbio.mines-paristech.fr/~thocking/hubs/test/demo/][test_demo.R data: train on four labeled samples (two H3K36me3 +
+two Input), predict on 8 samples in a subset of chr10]]
 
 ** Installation
 
