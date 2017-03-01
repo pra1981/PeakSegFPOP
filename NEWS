@@ -1,5 +1,9 @@
 TODOs
 
+if input bigWigs are normalized (non-count) coverage, then display of
+peaks on the multiWig tracks does not work (they are higher than the
+low normalized coverage). TODO warn/error or make other bigWigs?
+
 hg19_problems_optimized.bed file with biggest problems that have been
 cut into several smaller pieces (the overall time complexity is linear
 in the max problem size). For example current hg19_problems.bed has 76
