@@ -62,7 +62,7 @@ labels to the =test/demo= directory, then run [[file:pipeline.R]] on
 them. If everything worked, you can view the results by opening
 =test/demo/index.html= in a web browser, and it should be the same as
 the results shown on
-http://cbio.mines-paristech.fr/~thocking/PeakSegFPOP-input-data/
+http://cbio.mines-paristech.fr/~thocking/hubs/test/demo/
 
 ** Multi-sample peak prediction pipeline
 
