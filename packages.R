@@ -51,14 +51,16 @@ works_with_R <- function(Rvers,...){
 }
 options(repos="http://cloud.r-project.org")
 works_with_R(
-  "3.3.1",
+  "3.3.3",
   httr="1.2.1",
   ggdendro="0.1.20",
   testthat="1.0.2",
   RJSONIO="1.3.1",
   hexbin="1.27.1",
   xtable="1.7.4",
+  doParallel="1.0.6",
   "Rdatatable/data.table@7515fbe6c6f60114da72067db44fbe78ecdbd8fb",
+  "tdhock/penaltyLearning@4a43aad48e115cf99587f07b5a0142197a9a2228",
   "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
   "tdhock/coseg@98fba1846fb10c1a8ae83778991d4a55e1f85448",
   "faizan-khan-iit/ggplot2@5fb99d0cece13239bbbc09c6b8a7da7f86ac58e2",
