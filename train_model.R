@@ -134,7 +134,7 @@ size.plot <- ggplot()+
     data=normal.dens, color="red", size=1)+
   geom_text(
     aes(log10.bases, 0, label=label, hjust=hjust),
-    data=base.labels, vjust=0)
+    data=base.labels, vjust=1)
 
 cat("Writing model to", model.RData, "\n")
 save(
