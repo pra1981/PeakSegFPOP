@@ -59,6 +59,7 @@ works_with_R(
   hexbin="1.27.1",
   xtable="1.7.4",
   doParallel="1.0.6",
+  geometry="0.3.6",#for penaltyLearning.
   "Rdatatable/data.table@7515fbe6c6f60114da72067db44fbe78ecdbd8fb",
   "tdhock/penaltyLearning@2e9ad040a97e2baf4623549f114d3817b10e5fbf",
   "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
