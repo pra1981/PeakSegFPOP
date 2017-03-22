@@ -45,7 +45,9 @@ orderChrom <- function(chrom.vec, ...){
 ## Plot each labeled chunk.
 chunk.dir.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "chunks", "*"))
-mclapply.or.stop(chunk.dir.vec, function(chunk.dir){
+LAPPLY <- lapply
+LAPPLY <- mclapply.or.stop
+LAPPLY(chunk.dir.vec, function(chunk.dir){
   PeakSegJoint::problem.joint.plot(chunk.dir)
 })
 
