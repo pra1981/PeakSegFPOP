@@ -9,6 +9,7 @@ PBS.header <- "#!/bin/bash
 #PBS -V"
 
 arg.vec <- "test/demo/problems/chr10:38868835-39154935"
+arg.vec <- "test/demo/problems/chr10:18024675-38818835"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
@@ -139,7 +140,8 @@ problems <- do.call(rbind, problems.list)
 if(is.data.table(problems) && 0 < nrow(problems)){
   setkey(problems, clusterStart, clusterEnd)
   problems[, bases := clusterEnd - clusterStart]
-  mid.between.problems <- problems[, as.integer((clusterEnd[-.N]+clusterStart[-1])/2)]
+  mid.between.problems <- problems[, as.integer(
+    (clusterEnd[-.N]+clusterStart[-1])/2)]
   problems[, mid.before := c(NA_integer_, mid.between.problems)]
   problems[, mid.after := c(mid.between.problems, NA_integer_)]
   problems[, problemStart := as.integer(clusterStart-bases)]
