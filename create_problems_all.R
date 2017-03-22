@@ -167,19 +167,26 @@ for(problem.i in 1:nrow(problems)){
   problem <- problems[problem.i,]
   prob.dir <- file.path(data.dir, "problems", problem$problem.name)
   dir.create(prob.dir, showWarnings=FALSE, recursive=TRUE)
+  ## jointProblems.bed.sh
   jointProblems.bed <- file.path(prob.dir, "jointProblems.bed")
   sh.file <- paste0(jointProblems.bed, ".sh")
   pred.cmd <- Rscript(
     'coseg::problem.predict.allSamples("%s")',
+    prob.dir)
+  joint.prob.cmd <- paste(
+    "Rscript",
+    normalizePath("create_problems_joint.R", mustWork=TRUE),
+    prob.dir)
+  joint.targets.cmd <- Rscript(
+    'PeakSegJoint::problem.joint.targets("%s")',
     prob.dir)
   script.txt <- paste0(PBS.header, "
 #PBS -o ", jointProblems.bed, ".out
 #PBS -e ", jointProblems.bed, ".err
 #PBS -N P", problem$problem.name, "
 ", pred.cmd, " 
-Rscript ",
-normalizePath("create_problems_joint.R", mustWork=TRUE),
-" ", prob.dir, "
+", joint.prob.cmd, "
+", joint.targets.cmd, "
 ")
   writeLines(script.txt, sh.file)
   ## joint prediction script.
@@ -196,7 +203,18 @@ normalizePath("create_problems_joint.R", mustWork=TRUE),
 ")
   writeLines(script.txt, sh.file)
   if(file.exists(chunk.limits.RData) &&
-       problem$problem.name %in% chunks.with.problems$problem.name){
+     problem$problem.name %in% chunks.with.problems$problem.name){
+    ## jointTargets.sh
+    jointTargets <- file.path(prob.dir, "jointTargets")
+    sh.file <- paste0(jointTargets, ".sh")
+    script.txt <- paste0(PBS.header, "
+#PBS -o ", jointTargets, ".out
+#PBS -e ", jointTargets, ".err
+#PBS -N JT", problem$problem.name, "
+", joint.targets.cmd, "
+")
+    writeLines(script.txt, sh.file)
+    ## write a directory for every chunk.
     problem.chunks <- chunks.with.problems[problem$problem.name]
     cat("Writing ", nrow(problem.chunks),
         " chunks in ", prob.dir,
