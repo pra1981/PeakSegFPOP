@@ -40,11 +40,15 @@ targets <- do.call(rbind, targets.list)
 
 library(penaltyLearning)
 set.seed(1)
-model <- IntervalRegressionCV(
-  features, targets, verbose=0,
-  min.observations=nrow(features),
-  initial.regularization=1e-4,
-  reg.type=ifelse(nrow(features) < 20, "1sd", "min(mean)"))
+model <- if(nrow(features) < 6){
+  IntervalRegressionUnregularized(
+    features[, c("log.quartile.100%", "log.data")], targets)
+}else{
+  IntervalRegressionCV(
+    features, targets, verbose=0,
+    initial.regularization=1e-4,
+    reg.type=ifelse(nrow(features) < 20, "1sd", "min(mean)"))
+}
 
 cat("Learned regularization parameter and weights:\n")
 print(model$pred.param.mat)
