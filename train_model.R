@@ -43,7 +43,8 @@ set.seed(1)
 model <- IntervalRegressionCV(
   features, targets, verbose=0,
   min.observations=nrow(features),
-  initial.regularization=1e-4)
+  initial.regularization=1e-4,
+  reg.type=ifelse(nrow(features) < 20, "1sd", "min(mean)"))
 
 cat("Learned regularization parameter and weights:\n")
 print(model$pred.param.mat)
@@ -59,7 +60,7 @@ pred.dt[, status := ifelse(
   too.lo, "low",
   ifelse(too.hi, "high", "correct"))]
 correct.targets <- pred.dt[status=="correct", ]
-correct.peaks <- correct.targets[, {
+correct.peaks <- correct.targets[!grepl("Input", problem.dir), {
   target_models.tsv <- file.path(problem.dir, "target_models.tsv")
   target.models <- fread(target_models.tsv)
   closest <- target.models[which.min(abs(log(penalty)-pred.log.penalty)),]
