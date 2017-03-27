@@ -224,7 +224,6 @@ most.least <- group.prop.groups[, data.table(
 ), by=list(chrom, peakStart, peakEnd)]
 
 input.pred <- most.least[group.counts, on=list(chrom, peakStart, peakEnd)]
-
 input.pred[, exact.pvalue := apply(
   group.counts.mat[peak.name,], 1, function(samples.with.peaks){
     count.mat <- rbind(
@@ -236,7 +235,6 @@ input.pred[, exact.pvalue := apply(
 setkey(jobPeaks, peak.name)
 input.pred[, loss.diff := jobPeaks[input.pred$peak.name, loss.diff] ]
 input.pred[, separate.problem := jobPeaks[input.pred$peak.name, problem.name] ]
-
 input.pred[, peakBases := peakEnd - peakStart]
 peak.mat <- matrix(
   FALSE,
