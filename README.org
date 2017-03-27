@@ -193,8 +193,8 @@ the gap file contains one line for every gap in the reference (unknown
 ** Running steps of the pipeline in parallel
 
 Since the human genome is so large, it is much faster to do model
-training and peak prediction in parallel (on a qsub cluster such as
-Compute Canada's [[http://www.hpc.mcgill.ca/index.php/guillimin-status][guillimin]]). Begin by editing the
+training and peak prediction in parallel (e.g. on a qsub cluster such
+as Compute Canada's [[http://www.hpc.mcgill.ca/index.php/guillimin-status][guillimin]]). Begin by editing the
 [[file:create_problems_all.R]] and [[file:create_problems_joint.R]] scripts to
 reflect your cluster configuration. Then run
 
@@ -244,11 +244,12 @@ calling model, run
 qsub test/demo/joint.model.RData.sh
 #+END_SRC
 
-which will compute =test/demo/joint.model.RData=. To make
-joint peak predictions, run 
+which will compute =test/demo/joint.model.RData= and
+=test/demo/jobs/*/jobProblems.bed= files. To make joint peak
+predictions, run
 
 #+BEGIN_SRC shell-script
-for sh in test/demo/problems/*/peaks.bed.sh;do qsub $sh;done
+for sh in test/demo/jobs/*/jobPeaks.bed.sh;do qsub $sh;done
 #+END_SRC
 
 Finally, to gather all the peak predictions in a summary on
