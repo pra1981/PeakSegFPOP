@@ -202,6 +202,22 @@ for(problem.i in 1:nrow(problems)){
 ", pred.cmd, " 
 ")
   writeLines(script.txt, sh.file)
+  ## joint prediction jobs script.
+  job.dir <- file.path(data.dir, "jobs", problem.i)
+  dir.create(job.dir, showWarnings=FALSE, recursive=TRUE)
+  job.path <- normalizePath(job.dir, mustWork=TRUE)
+  jobPeaks <- file.path(job.dir, "jobPeaks")
+  sh.file <- paste0(jobPeaks, ".sh")
+  pred.cmd <- Rscript(
+    'PeakSegJoint::problem.joint.predict.job("%s")',
+    job.path)
+  script.txt <- paste0(PBS.header, "
+#PBS -o ", jobPeaks, ".out
+#PBS -e ", jobPeaks, ".err
+#PBS -N Job", problem.i, "
+", pred.cmd, " 
+")
+  writeLines(script.txt, sh.file)
   if(file.exists(chunk.limits.RData) &&
      problem$problem.name %in% chunks.with.problems$problem.name){
     ## jointTargets.sh
