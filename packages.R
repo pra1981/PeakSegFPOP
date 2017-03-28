@@ -53,6 +53,7 @@ options(repos="http://cloud.r-project.org")
 works_with_R(
   "3.3.3",
   httr="1.2.1",
+  "faizan-khan-iit/ggplot2@5fb99d0cece13239bbbc09c6b8a7da7f86ac58e2",
   ggdendro="0.1.20",
   testthat="1.0.2",
   RJSONIO="1.3.1",
@@ -65,7 +66,6 @@ works_with_R(
   "tdhock/penaltyLearning@126e37ac8634499450d32f3da961464a6ebed4ec",
   "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
   "tdhock/coseg@98fba1846fb10c1a8ae83778991d4a55e1f85448",
-  "faizan-khan-iit/ggplot2@5fb99d0cece13239bbbc09c6b8a7da7f86ac58e2",
   "tdhock/animint@78974d8788930034109289e42f8c90f1ee804290",
   "tdhock/PeakSegJoint@62b6a1dd0c0e46702174eedbf22501d6e24aa757",
   "tdhock/cosegData@83e6f787bf4f9f9ec7d299bb9e6b32db522021a2",
