@@ -53,6 +53,10 @@ options(repos="http://cloud.r-project.org")
 works_with_R(
   "3.3.3",
   httr="1.2.1",
+  gtable="0.2.0",
+  reshape2="1.4.1",
+  plyr="1.8.4",
+  scales="0.4.1",
   "faizan-khan-iit/ggplot2@5fb99d0cece13239bbbc09c6b8a7da7f86ac58e2",
   ggdendro="0.1.20",
   testthat="1.0.2",
@@ -61,7 +65,7 @@ works_with_R(
   xtable="1.7.4",
   doParallel="1.0.6",
   geometry="0.3.6",#for penaltyLearning.
-  data.table="1.9.8",
+  data.table="1.10.4",
   ##"Rdatatable/data.table@7515fbe6c6f60114da72067db44fbe78ecdbd8fb",
   "tdhock/penaltyLearning@126e37ac8634499450d32f3da961464a6ebed4ec",
   "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
