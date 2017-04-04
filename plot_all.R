@@ -171,7 +171,7 @@ joint.peaks.dt <- jobPeaks[, {
   list(
     separate.problem=problem.name,
     sample.path=names(mean.vec),
-    mean=mean.vec,
+    mean=as.double(mean.vec),
     sample.id=sub(".*/", "", names(mean.vec)),
     sample.group=sub("/.*", "", names(mean.vec)),
     peakBases=peakEnd-peakStart)
