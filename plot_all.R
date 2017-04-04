@@ -83,8 +83,9 @@ cat(
   sep=" ")
 ##load all jobPeaks files.
 jobPeaks <- jobPeaks.RData.dt[, {
-    load(jobPeaks.RData)
-    jobPeaks
+  cat(sprintf("%4d / %4d %s\n", .I, .N, jobPeaks.RData))
+  load(jobPeaks.RData)
+  jobPeaks
 }, by=jobPeaks.RData]
 jobPeaks[, peak.name := sprintf("%s:%d-%d", chrom, peakStart, peakEnd)]
 
@@ -96,75 +97,6 @@ sample.group.totals <- data.table(
   sample.group=names(sample.group.tab),
   samples.total=as.integer(sample.group.tab))
 setkey(sample.group.totals, sample.group)
-
-if(FALSE){ #old slow code
-  joint.glob <- file.path(
-    set.dir, "problems", "*")
-  loss.tsv.vec <- Sys.glob(file.path(
-    joint.glob, "jointProblems", "*", "loss.tsv"))
-  joint.peaks.dt.list <- list()
-  input.pred.list <- list()
-  for(loss.tsv in loss.tsv.vec){
-    loss.diff <- scan(loss.tsv, quiet=TRUE)
-    joint.prob.dir <- dirname(loss.tsv)
-    jointProblems.dir <- dirname(joint.prob.dir)
-    prob.dir <- dirname(jointProblems.dir)
-    prob.peaks <- fread(file.path(joint.prob.dir, "peaks.bed"))
-    setnames(prob.peaks, c(
-      "chrom", "peakStart", "peakEnd", "sample.path", "mean"))
-    prob.peaks[, sample.id := sub(".*/", "", sample.path)]
-    prob.peaks[, sample.group := sub("/.*", "", sample.path)]
-    prob.peaks[, peak.name := sprintf("%s:%d-%d", chrom, peakStart, peakEnd)]
-    group.dt <- prob.peaks[, list(
-      samples.with.peaks=.N
-    ), by=sample.group]
-    setkey(group.dt, sample.group)
-    all.group.counts <- group.dt[sample.group.totals]
-    all.group.counts[is.na(samples.with.peaks), samples.with.peaks := 0L]
-    all.group.counts[, samples.without.peaks := samples.total - samples.with.peaks]
-    all.group.counts[, samples.prop := samples.with.peaks / samples.total]
-    count.mat <- all.group.counts[, rbind(samples.with.peaks, samples.without.peaks)]
-    exact <- fisher.test(count.mat)
-    ##group.ord <- all.group.counts[order(samples.prop),]
-    group.ord <- all.group.counts[order(sample.group), list(
-      groups=paste(sample.group, collapse=",")
-    ), by=samples.prop][order(samples.prop),]
-    group.vec <- group.dt[order(sample.group), paste0(
-      sample.group, ":", samples.with.peaks)]
-    n.Input <- sum(prob.peaks$sample.group=="Input")
-    separate.problem <- factor(basename(prob.dir), problems$problem.name)
-    most1 <- group.ord[.N,]
-    least1 <- group.ord[1,]
-    if(nrow(group.ord)==1){
-      most2 <- least2 <- data.table(samples.prop=NA, groups=NA)
-    }else{
-      most2 <- group.ord[.N-1,]
-      least2 <- group.ord[2,]
-    }
-    input.pred.list[[loss.tsv]] <- data.table(
-      prob.peaks[1, .(chrom, peakStart, peakEnd, peak.name)],
-      n.Input,
-      n.samples=nrow(prob.peaks),
-      n.groups=nrow(group.dt),
-      most.freq.group=most1$groups,
-      most.freq.prop=most1$samples.prop,
-      most.next.group=most2$groups,
-      most.next.prop=most2$samples.prop,
-      least.freq.group=least1$groups,
-      least.freq.prop=least1$samples.prop,
-      least.next.group=least2$groups,
-      least.next.prop=least2$samples.prop,
-      exact.pvalue=exact$p.value,
-      loss.diff,
-      sample.counts=paste(group.vec, collapse="/"),
-      separate.problem,
-      joint.problem=basename(joint.prob.dir))
-    joint.peaks.dt.list[[loss.tsv]] <- data.table(
-      separate.problem, prob.peaks)
-  }
-  joint.peaks.dt <- do.call(rbind, joint.peaks.dt.list)
-  input.pred <- do.call(rbind, input.pred.list)[orderChrom(chrom, peakStart),]
-}
 
 joint.peaks.dt <- jobPeaks[, {
   mean.vec <- means[[1]]
@@ -224,14 +156,21 @@ most.least <- group.prop.groups[, data.table(
 ), by=list(chrom, peakStart, peakEnd)]
 
 input.pred <- most.least[group.counts, on=list(chrom, peakStart, peakEnd)]
-input.pred[, exact.pvalue := apply(
-  group.counts.mat[peak.name,], 1, function(samples.with.peaks){
-    count.mat <- rbind(
-      samples.with.peaks,
-      sample.group.totals$samples.total-samples.with.peaks)
-    exact <- fisher.test(count.mat)
+getPvalue <- function(samples.with.peaks, fun){
+  count.mat <- rbind(
+    samples.with.peaks,
+    sample.group.totals$samples.total-samples.with.peaks)
+  tryCatch({
+    exact <- suppressWarnings(fun(count.mat))
     exact$p.value
-  })]
+  }, error=function(e){
+    NA_real_
+  })
+}
+input.pred[, fisher.pvalue := apply(
+  group.counts.mat[peak.name,], 1, getPvalue, fisher.test)]
+input.pred[, chisq.pvalue := apply(
+  group.counts.mat[peak.name,], 1, getPvalue, chisq.test)]
 setkey(jobPeaks, peak.name)
 input.pred[, loss.diff := jobPeaks[input.pred$peak.name, loss.diff] ]
 input.pred[, separate.problem := jobPeaks[input.pred$peak.name, problem.name] ]

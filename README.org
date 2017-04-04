@@ -88,9 +88,10 @@ The last step of [[file:pipeline.R]] is [[file:plot_all.R]] which creates
     region.
   - =loss.diff= the likelihood of the peak (larger values mean taller
     and wider peaks in more samples).
-  - =exact.pvalue= Fisher's exact test for whether or not this peak is
-    group-specific (lower values mean strong correlation between peak
-    calls and groups).
+  - =chisq.pvalue=, =fisher.pvalue= P-Values from Chi-Squared
+    (=chisq.test=) and Fisher's exact test (=fisher.test=) for whether
+    or not this peak is group-specific (lower values mean strong
+    correlation between peak calls and groups).
 
 To give a concrete example, let us consider the data set that is used
 when you run [[file:test_demo.R]].
