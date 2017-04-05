@@ -167,8 +167,10 @@ getPvalue <- function(samples.with.peaks, fun){
     NA_real_
   })
 }
-input.pred[, fisher.pvalue := apply(
-  group.counts.mat[peak.name,], 1, getPvalue, fisher.test)]
+if(FALSE){
+  input.pred[, fisher.pvalue := apply(
+    group.counts.mat[peak.name,], 1, getPvalue, fisher.test)]
+}
 input.pred[, chisq.pvalue := apply(
   group.counts.mat[peak.name,], 1, getPvalue, chisq.test)]
 setkey(jobPeaks, peak.name)
@@ -189,7 +191,7 @@ tree <- hclust(d.mat, method="average")
 ##plot(tree, hang=-1)
 
 ## Save samples/groupID/sampleID/joint_peaks.bedGraph files.
-setkey(joint.peaks.dt, sample.path)
+setkey(joint.peaks.dt, sample.path, chrom, peakStart, peakEnd)
 out.path.vec <- unique(joint.peaks.dt$sample.path)
 joint.peaks.dt[, mean.str := sprintf("%.2f", mean)]
 for(out.path in out.path.vec){
