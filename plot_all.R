@@ -83,7 +83,6 @@ cat(
   sep=" ")
 ##load all jobPeaks files.
 jobPeaks <- jobPeaks.RData.dt[, {
-  cat(sprintf("%4d / %4d %s\n", .I, .N, jobPeaks.RData))
   load(jobPeaks.RData)
   jobPeaks
 }, by=jobPeaks.RData]
