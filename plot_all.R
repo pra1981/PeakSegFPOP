@@ -641,7 +641,10 @@ bed.dt <- input.pred[specificity != "non-specific",]
 max.samples <- max(bed.dt$n.samples)
 bed.dt[, score := as.integer((n.samples/max.samples)*1000) ]
 fwrite(
-  bed.dt[, .(chrom, peakStart, peakEnd, sample.counts, score)],
+  bed.dt[, .(
+    chrom, peakStart, peakEnd,
+    substr(sample.counts, 1, 255),#max characters in bigBed name.
+    score)],
   peaks.bed,
   sep="\t",
   col.names=FALSE)
