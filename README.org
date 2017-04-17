@@ -136,10 +136,24 @@ The =labels/*.txt= files contain genomic regions with or without
 peaks. These labels will be used to train the peak prediction models
 (automatically select model parameters that yield optimal peak
 prediction accuracy). A quick and easy way to create labels is by
-visual inspection as in the
-[[http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][McGill ChIP-seq peak detection benchmark]]. 
-For more details please read
-[[http://bioinformatics.oxfordjournals.org/content/early/2016/10/23/bioinformatics.btw672.abstract][Hocking et al, Bioinformatics 2016]]. 
+visual inspection as in the [[http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][McGill ChIP-seq peak detection benchmark]]
+(for details please read [[http://bioinformatics.oxfordjournals.org/content/early/2016/10/23/bioinformatics.btw672.abstract][Hocking et al, Bioinformatics 2016]]). To
+visually label your data, first create a project directory on a
+webserver with =project/samples/groupID/sampleID/coverage.bigWig=
+files, then create a track hub using a command such as
+
+#+BEGIN_SRC shell-script
+Rscript create_track_hub.R project http://your.server.com/~user/path- hg19 email@domain.com
+#+END_SRC
+
+The arguments are as follows:
+- The first argument is the data directory. 
+- The second argument is the URL prefix (appended before the first
+  argument to obtain URLs for the trackDb.txt file). 
+- The third argument is the UCSC genome ID for the genomes.txt file. 
+- The fourth argument is the email address for the hub.txt file.
+
+If that command worked, then you should be able to 
 
 In [[file:test_demo.R]] the data set contains only one labels file,
 
@@ -267,11 +281,7 @@ the UCSC genome browser:
 Rscript create_track_hub.R test/demo http://hubs.hpc.mcgill.ca/~thocking/PeakSegFPOP- hg19 email@domain.com
 #+END_SRC
 
-The first argument is the data directory. The second argument is the
-URL prefix (appended before the first argument to obtain URLs for the
-trackDb.txt file). The third argument is the UCSC genome ID for the
-genomes.txt file. The fourth argument is the email address for the
-hub.txt file. The script will create
+The script will create
 =test/demo/samples/*/*/coverage.bigWig= and
 =test/demo/samples/*/*/joint_peaks.bigWig= files that will be shown
 together on the track hub in a multiWig container (for each sample, a
