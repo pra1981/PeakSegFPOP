@@ -68,7 +68,7 @@ works_with_R(
   data.table="1.10.4",
   "tdhock/penaltyLearning@126e37ac8634499450d32f3da961464a6ebed4ec",
   "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
-  "tdhock/coseg@276b7e4c32eb1c449efe3b84f076bd49b69dcce9",
+  "tdhock/coseg@c8bec41a9611fe8f1e2278f2d487340907176c60",
   "tdhock/animint@78974d8788930034109289e42f8c90f1ee804290",
   "tdhock/PeakSegJoint@67fab4c80a2db02bbbdb4fa46eb2a52c95784218",
   "tdhock/cosegData@83e6f787bf4f9f9ec7d299bb9e6b32db522021a2",
