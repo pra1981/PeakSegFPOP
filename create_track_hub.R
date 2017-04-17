@@ -228,3 +228,5 @@ track.content <- paste(
   sep="\n\n")
 
 writeLines(track.content, file.path(data.dir, "trackDb.txt"))
+
+cat("Created", url.prefix, data.dir, "/hub.txt\n", sep="")
