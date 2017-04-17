@@ -139,7 +139,7 @@ prediction accuracy). A quick and easy way to create labels is by
 visual inspection as in the [[http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][McGill ChIP-seq peak detection benchmark]]
 (for details please read [[http://bioinformatics.oxfordjournals.org/content/early/2016/10/23/bioinformatics.btw672.abstract][Hocking et al, Bioinformatics 2016]]).
 
-*To visually label your data,* first create a project directory on a
+*To visually label your data* first create a project directory on a
 webserver with =project/samples/groupID/sampleID/coverage.bigWig=
 files, then create a track hub using a command such as
 
@@ -154,14 +154,14 @@ The arguments of the =create_track_hub.R= script are as follows:
 - The third argument is the UCSC genome ID for the genomes.txt file. 
 - The fourth argument is the email address for the hub.txt file.
 
-If that command worked, then you should see a message "Created
-http://your.server.com/~user/path-project/hub.txt" and you should be
+If that command worked, then you should see a message =Created
+http://your.server.com/~user/path-project/hub.txt= and you should be
 able to paste that URL into [[http://genome.ucsc.edu/cgi-bin/hgHubConnect#unlistedHubs][My Data -> Track Hubs -> My Hubs]] then
 click Add Hub to tell the UCSC genome browser to display your data.
 Navigate around the genome until you have found some peaks, then add
 labels for them in =project/labels/*.txt= files.
 
-*For example,* in [[file:test_demo.R]] the data set contains only one
+*For example* in [[file:test_demo.R]] the data set contains only one
 labels file,
 
 #+BEGIN_SRC 
