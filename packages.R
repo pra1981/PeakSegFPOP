@@ -66,7 +66,7 @@ works_with_R(
   doParallel="1.0.6",
   geometry="0.3.6",#for penaltyLearning.
   data.table="1.10.4",
-  "tdhock/penaltyLearning@c3f24a78e710abe22c4f1b9a373bcc5cab33d139",
+  "tdhock/penaltyLearning@f02bcf310268cd66a4cc3d3da5b3b2c6dd2e36e4",
   "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
   "tdhock/coseg@c8bec41a9611fe8f1e2278f2d487340907176c60",
   "tdhock/animint@78974d8788930034109289e42f8c90f1ee804290",
