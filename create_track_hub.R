@@ -97,20 +97,29 @@ email ", email), file.path(data.dir, "hub.txt"))
 
 ## create jointProblems.bigBed
 jproblems.glob <- file.path(data.dir, "problems", "*", "jointProblems.bed")
-jprobs <- fread(paste("cat", jproblems.glob))
-setnames(jprobs, c("chrom", "problemStart", "problemEnd"))
-sizes.dt <- fread(chromInfo.txt)
-names(sizes.dt)[1:2] <- c("chrom", "chromEnd")
-join.dt <- sizes.dt[jprobs, on=list(chrom)]
-join.dt[, problemStart := ifelse(problemStart < 0, 0, problemStart)]
-join.dt[, problemEnd := ifelse(problemEnd < chromEnd, problemEnd, chromEnd)]
-setkey(join.dt, chrom, problemStart, problemEnd)
-write.table(
-  join.dt[, .(chrom, problemStart, problemEnd)],
-  file.path(data.dir, "jointProblems.bed"),
-  quote=FALSE,
-  row.names=FALSE,
-  col.names=FALSE)
+jprobs <- tryCatch({
+  fread(paste("cat", jproblems.glob))
+}, error=function(e){
+  data.table()
+})
+jointProblems.bed <- file.path(data.dir, "jointProblems.bed")
+if(nrow(jprobs)){
+  setnames(jprobs, c("chrom", "problemStart", "problemEnd"))
+  sizes.dt <- fread(chromInfo.txt)
+  names(sizes.dt)[1:2] <- c("chrom", "chromEnd")
+  join.dt <- sizes.dt[jprobs, on=list(chrom)]
+  join.dt[, problemStart := ifelse(problemStart < 0, 0, problemStart)]
+  join.dt[, problemEnd := ifelse(problemEnd < chromEnd, problemEnd, chromEnd)]
+  setkey(join.dt, chrom, problemStart, problemEnd)
+  write.table(
+    join.dt[, .(chrom, problemStart, problemEnd)],
+    jointProblems.bed,
+    quote=FALSE,
+    row.names=FALSE,
+    col.names=FALSE)
+}else{
+  unlink(jointProblems.bed)
+}
 
 bedToBigBed <- function(bed, opt=""){
   bigBed <- sub("bed$", "bigBed", bed)
@@ -219,3 +228,5 @@ track.content <- paste(
   sep="\n\n")
 
 writeLines(track.content, file.path(data.dir, "trackDb.txt"))
+
+cat("Created ", url.prefix, data.dir, "/hub.txt\n", sep="")

@@ -153,7 +153,7 @@ for(labels.file in labels.file.vec){
       for(sample.group in names(to.assign)){
         relevant.samples <- samples.by.group[[sample.group]]
         if(length(relevant.samples) == 0){
-          glob.str <- file.path(sample.group.dir, "*")
+          glob.str <- file.path(sample.group, "*")
           stop("no ", glob.str, " directories (but labels are present)")
         }
         annotation <- to.assign[[sample.group]]
