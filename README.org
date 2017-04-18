@@ -100,8 +100,9 @@ when you run [[file:test_demo.R]].
 
 Each coverage data file should contain counts of aligned sequence
 reads at every genomic position, for one sample. These files can be in
-either [[https://genome.ucsc.edu/goldenpath/help/bedgraph.html][bedGraph]] or [[https://genome.ucsc.edu/goldenpath/help/bigWig.html][bigWig]] format. For example [[file:test_demo.R]]
-downloads 8 files:
+either [[https://genome.ucsc.edu/goldenpath/help/bedgraph.html][bedGraph]] or [[https://genome.ucsc.edu/goldenpath/help/bigWig.html][bigWig]] format (bigWig is preferable since it is
+indexed and thus faster to read than bedGraph). For example
+[[file:test_demo.R]] downloads 8 files:
 
 #+BEGIN_SRC 
 test/demo/samples/bcell/MS026601/coverage.bigWig
@@ -132,7 +133,7 @@ demonstrate the prediction accuracy of the learning algorithm.
 
 *** Label data
 
-The =labels/*.txt= files contain genomic regions with or without
+The =project/labels/*.txt= files contain genomic regions with or without
 peaks. These labels will be used to train the peak prediction models
 (automatically select model parameters that yield optimal peak
 prediction accuracy). A quick and easy way to create labels is by
@@ -148,18 +149,20 @@ Rscript create_track_hub.R project http://your.server.com/~user/path- hg19 email
 #+END_SRC
 
 The arguments of the =create_track_hub.R= script are as follows:
-- The first argument is the data directory. 
-- The second argument is the URL prefix (appended before the first
-  argument to obtain URLs for the trackDb.txt file). 
-- The third argument is the UCSC genome ID for the genomes.txt file. 
-- The fourth argument is the email address for the hub.txt file.
+- The first argument =project= is the data directory. 
+- The second argument =http://your.server.com/~user/path-= is the URL
+  prefix (appended before the first argument to obtain URLs for the
+  trackDb.txt file).
+- The third argument =hg19= is the UCSC genome ID for the genomes.txt file. 
+- The fourth argument =email@domain.com= is the email address for the
+  hub.txt file.
 
 If that command worked, then you should see a message =Created
-http://your.server.com/~user/path-project/hub.txt= and you should be
-able to paste that URL into [[http://genome.ucsc.edu/cgi-bin/hgHubConnect#unlistedHubs][My Data -> Track Hubs -> My Hubs]] then
-click Add Hub to tell the UCSC genome browser to display your data.
-Navigate around the genome until you have found some peaks, then add
-labels for them in =project/labels/*.txt= files.
+http://your.server.com/~user/path-project/hub.txt= and then you can
+paste that URL into [[http://genome.ucsc.edu/cgi-bin/hgHubConnect#unlistedHubs][My Data -> Track Hubs -> My Hubs]] then click Add
+Hub to tell the UCSC genome browser to display your data.  Navigate
+around the genome until you have found some peaks, then add positive
+and negative labels in =project/labels/*.txt= files.
 
 *For example* in [[file:test_demo.R]] the data set contains only one
 labels file,
@@ -233,8 +236,8 @@ the gap file contains one line for every gap in the reference (unknown
 Since the human genome is so large, it is much faster to do model
 training and peak prediction in parallel (e.g. on a qsub cluster such
 as Compute Canada's [[http://www.hpc.mcgill.ca/index.php/guillimin-status][guillimin]]). Begin by editing the
-[[file:create_problems_all.R]] and [[file:create_problems_joint.R]] scripts to
-reflect your cluster configuration. Then run
+[[file:create_problems_all.R]] script to reflect your cluster
+configuration. Then run
 
 #+BEGIN_SRC shell-script
 cd PeakSegFPOP

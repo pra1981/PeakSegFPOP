@@ -1,13 +1,3 @@
-## Edit the following definition to reflect your cluster
-## configuration.
-PBS.header <- "#!/bin/bash
-#PBS -l nodes=1:ppn=4
-#PBS -l walltime=24:00:00
-#PBS -A bws-221-ae
-#PBS -m ae
-#PBS -M tdhock5@gmail.com
-#PBS -V"
-
 arg.vec <- "test/demo/problems/chr10:38868835-39154935"
 arg.vec <- "test/demo/problems/chr10:18024675-38818835"
 
@@ -17,6 +7,10 @@ if(length(arg.vec) != 1){
   stop("usage: Rscript create_problems_joint.R project/problems/problemID")
 }
 prob.dir <- arg.vec[1] #dont need normalizePath.
+
+peaks.bed.sh <- file.path(prob.dir, "peaks.bed.sh")
+sh.lines <- readLines(peaks.bed.sh)
+PBS.header <- grep("^#", sh.lines, value=TRUE)
 
 Rscript <- function(...){
   code <- sprintf(...)
