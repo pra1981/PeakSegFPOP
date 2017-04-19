@@ -41,6 +41,11 @@ orderChrom <- function(chrom.vec, ...){
   names(rank.vec) <- value.vec
   order(rank.vec[chrom.vec], ...)
 }
+factorChrom <- function(chrom.vec){
+  u.vec <- unique(chrom.vec)
+  ord.vec <- u.vec[orderChrom(u.vec)]
+  factor(chrom.vec, ord.vec)
+}
 
 ## Plot each labeled chunk.
 chunk.dir.vec <- Sys.glob(file.path(
@@ -320,6 +325,158 @@ problems[peaks.counts, peaks := peaks.counts$peaks]
 problems[peak.samples.counts, peak.samples := peak.samples.counts$peak.samples]
 problems[peak.samples.counts, samples := peak.samples.counts$samples]
 
+##load("plot_all.RData")
+
+edge <- function(x){
+  r <- range(input.pred[[x]])
+  l <- 36
+  e <- seq(r[1], r[2], l=l)
+  L <- list()
+  L[[paste0(x, ".i")]] <- 1:(l-1)
+  start <- e[-l]
+  L[[paste0(x, ".start")]] <- start
+  end <- e[-1]
+  L[[paste0(x, ".end")]] <- end
+  mid <- (start+end)/2
+  L[[paste0(x, ".mid")]] <- mid
+  L[[paste0(x, ".label")]] <- 10^mid
+    ##sprintf("%d-%d", ceiling(10^start), floor(10^end))
+  do.call(data.table, L)
+}
+input.pred[, log10.bases := log10(peakBases)]
+input.pred[, log10.samples := log10(n.samples)]
+bases.dt <- edge("log10.bases")
+samples.dt <- edge("log10.samples")
+samples.dt
+grid.dt <- data.table(expand.grid(
+  log10.bases.i=1:nrow(bases.dt),
+  log10.samples.i=1:nrow(samples.dt)))[samples.dt, on=list(
+    log10.samples.i)][bases.dt, on=list(log10.bases.i)]
+
+join.dt <- grid.dt[input.pred, on=list(
+  log10.bases.start <= log10.bases,
+  log10.bases.end >= log10.bases,
+  log10.samples.start <= log10.samples,
+  log10.samples.end >= log10.samples)]
+stopifnot(nrow(join.dt)==nrow(input.pred))
+
+join.counts <- join.dt[, list(
+  count=.N
+), by=list(
+  log10.bases.label, log10.bases.mid,
+  log10.samples.label, log10.samples.mid)]
+join.biggest <- join.counts[, {
+  .SD[which.max(count)]
+}, by=list(log10.samples.mid)]
+
+ggplot()+
+  theme_bw()+
+  geom_tile(aes(
+    log10.bases.label, log10.samples.label, fill=log10(count)),
+    data=join.counts)+
+  scale_fill_gradient(low="grey90", high="red")+
+  scale_x_log10()+
+  scale_y_log10()
+
+ggplot()+
+  theme_bw()+
+  geom_tile(aes(
+    log10.bases.mid, log10.samples.mid, fill=log10(count)),
+    data=join.counts)+
+  geom_point(aes(
+    log10.bases.mid, log10.samples.mid),
+    data=join.biggest,
+    shape=21,
+    fill=NA,
+    color="black")+
+  scale_fill_gradient(low="grey90", high="red")
+
+ggplot()+
+  geom_histogram(aes(
+    peakBases),
+    data=input.pred)+
+  scale_x_log10()
+
+chrom.boxes <- input.pred[, {
+  m <- max(peakEnd)
+  box.size <- 1e7
+  n.boxes <- ceiling(m/box.size)
+  data.table(e=(0:n.boxes)*box.size)[, data.table(
+    min.peakEnd=e[-.N],
+    max.peakEnd=e[-1]
+    )]
+}, by=list(chrom)]
+chrom.boxes[, mid.peakEnd := (min.peakEnd+max.peakEnd)/2]
+chrom.boxes[, chrom.box := paste0(
+  chrom, ":", scales::comma(min.peakEnd), "-", scales::comma(max.peakEnd))]
+peak.boxes <- chrom.boxes[input.pred, on=list(
+  chrom,
+  min.peakEnd <= peakEnd,
+  max.peakEnd >= peakEnd)]
+stopifnot(nrow(peak.boxes)==nrow(input.pred))
+peak.box.counts <- peak.boxes[, list(
+  count=.N,
+  some.input=sum(0 < n.Input)
+), by=list(chrom, mid.peakEnd, chrom.box)]
+peak.box.counts[, chrom.fac := factorChrom(chrom)]
+
+ggplot()+
+  scale_fill_continuous(
+    low="grey90", high="blue", na.value="white")+
+  geom_tile(aes(
+    mid.peakEnd/1e6, chrom.fac, fill=log10(some.input)),
+    data=peak.box.counts)+
+  scale_x_continuous(
+    "position on chromosome (mega bases)")+
+  scale_y_discrete("chromosome")
+    
+viz <- list(
+  genome=ggplot()+
+    scale_fill_continuous(
+      low="grey90", high="red")+
+    geom_tile(aes(
+      mid.peakEnd/1e6, chrom.fac,
+      clickSelects=chrom.box,
+      tooltip=paste(
+        count, "peaks in", chrom.box),
+      fill=log10(count)),
+      data=peak.box.counts)+
+    scale_x_continuous(
+      "position on chromosome (mega bases)")+
+    scale_y_discrete("chromosome"),
+  peakSize=ggplot()+
+    scale_fill_gradient(low="grey90", high="blue", na.value="white")+
+    xlab("")+
+    geom_point(aes(
+      xval, log10(n.samples),
+      key=peak.name,
+      tooltip=paste(
+        n.samples, "samples with a",
+        peakBases, "bp peak on",
+        peak.name,
+        ifelse(
+          n.Input==0, "",
+          paste("including", n.Input, "Input")),
+        sample.counts),
+      fill=log10(n.Input),
+      href=sprintf(
+        "http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d",
+        chrom,
+        as.integer(peakStart-peakBases*zoom.factor),
+        as.integer(min.peakEnd+peakBases*zoom.factor)),
+      showSelected=chrom.box),
+      size=4,
+      chunk_vars=c("chrom.box"),
+      data=peak.boxes[, rbind(
+        data.table(peak.boxes, x="log10(bases)", xval=log10(peakBases)),
+        data.table(
+          peak.boxes, x="position", xval=(peakStart-mid.peakEnd)/1e6))])+
+    theme_bw()+
+    facet_grid(. ~ x, scales="free")+
+    theme(panel.margin=grid::unit(0, "lines"))+
+    theme_animint(width=600))
+animint2dir(viz, file.path(set.dir, "figure-genome"))
+
 ggplot()+
   theme_grey()+
   geom_tile(aes(
@@ -356,135 +513,6 @@ chrom.limits <- problems[, list(
 ), by=chrom]
 vline.dt <- chrom.limits[, data.table(
   dist=unique(c(min.dist-problem.width, max.dist+problem.width)))]
-viz <- list(
-  title="PeakSegFPOP + PeakSegJoint predictions",
-  tree=ggplot()+
-    geom_text(aes(
-      min.dist-problem.width, n.samples+0.5,
-      label=sub("chr", "", chrom)),
-      size=11,
-      hjust=0,
-      data=chrom.limits)+
-    coord_cartesian(
-      xlim=c(max.dist.neg-problem.width, max.dist),
-      ylim=c(0.5, n.samples+1.5),
-      expand=FALSE)+
-    geom_vline(aes(
-      xintercept=dist),
-      size=0.25,
-      data=vline.dt)+
-    theme_grey()+
-    theme_animint(width=1000, height=h.pixels)+
-    geom_tallrect(aes(
-      xmin=dist-problem.width,
-      xmax=dist+problem.width,
-      clickSelects=separate.problem),
-      alpha=0.5,
-      size=0.5,
-      data=problems)+
-    geom_tile(aes(
-      dist, sample.pos, fill=peaks,
-      clickSelects=separate.problem,
-      tooltip=paste0(
-        peaks, " peak",
-        ifelse(peaks==1, "", "s"),
-        " for ", sample.path,
-        " in ", separate.problem
-      )),
-      size=0.5,
-      data=problem.peak.show)+
-    scale_color_discrete(
-      breaks=group.means[order(-mean.x), sample.group])+
-    scale_fill_continuous(
-      low="white", high="red",
-      breaks=sort(
-        unique(as.integer(quantile(problem.peak.show$peaks))),
-        decreasing=TRUE))+
-    geom_segment(aes(
-      y, x, yend=xend, xend=yend),
-      size=1,
-      data=gg.tree$segments)+
-    geom_text(aes(
-      y, x,
-      key=sample.path,
-      label=sample.id, color=sample.group),
-      hjust=0,
-      size=11,
-      data=gg.tree$labels)+
-    geom_point(aes(
-      y, x,
-      key=sample.path,
-      color=sample.group),
-      data=gg.tree$labels)+
-    scale_x_continuous(
-      paste(
-        "Left heatmap: select genomic region (separate segmentation problem),",
-        "Right tree: distance = number of peaks different"),
-      breaks=unique(as.integer(seq(0, max.dist, l=6)))
-    )+
-    scale_y_continuous("sample", breaks=NULL),
-  genome=ggplot()+
-    theme_grey()+
-    theme_animint(
-      width=1000,
-      height=h.pixels,
-      update_axes=c("x"))+
-    geom_vline(aes(
-      showSelected=separate.problem,
-      xintercept=peakStart/1e3,
-      color=loss.diff,
-      linetype=specificity),
-      size=3,
-      data=input.pred)+
-    geom_tallrect(aes(
-      xmin=problemStart/1e3,
-      xmax=problemEnd/1e3,
-      showSelected=separate.problem,
-      tooltip=paste(
-        "click to zoom to problem",
-        separate.problem),
-      href=paste0(
-        "http://genome.ucsc.edu/cgi-bin/hgTracks?position=",
-        separate.problem)),
-      fill="white",
-      color=NA,
-      alpha=0.5,
-      data=problems)+
-    ## geom_vline(aes(
-    ##   showSelected=separate.problem,
-    ##   xintercept=peakStart/1e3,
-    ##   size=loss.diff,
-    ##   tooltip=paste(
-    ##     "click to zoom to peak",
-    ##     peak.name,
-    ##     sample.counts,
-    ##     "Poisson loss difference over model with no peaks = ",
-    ##     loss.diff),
-    ##   href=sprintf(
-    ##     "http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d",
-    ##     chrom, peakStart-peakBases, peakEnd+peakBases),
-    ##   linetype=specificity),
-    ##   color="grey",
-    ##   data=input.pred)+
-    ## scale_size_continuous(range=c(1, 9))+
-    scale_linetype_manual(values=c(
-      specific="solid",
-      "non-specific"="dotted",
-      unknown="dashed"
-    ))+
-    guides(fill="none")+
-    scale_color_continuous(
-      low="white", high="red")+
-    scale_x_continuous("position on chromosome (kb = kilo bases)")+
-    scale_y_discrete("sample"),
-    ## geom_segment(aes(
-    ##   peakStart/1e3, sample.path,
-    ##   xend=peakEnd/1e3, yend=sample.path,
-    ##   color=sample.group,
-    ##   showSelected2=sample.group,
-    ##   showSelected=separate.problem),
-    ##   data=joint.peaks.dt)+
-  selector.types=list())
 
 figure.png.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "chunks", "*", "figure-predictions-zoomout.png"))
@@ -529,40 +557,9 @@ if(0 == length(figure.png.vec)){
   problems[, labeled.chunks := 0L]
   setkey(chunk.counts, separate.problem)
   problems[chunk.counts, labeled.chunks := chunk.counts$chunks]
-  viz$genome <- viz$genome+
-    geom_tallrect(aes(
-      xmin=chunk.chromStart/1e3,
-      xmax=chunk.chromEnd/1e3,
-      tooltip=paste(
-        "click to plot chunk",
-        chunk.problem),
-      href=file.path("..", zoomin.png),
-      showSelected=separate.problem),
-      color=NA,
-      alpha=0.2,
-      fill="yellow",
-      data=chunk.info)
   chunks.xt <- xtable(chunk.info[, .(chunk, image)])
   chunks.html <- print(chunks.xt, type="html", sanitize.text.function=identity)
 }
-
-viz$genome <- viz$genome+
-  geom_point(aes(
-    peakStart/1e3, sample.path,
-    fill=sample.group,
-    key=paste(chrom, peakStart, sample.path),
-    tooltip=paste(
-      "click to zoom to peak",
-      peak.name),
-    href=sprintf(
-      "http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d",
-      chrom, peakStart-peakBases, peakEnd+peakBases),
-    showSelected2=sample.group,
-    showSelected=separate.problem),
-    color="black",
-    size=3.5,
-    data=joint.peaks.dt)
-animint2dir(viz, file.path(set.dir, "figure-genome"))
 
 label.counts <- all.labels[, list(
   samples=.N
