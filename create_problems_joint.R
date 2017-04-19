@@ -8,9 +8,14 @@ if(length(arg.vec) != 1){
 }
 prob.dir <- arg.vec[1] #dont need normalizePath.
 
-peaks.bed.sh <- file.path(prob.dir, "peaks.bed.sh")
-sh.lines <- readLines(peaks.bed.sh)
-PBS.header <- grep("^#", sh.lines, value=TRUE)
+jointProblems.bed.sh <- file.path(prob.dir, "jointProblems.bed.sh")
+PBS.header <- if(file.exists(jointProblems.bed.sh)){
+  sh.lines <- readLines(jointProblems.bed.sh)
+  pbs.lines <- grep("^#", sh.lines, value=TRUE)
+  paste(pbs.lines, collapse="\n")
+}else{
+  "#!/bin/bash"
+}
 
 Rscript <- function(...){
   code <- sprintf(...)
