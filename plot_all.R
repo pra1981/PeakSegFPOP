@@ -387,9 +387,14 @@ peak.box.counts <- peak.boxes[, list(
 ), by=list(chrom, mid.peakEnd, chrom.box)]
 peak.box.counts[, chrom.fac := factorChrom(chrom)]
 
+getLim <- function(x){
+  f <- x[is.finite(x)]
+  if(length(f))range(f) else range(x)
+}
 ggplot()+
   scale_fill_continuous(
-    low="grey90", high="blue", na.value="white")+
+    low="grey90", high="blue", na.value="white",
+    limits=getLim(log10(peak.box.counts$some.input)))+
   geom_tile(aes(
     mid.peakEnd/1e6, chrom.fac, fill=log10(some.input)),
     data=peak.box.counts)+
@@ -418,7 +423,9 @@ viz <- list(
       "position on chromosome (mega bases)")+
     scale_y_discrete("chromosome"),
   peakSize=ggplot()+
-    scale_fill_gradient(low="grey90", high="blue", na.value="white")+
+    scale_fill_continuous(
+      low="grey90", high="blue", na.value="white",
+      limits=getLim(log10(peak.box.counts$some.input)))+
     xlab("")+
     geom_point(aes(
       xval, log10(n.samples),
@@ -453,13 +460,6 @@ viz <- list(
     theme_animint(width=600, height=h.pixels))
 
 animint2dir(viz, file.path(set.dir, "figure-genome"))
-
-ggplot()+
-  scale_fill_continuous(low="white", high="black")+
-  geom_point(aes(
-    peakStart/1e3, chrom, color=specificity, fill=log10(loss.diff)),
-    shape=21,
-    data=input.pred)
 
 figure.png.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "chunks", "*", "figure-predictions-zoomout.png"))
@@ -503,6 +503,7 @@ if(0 == length(figure.png.vec)){
   chunk.counts <- chunk.info[, list(chunks=.N), by=separate.problem]
   problems[, labeled.chunks := 0L]
   setkey(chunk.counts, separate.problem)
+  setkey(problems, separate.problem)
   problems[chunk.counts, labeled.chunks := chunk.counts$chunks]
   chunks.xt <- xtable(chunk.info[, .(chunk, image)])
   chunks.html <- print(chunks.xt, type="html", sanitize.text.function=identity)
@@ -530,8 +531,20 @@ problems[, problem := sprintf({
   '<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s">%s</a>'
 }, separate.problem, separate.problem)]
 
-problems.xt <- xtable(problems[, .(problem, samples, peaks, peak.samples, labeled.chunks, labeled.regions, labels)])
-problems.html <- print(problems.xt, type="html", sanitize.text.function=identity)
+## add peaks, peak.samples, samples
+separate.counts <- input.pred[, list(
+  peak.regions=.N,
+  peak.samples=sum(n.samples)
+), by=list(separate.problem)]
+setkey(separate.counts, separate.problem)
+problems.out <- separate.counts[problems]
+
+problems.xt <- xtable(problems.out[, list(
+  problem,
+  peak.regions, peak.samples,
+  labeled.chunks, labeled.regions, labels)])
+problems.html <- print(
+  problems.xt, type="html", sanitize.text.function=identity)
 html.vec <- c(
   '<title>PeakSegFPOP + PeakSegJoint predictions</title>',
   '<h2>Output: predicted peaks</h2>',
@@ -547,7 +560,7 @@ at least one sample with a peak
 (<a href="peaks_matrix.tsv">peaks_matrix.tsv</a>).
 </li>',
     nrow(joint.peaks.dt),
-    length(unique(sample.problem.peaks$sample.path))),
+    length(sample.path.vec),
   '<li>
 <a href="figure-genome/index.html">Interactive
 heatmap and scatterplot of predictions</a>.
