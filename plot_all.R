@@ -190,9 +190,6 @@ peak.mat <- matrix(
     peak=input.pred$peak.name))
 i.mat <- joint.peaks.dt[, cbind(sample.path, peak.name)]
 peak.mat[i.mat] <- TRUE
-d.mat <- dist(peak.mat, "manhattan")
-tree <- hclust(d.mat, method="average")
-##plot(tree, hang=-1)
 
 ## Save samples/groupID/sampleID/joint_peaks.bedGraph files.
 setkey(joint.peaks.dt, sample.path, chrom, peakStart, peakEnd)
