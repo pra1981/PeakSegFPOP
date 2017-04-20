@@ -293,38 +293,9 @@ if(nrow(input.labels)){
   input.pred[, specificity := "unknown"]
 }
 
-gg.tree <- dendro_data(tree)
-gg.tree$labels$sample.path <- gg.tree$labels$label
-gg.tree$labels$sample.group <- sub("/.*", "", gg.tree$labels$label)
-gg.tree$labels$sample.id <- sub(".*/", "", gg.tree$labels$label)
-rownames(gg.tree$labels) <- gg.tree$labels$label
-max.dist <- max(gg.tree$segments$y)
-max.dist.neg <- -max.dist*3
-problems[, dist := (.N:1)*max.dist.neg/.N]
-problem.width <- diff(problems$dist[1:2])/2
-setkey(problems, separate.problem)
-sample.problem.peaks <- joint.peaks.dt[, list(
-  peaks=.N
-), by=.(sample.path, separate.problem)]
-setkey(sample.problem.peaks, separate.problem)
-problem.peak.show <- problems[sample.problem.peaks]
-problem.peak.show[, sample.pos := gg.tree$labels[paste(sample.path), "x"]]
-group.means <- data.table(gg.tree$labels)[, list(
-  mean.x=mean(x)
-), by=sample.group]
-peak.samples.counts <- sample.problem.peaks[, list(
-  samples=.N,
-  peak.samples=sum(peaks)
-  ), by=separate.problem]
-peaks.counts <- input.pred[, list(peaks=.N), by=separate.problem]
-problems[, peaks := 0L]
-problems[, samples := 0L]
-problems[, peak.samples := 0L]
-problems[peaks.counts, peaks := peaks.counts$peaks]
-problems[peak.samples.counts, peak.samples := peak.samples.counts$peak.samples]
-problems[peak.samples.counts, samples := peak.samples.counts$samples]
-
-##load("plot_all.RData")
+if(FALSE){
+  load("plot_all.RData")
+}
 
 edge <- function(x){
   r <- range(input.pred[[x]])
@@ -428,9 +399,15 @@ ggplot()+
   scale_x_continuous(
     "position on chromosome (mega bases)")+
   scale_y_discrete("chromosome")
-    
+
+## TODO: PCA plot? too slow/memory intensive.
+## pca <- princomp(peak.mat)
+
+h.pixels <- (length(unique(peak.box.counts$chrom))+5)*15
 viz <- list(
   genome=ggplot()+
+    theme_bw()+
+    theme_animint(height=h.pixels)+
     scale_fill_continuous(
       low="grey90", high="red")+
     geom_tile(aes(
@@ -465,37 +442,20 @@ viz <- list(
         as.integer(min.peakEnd+peakBases*zoom.factor)),
       showSelected=chrom.box),
       size=4,
+      validate_params=FALSE,
       chunk_vars=c("chrom.box"),
       data=peak.boxes[, rbind(
         data.table(peak.boxes, x="log10(bases)", xval=log10(peakBases)),
         data.table(
-          peak.boxes, x="position", xval=(peakStart-mid.peakEnd)/1e6))])+
+          peak.boxes,
+          x="relative position (mega bases)",
+          xval=(peakStart-mid.peakEnd)/1e6))])+
     theme_bw()+
     facet_grid(. ~ x, scales="free")+
     theme(panel.margin=grid::unit(0, "lines"))+
-    theme_animint(width=600))
-animint2dir(viz, file.path(set.dir, "figure-genome"))
+    theme_animint(width=600, height=h.pixels))
 
-ggplot()+
-  theme_grey()+
-  geom_tile(aes(
-    dist, sample.pos, fill=peaks),
-    data=problem.peak.show)+
-  scale_color_discrete(
-    breaks=group.means[order(-mean.x), sample.group])+
-  scale_fill_continuous(
-    low="white", high="red")+
-  geom_segment(aes(
-    y, x, yend=xend, xend=yend),
-    data=gg.tree$segments)+
-  geom_text(aes(
-    y, x, label=sample.id, color=sample.group),
-    hjust=0,
-    vjust=-0.5, 
-    data=gg.tree$labels)+
-  scale_x_continuous(
-    "separate problem / number of peaks")+
-  scale_y_continuous("sample", breaks=NULL)
+animint2dir(viz, file.path(set.dir, "figure-genome"))
 
 ggplot()+
   scale_fill_continuous(low="white", high="black")+
@@ -503,15 +463,6 @@ ggplot()+
     peakStart/1e3, chrom, color=specificity, fill=log10(loss.diff)),
     shape=21,
     data=input.pred)
-
-n.samples <- nrow(gg.tree$labels)
-h.pixels <- (n.samples+5)*15
-chrom.limits <- problems[, list(
-  min.dist=min(dist),
-  max.dist=max(dist)
-), by=chrom]
-vline.dt <- chrom.limits[, data.table(
-  dist=unique(c(min.dist-problem.width, max.dist+problem.width)))]
 
 figure.png.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "chunks", "*", "figure-predictions-zoomout.png"))
@@ -601,7 +552,8 @@ at least one sample with a peak
     nrow(joint.peaks.dt),
     length(unique(sample.problem.peaks$sample.path))),
   '<li>
-<a href="figure-genome/index.html">Interactive heatmap, cluster tree, peak predictions</a>.
+<a href="figure-genome/index.html">Interactive
+heatmap and scatterplot of predictions</a>.
 </li>',
   '</ul>',
   '<h2>Input: labeled genomic windows</h2>',
