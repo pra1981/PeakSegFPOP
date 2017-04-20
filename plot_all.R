@@ -34,13 +34,14 @@ orderChrom <- function(chrom.vec, ...){
     print(value.vec[did.not.match])
     stop("chroms did not match ", chr.pattern)
   }
-  rank.vec <- order(
+  ord.vec <- order(
     suppressWarnings(as.numeric(chr.mat[, "before"])),
     chr.mat[, "before"],
     chr.mat[, "after"])
-  names(rank.vec) <- value.vec
+  rank.vec <- seq_along(value.vec)
+  names(rank.vec) <- value.vec[ord.vec]
   order(rank.vec[chrom.vec], ...)
-}
+} 
 factorChrom <- function(chrom.vec){
   u.vec <- unique(chrom.vec)
   ord.vec <- u.vec[orderChrom(u.vec)]
