@@ -561,7 +561,7 @@ at least one sample with a peak
 (<a href="peaks_matrix.tsv">peaks_matrix.tsv</a>).
 </li>',
     nrow(joint.peaks.dt),
-    length(sample.path.vec),
+    length(sample.path.vec)),
   '<li>
 <a href="figure-genome/index.html">Interactive
 heatmap and scatterplot of predictions</a>.
