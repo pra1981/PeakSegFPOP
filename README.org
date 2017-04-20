@@ -1,7 +1,24 @@
-PeakSegFPOP
-
-Command line limited memory PeakSeg functional pruning optimal
-partitioning algorithm.
+This repository contains scripts for genome-wide supervised ChIP-seq
+peak prediction, for a single experiment type (e.g. broad H3K36me3 or
+sharp H3K4me3 data), jointly using multiple samples and cell types.
+- *Labeling.* The first step of any supervised analysis is to label a
+  few genomic regions with and without peaks in your data. The
+  [[file:create_track_hub.R]] script creates a track hub from bigWig
+  files, which makes it easy to visualize data on the UCSC genome
+  browser and then create labels (specific genomic regions where you
+  have observed presence or absence of peaks in specific samples). For
+  more details about labeling see [[#Label-Data][Input Files -> Label Data]] below.
+- *Single-sample peak calling using PeakSegFPOP.* This repository
+  includes PeakSegFPOP, a command line limited memory PeakSeg
+  functional pruning optimal partitioning algorithm
+  ([[https://arxiv.org/abs/1703.03352][arXiv:1703.03352]]), which is used to predict preliminary peaks for
+  each sample independently.
+- *Multiple-sample peak calling using PeakSegJoint.* After
+  single-sample analysis, peaks are clustered into genomic regions
+  with overlapping peaks. In each cluster we run [[https://github.com/tdhock/PeakSegJoint][PeakSegJoint]] to find
+  the most likely common peak positions across multiple samples --
+  this includes a prediction of which samples are up and down for each
+  genomic region.
 
 [[https://travis-ci.org/tdhock/PeakSegFPOP][https://travis-ci.org/tdhock/PeakSegFPOP.png?branch=master]]
 
@@ -32,7 +49,7 @@ curl -L http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bedToBigBed -o $BI
 chmod u+x $BIN/bigWigToBedGraph $BIN/bedToBigBed
 make
 cp PeakSegFPOP $BIN
-Rscript -e 'source("packages.R")'
+Rscript packages.R
 #+END_SRC
 
 BerkeleyDB is used by PeakSegFPOP to write a large temporary file to
@@ -64,7 +81,7 @@ them. If everything worked, you can view the results by opening
 the results shown on
 http://cbio.mines-paristech.fr/~thocking/hubs/test/demo/
 
-** Multi-sample peak prediction pipeline
+** Input Files
 
 The [[file:pipeline.R]] script uses PeakSegFPOP + [[https://github.com/tdhock/PeakSegJoint][PeakSegJoint]] to predict
 common and different peaks in multiple samples. It requires three
@@ -100,8 +117,9 @@ when you run [[file:test_demo.R]].
 
 Each coverage data file should contain counts of aligned sequence
 reads at every genomic position, for one sample. These files can be in
-either [[https://genome.ucsc.edu/goldenpath/help/bedgraph.html][bedGraph]] or [[https://genome.ucsc.edu/goldenpath/help/bigWig.html][bigWig]] format. For example [[file:test_demo.R]]
-downloads 8 files:
+either [[https://genome.ucsc.edu/goldenpath/help/bedgraph.html][bedGraph]] or [[https://genome.ucsc.edu/goldenpath/help/bigWig.html][bigWig]] format (bigWig is preferable since it is
+indexed and thus faster to read than bedGraph). For example
+[[file:test_demo.R]] downloads 8 files:
 
 #+BEGIN_SRC 
 test/demo/samples/bcell/MS026601/coverage.bigWig
@@ -130,16 +148,16 @@ typically you would combine those two groups into a single labeled
 group, but in this project we keep them separate in order to
 demonstrate the prediction accuracy of the learning algorithm.
 
-*** Label data
+*** Label Data
 
-The =labels/*.txt= files contain genomic regions with or without
+The =project/labels/*.txt= files contain genomic regions with or without
 peaks. These labels will be used to train the peak prediction models
 (automatically select model parameters that yield optimal peak
 prediction accuracy). A quick and easy way to create labels is by
 visual inspection as in the [[http://cbio.mines-paristech.fr/~thocking/chip-seq-chunk-db/][McGill ChIP-seq peak detection benchmark]]
 (for details please read [[http://bioinformatics.oxfordjournals.org/content/early/2016/10/23/bioinformatics.btw672.abstract][Hocking et al, Bioinformatics 2016]]).
 
-*To visually label your data,* first create a project directory on a
+*To visually label your data* first create a project directory on a
 webserver with =project/samples/groupID/sampleID/coverage.bigWig=
 files, then create a track hub using a command such as
 
@@ -148,20 +166,22 @@ Rscript create_track_hub.R project http://your.server.com/~user/path- hg19 email
 #+END_SRC
 
 The arguments of the =create_track_hub.R= script are as follows:
-- The first argument is the data directory. 
-- The second argument is the URL prefix (appended before the first
-  argument to obtain URLs for the trackDb.txt file). 
-- The third argument is the UCSC genome ID for the genomes.txt file. 
-- The fourth argument is the email address for the hub.txt file.
+- The first argument =project= is the data directory. 
+- The second argument =http://your.server.com/~user/path-= is the URL
+  prefix (appended before the first argument to obtain URLs for the
+  trackDb.txt file).
+- The third argument =hg19= is the UCSC genome ID for the genomes.txt file. 
+- The fourth argument =email@domain.com= is the email address for the
+  hub.txt file.
 
-If that command worked, then you should see a message "Created
-http://your.server.com/~user/path-project/hub.txt" and you should be
-able to paste that URL into [[http://genome.ucsc.edu/cgi-bin/hgHubConnect#unlistedHubs][My Data -> Track Hubs -> My Hubs]] then
-click Add Hub to tell the UCSC genome browser to display your data.
-Navigate around the genome until you have found some peaks, then add
-labels for them in =project/labels/*.txt= files.
+If that command worked, then you should see a message =Created
+http://your.server.com/~user/path-project/hub.txt= and then you can
+paste that URL into [[http://genome.ucsc.edu/cgi-bin/hgHubConnect#unlistedHubs][My Data -> Track Hubs -> My Hubs]] then click Add
+Hub to tell the UCSC genome browser to display your data.  Navigate
+around the genome until you have found some peaks, then add positive
+and negative labels in =project/labels/*.txt= files.
 
-*For example,* in [[file:test_demo.R]] the data set contains only one
+*For example* in [[file:test_demo.R]] the data set contains only one
 labels file,
 
 #+BEGIN_SRC 
@@ -193,7 +213,12 @@ lines. Each chunk should contain lines for several nearby genomic
 regions, the corresponding label (noPeaks, peakStart, peakEnd, peaks),
 and the sample groups to which that label should be assigned (all
 other groups mentioned in the labels file will receive the noPeaks
-label).
+label). Ideally, each chunk should contain 
+- At least one label with a peak in all samples.
+- At least one label with no peaks in any samples.
+- At least one label with a peak in some samples but not others (these
+  labels are crucial for the model to be able to learn what is a
+  significant difference between up and down).
 
 *Visualizing labels.* After having added some labels in
 =project/labels/*.txt= files, run =Rscript convert_labels.R project=
@@ -230,11 +255,11 @@ the gap file contains one line for every gap in the reference (unknown
 
 ** Running steps of the pipeline in parallel
 
-Since the human genome is so large, it is much faster to do model
-training and peak prediction in parallel (e.g. on a qsub cluster such
-as Compute Canada's [[http://www.hpc.mcgill.ca/index.php/guillimin-status][guillimin]]). Begin by editing the
-[[file:create_problems_all.R]] and [[file:create_problems_joint.R]] scripts to
-reflect your cluster configuration. Then run
+Since the human genome is so large, we recommend to do model training
+and peak prediction in parallel. To use a PBS/qsub cluster such as
+Compute Canada's [[http://www.hpc.mcgill.ca/index.php/guillimin-status][guillimin]], begin by editing the
+[[file:create_problems_all.R]] script to reflect your cluster
+configuration. Then run
 
 #+BEGIN_SRC shell-script
 cd PeakSegFPOP
@@ -290,15 +315,15 @@ predictions, run
 for sh in test/demo/jobs/*/jobPeaks.bed.sh;do qsub $sh;done
 #+END_SRC
 
-Finally, to gather all the peak predictions in a summary on
+To gather all the peak predictions in a summary on
 =test/demo/index.html=, run
 
 #+BEGIN_SRC shell-script
 qsub test/demo/peaks_matrix.tsv.sh
 #+END_SRC
 
-You can create =test/demo/hub.txt= which can be used as a track hub on
-the UCSC genome browser:
+Finally, you can create =test/demo/hub.txt= which can be used as a
+track hub on the UCSC genome browser:
 
 #+BEGIN_SRC shell
 Rscript create_track_hub.R test/demo http://hubs.hpc.mcgill.ca/~thocking/PeakSegFPOP- hg19 email@domain.com

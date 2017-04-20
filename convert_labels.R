@@ -113,7 +113,7 @@ for(labels.file in labels.file.vec){
                itemRgb=label.colors[paste(match.df$annotation)])
   names(sample.group.list) <- rownames(match.df)
   sample.group.vec <- unique(unlist(sample.group.list))
-  cat("sample groups with peak annotations: ",
+  cat("labeled sample groups: ",
       paste(sample.group.vec, collapse=", "),
       "\n",
       sep="")
