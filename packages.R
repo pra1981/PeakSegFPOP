@@ -70,7 +70,7 @@ works_with_R(
   "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
   "tdhock/coseg@c8bec41a9611fe8f1e2278f2d487340907176c60",
   "tdhock/animint@78974d8788930034109289e42f8c90f1ee804290",
-  "tdhock/PeakSegJoint@6b7e1005e53669707f813fc82c83ace74c1896c6",
+  "tdhock/PeakSegJoint@f3baaff5e3513256c86b5c3d1a29ad6b37d8bd55",
   "tdhock/cosegData@83e6f787bf4f9f9ec7d299bb9e6b32db522021a2",
   "tdhock/namedCapture@05175927a45c301a18e8c6ebae67ea39a842d264",
   "tdhock/WeightedROC@ef8f35ba7ae85e2995fa66afe13732cebb8b5633")
