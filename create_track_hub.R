@@ -125,8 +125,8 @@ bedToBigBed <- function(bed, opt=""){
   bed.long <- fread(bed)
   names(bed.long)[1:4] <- c("chrom", "chromStart", "chromEnd", "name")
   bed.long[, name := substr(name, 1, 255)]
-  short <- sub("bed$", "-short.bed", bed)
-  fwrite(bed.long, short, sep="\t")
+  short <- sub(".bed$", "-short.bed", bed)
+  fwrite(bed.long, short, sep="\t", col.names=FALSE, quote=FALSE)
   bigBed <- sub("bed$", "bigBed", bed)
   cmd <- paste(
     "bedToBigBed",
