@@ -123,7 +123,7 @@ if(nrow(jprobs)){
 
 bedToBigBed <- function(bed, opt=""){
   bed.long <- fread(bed)
-  if(4 <= ncol(bed)){
+  if(4 <= ncol(bed.long)){
     names(bed.long)[1:4] <- c("chrom", "chromStart", "chromEnd", "name")
     bed.long[, name := substr(name, 1, 255)]
   }
