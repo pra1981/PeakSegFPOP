@@ -64,9 +64,10 @@ works_with_R(
   hexbin="1.27.1",
   xtable="1.7.4",
   doParallel="1.0.6",
+  future="1.4.0",
   geometry="0.3.6",#for penaltyLearning.
   data.table="1.10.4",
-  "tdhock/penaltyLearning@2ba4c3da4851d49ac6938052eb1f0ea23a11a8d0",
+  "tdhock/penaltyLearning@cd865e1bc1537268d51575b4a555673b1129a964",
   "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
   "tdhock/coseg@c8bec41a9611fe8f1e2278f2d487340907176c60",
   "tdhock/animint@78974d8788930034109289e42f8c90f1ee804290",
