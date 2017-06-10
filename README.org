@@ -312,7 +312,7 @@ which will compute =test/demo/joint.model.RData= and
 predictions, run
 
 #+BEGIN_SRC shell-script
-for sh in test/demo/jobs/*/jobPeaks.bed.sh;do qsub $sh;done
+for sh in test/demo/jobs/*/jobPeaks.sh;do qsub $sh;done
 #+END_SRC
 
 To gather all the peak predictions in a summary on
