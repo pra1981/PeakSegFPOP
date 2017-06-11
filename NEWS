@@ -14,6 +14,10 @@ problem size is 114,547,721 = 100e6 bases.
 
 problems[10e6 < bases, sum((bases %/% 10e6)+1)]
 
+should create_problems_all.R delete old problems/* directories? (which
+are not present in the current problems.bed file) Would be nice for
+convenience. For now we can just delete manually.
+
 2017.05.08
 
 penaltyLearning used for both separate and joint model.
