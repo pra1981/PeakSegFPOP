@@ -277,10 +277,9 @@ for lbed in test/demo/samples/*/*/problems/*/labels.bed;do qsub $(echo $lbed|sed
 
 The target is the largest interval of log(penalty) values for which
 PeakSegFPOP returns peak models that have the minimum number of
-incorrect labels. The =target.tsv= files are used as input for
-training a machine learning model that can predict optimal penalty
-values, even for un-labeled samples and genome subsets. To train a
-model, use
+incorrect labels. The =target.tsv= files are used for training a
+machine learning model that can predict optimal penalty values, even
+for un-labeled samples and genome subsets. To train a model, use
 
 #+BEGIN_SRC shell-script
 Rscript train_model.R test/demo
