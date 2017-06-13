@@ -44,8 +44,20 @@ cat(
   "Read ", nrow(problems),
   " problems from ", problems.bed,
   "\n", sep="")
+unlinkProblems <- function(glob){
+  prob.dir.vec <- Sys.glob(glob)
+  to.delete <- prob.dir.vec[!basename(prob.dir.vec) %in% problems$problem.name]
+  if(length(to.delete)){
+    cat("Removing the following old problem directories:\n")
+    print(to.delete)
+  }
+  unlink(to.delete, recursive=TRUE, force=TRUE)
+}
+sample.dir.glob <- file.path(samples.dir, "*", "*")
+unlinkProblems(file.path(sample.dir.glob, "problems", "*"))
+unlinkProblems(file.path(data.dir, "problems", "*"))
 
-sample.dir.vec <- Sys.glob(file.path(samples.dir, "*", "*"))
+sample.dir.vec <- Sys.glob(sample.dir.glob)
 for(sample.i in seq_along(sample.dir.vec)){
   sample.dir <- sample.dir.vec[[sample.i]]
   problems.dir <- file.path(sample.dir, "problems")

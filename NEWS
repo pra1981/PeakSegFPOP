@@ -14,11 +14,19 @@ problem size is 114,547,721 = 100e6 bases.
 
 problems[10e6 < bases, sum((bases %/% 10e6)+1)]
 
-should create_problems_all.R delete old problems/* directories? (which
-are not present in the current problems.bed file) Would be nice for
-convenience. For now we can just delete manually.
-
 2017.05.08
+
+Why did H3K4me3_TDH_other pipeline predict these two overlapping
+(almost identical) peaks? Because we did not delete one of the two
+chr4 problems, after changing the definition (chr4:75452279-191044276
+-> chr4:75452279-190000000).
+
+chr4    76597015        76599341        31.13
+chr4    76597018        76599340        31.11
+
+Now create_problems_all.R deletes old problems/* and
+samples/*/*/problems/* directories (which are not present in the
+current problems.bed file).
 
 penaltyLearning used for both separate and joint model.
 
