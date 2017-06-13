@@ -13,8 +13,9 @@ library(data.table)
 library(ggplot2)
 
 ## For performing K-fold cross-validation in parallel.
-library(doParallel)
-registerDoParallel()
+if(require(future)){
+  plan(multiprocess)
+}
 
 glob.str <- file.path(
   samples.dir, "*", "*", "problems", "*", "target.tsv")
