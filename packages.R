@@ -70,9 +70,9 @@ works_with_R(
   directlabels="2017.3.31",
   "tdhock/penaltyLearning@cd865e1bc1537268d51575b4a555673b1129a964",
   "tdhock/PeakError@b0f0b4edc413176ebb183fc68f1504c9d86e3ef7",
-  "tdhock/coseg@c8bec41a9611fe8f1e2278f2d487340907176c60",
+  "tdhock/coseg@f65b3eebea657466ca7b3532361ebfef02a07425",
   "tdhock/animint@78974d8788930034109289e42f8c90f1ee804290",
-  "tdhock/PeakSegJoint@d02ad24e472ce3b9958fdc5bb78fa6b7651d739c",
+  "tdhock/PeakSegJoint@08067ba5794c4641224102a20e5f838900bd4c1c",
   "tdhock/cosegData@83e6f787bf4f9f9ec7d299bb9e6b32db522021a2",
   "tdhock/namedCapture@05175927a45c301a18e8c6ebae67ea39a842d264",
   "tdhock/WeightedROC@ef8f35ba7ae85e2995fa66afe13732cebb8b5633")

@@ -13,8 +13,9 @@ library(data.table)
 library(ggplot2)
 
 ## For performing K-fold cross-validation in parallel.
-library(doParallel)
-registerDoParallel()
+if(require(future)){
+  plan(multiprocess)
+}
 
 glob.str <- file.path(
   samples.dir, "*", "*", "problems", "*", "target.tsv")
@@ -50,6 +51,7 @@ model <- if(nrow(features) < 10){
     min.observations=nrow(features),
     reg.type=ifelse(nrow(features) < 20, "1sd", "min(mean)"))
 }
+model$train.mean.vec <- colMeans(features)
 
 cat("Learned regularization parameter and weights:\n")
 print(model$pred.param.mat)
