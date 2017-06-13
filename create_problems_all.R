@@ -49,7 +49,7 @@ unlinkProblems <- function(glob){
   to.delete <- prob.dir.vec[!basename(prob.dir.vec) %in% problems$problem.name]
   if(length(to.delete)){
     cat("Removing the following old problem directories:\n")
-    print(to.delete)
+    print(data.table(to.delete))
   }
   unlink(to.delete, recursive=TRUE, force=TRUE)
 }
