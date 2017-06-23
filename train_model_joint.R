@@ -8,5 +8,10 @@ if(length(arg.vec) != 1){
 }
 data.dir <- normalizePath(arg.vec[1], mustWork=TRUE)
 
+## For performing K-fold cross-validation in parallel.
+if(require(future)){
+  plan(multiprocess)
+}
+
 PeakSegJoint::problem.joint.train(data.dir)
 

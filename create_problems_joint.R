@@ -1,14 +1,5 @@
-## Edit the following definition to reflect your cluster
-## configuration.
-PBS.header <- "#!/bin/bash
-#PBS -l nodes=1:ppn=4
-#PBS -l walltime=24:00:00
-#PBS -A bws-221-ae
-#PBS -m ae
-#PBS -M tdhock5@gmail.com
-#PBS -V"
-
 arg.vec <- "test/demo/problems/chr10:38868835-39154935"
+arg.vec <- "test/demo/problems/chr10:18024675-38818835"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
@@ -16,6 +7,15 @@ if(length(arg.vec) != 1){
   stop("usage: Rscript create_problems_joint.R project/problems/problemID")
 }
 prob.dir <- arg.vec[1] #dont need normalizePath.
+
+jointProblems.bed.sh <- file.path(prob.dir, "jointProblems.bed.sh")
+PBS.header <- if(file.exists(jointProblems.bed.sh)){
+  sh.lines <- readLines(jointProblems.bed.sh)
+  pbs.lines <- grep("^#", sh.lines, value=TRUE)
+  paste(pbs.lines, collapse="\n")
+}else{
+  "#!/bin/bash"
+}
 
 Rscript <- function(...){
   code <- sprintf(...)
@@ -139,7 +139,8 @@ problems <- do.call(rbind, problems.list)
 if(is.data.table(problems) && 0 < nrow(problems)){
   setkey(problems, clusterStart, clusterEnd)
   problems[, bases := clusterEnd - clusterStart]
-  mid.between.problems <- problems[, as.integer((clusterEnd[-.N]+clusterStart[-1])/2)]
+  mid.between.problems <- problems[, as.integer(
+    (clusterEnd[-.N]+clusterStart[-1])/2)]
   problems[, mid.before := c(NA_integer_, mid.between.problems)]
   problems[, mid.after := c(mid.between.problems, NA_integer_)]
   problems[, problemStart := as.integer(clusterStart-bases)]

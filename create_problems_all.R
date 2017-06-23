@@ -44,8 +44,20 @@ cat(
   "Read ", nrow(problems),
   " problems from ", problems.bed,
   "\n", sep="")
+unlinkProblems <- function(glob){
+  prob.dir.vec <- Sys.glob(glob)
+  to.delete <- prob.dir.vec[!basename(prob.dir.vec) %in% problems$problem.name]
+  if(length(to.delete)){
+    cat("Removing the following old problem directories:\n")
+    print(data.table(to.delete))
+  }
+  unlink(to.delete, recursive=TRUE, force=TRUE)
+}
+sample.dir.glob <- file.path(samples.dir, "*", "*")
+unlinkProblems(file.path(sample.dir.glob, "problems", "*"))
+unlinkProblems(file.path(data.dir, "problems", "*"))
 
-sample.dir.vec <- Sys.glob(file.path(samples.dir, "*", "*"))
+sample.dir.vec <- Sys.glob(sample.dir.glob)
 for(sample.i in seq_along(sample.dir.vec)){
   sample.dir <- sample.dir.vec[[sample.i]]
   problems.dir <- file.path(sample.dir, "problems")
@@ -167,19 +179,26 @@ for(problem.i in 1:nrow(problems)){
   problem <- problems[problem.i,]
   prob.dir <- file.path(data.dir, "problems", problem$problem.name)
   dir.create(prob.dir, showWarnings=FALSE, recursive=TRUE)
+  ## jointProblems.bed.sh
   jointProblems.bed <- file.path(prob.dir, "jointProblems.bed")
   sh.file <- paste0(jointProblems.bed, ".sh")
   pred.cmd <- Rscript(
     'coseg::problem.predict.allSamples("%s")',
+    prob.dir)
+  joint.prob.cmd <- paste(
+    "Rscript",
+    normalizePath("create_problems_joint.R", mustWork=TRUE),
+    prob.dir)
+  joint.targets.cmd <- Rscript(
+    'PeakSegJoint::problem.joint.targets("%s")',
     prob.dir)
   script.txt <- paste0(PBS.header, "
 #PBS -o ", jointProblems.bed, ".out
 #PBS -e ", jointProblems.bed, ".err
 #PBS -N P", problem$problem.name, "
 ", pred.cmd, " 
-Rscript ",
-normalizePath("create_problems_joint.R", mustWork=TRUE),
-" ", prob.dir, "
+", joint.prob.cmd, "
+", joint.targets.cmd, "
 ")
   writeLines(script.txt, sh.file)
   ## joint prediction script.
@@ -195,8 +214,35 @@ normalizePath("create_problems_joint.R", mustWork=TRUE),
 ", pred.cmd, " 
 ")
   writeLines(script.txt, sh.file)
+  ## joint prediction jobs script.
+  job.dir <- file.path(data.dir, "jobs", problem.i)
+  dir.create(job.dir, showWarnings=FALSE, recursive=TRUE)
+  job.path <- normalizePath(job.dir, mustWork=TRUE)
+  jobPeaks <- file.path(job.dir, "jobPeaks")
+  sh.file <- paste0(jobPeaks, ".sh")
+  pred.cmd <- Rscript(
+    'PeakSegJoint::problem.joint.predict.job("%s")',
+    job.path)
+  script.txt <- paste0(PBS.header, "
+#PBS -o ", jobPeaks, ".out
+#PBS -e ", jobPeaks, ".err
+#PBS -N Job", problem.i, "
+", pred.cmd, " 
+")
+  writeLines(script.txt, sh.file)
   if(file.exists(chunk.limits.RData) &&
-       problem$problem.name %in% chunks.with.problems$problem.name){
+     problem$problem.name %in% chunks.with.problems$problem.name){
+    ## jointTargets.sh
+    jointTargets <- file.path(prob.dir, "jointTargets")
+    sh.file <- paste0(jointTargets, ".sh")
+    script.txt <- paste0(PBS.header, "
+#PBS -o ", jointTargets, ".out
+#PBS -e ", jointTargets, ".err
+#PBS -N JT", problem$problem.name, "
+", joint.targets.cmd, "
+")
+    writeLines(script.txt, sh.file)
+    ## write a directory for every chunk.
     problem.chunks <- chunks.with.problems[problem$problem.name]
     cat("Writing ", nrow(problem.chunks),
         " chunks in ", prob.dir,
