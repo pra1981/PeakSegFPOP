@@ -1,3 +1,12 @@
+** Deprecated
+
+Please don't use this code! If you want to use PeakSeg for genome-wide
+peak calling, please use [[https://github.com/tdhock/PeakSegPipeline][PeakSegPipeline]] instead. (it implements the
+same algorithms, but with a better user interface; it should be easier
+to install and use)
+
+** Old README below
+
 This repository contains scripts for genome-wide supervised ChIP-seq
 peak prediction, for a single experiment type (e.g. broad H3K36me3 or
 sharp H3K4me3 data), jointly using multiple samples and cell types.
