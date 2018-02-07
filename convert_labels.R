@@ -104,7 +104,7 @@ for(labels.file in labels.file.vec){
   commas <- gsub(" +", ",", stripped)
   sample.group.list <- strsplit(commas, split=",")
   bed.list[[labels.file]] <- 
-    data.frame(match.df[,c("chrom", "chromStart", "chromEnd")],
+    data.table(match.df[,c("chrom", "chromStart", "chromEnd")],
                name=paste0(match.df$annotation, ":", commas),
                score=0,
                strand=".",
@@ -113,7 +113,7 @@ for(labels.file in labels.file.vec){
                itemRgb=label.colors[paste(match.df$annotation)])
   names(sample.group.list) <- rownames(match.df)
   sample.group.vec <- unique(unlist(sample.group.list))
-  cat("sample groups with peak annotations: ",
+  cat("labeled sample groups: ",
       paste(sample.group.vec, collapse=", "),
       "\n",
       sep="")
@@ -153,7 +153,7 @@ for(labels.file in labels.file.vec){
       for(sample.group in names(to.assign)){
         relevant.samples <- samples.by.group[[sample.group]]
         if(length(relevant.samples) == 0){
-          glob.str <- file.path(sample.group.dir, "*")
+          glob.str <- file.path(sample.group, "*")
           stop("no ", glob.str, " directories (but labels are present)")
         }
         annotation <- to.assign[[sample.group]]
@@ -179,7 +179,7 @@ for(labels.file in labels.file.vec){
     })
   }
 }
-bed <- do.call(rbind, bed.list)
+bed <- do.call(rbind, bed.list)[order(chrom, chromStart, chromEnd),]
 chunk.limits <- do.call(rbind, chunk.limits.list)
 positive.regions <- do.call(rbind, positive.regions.list)
 rownames(chunk.limits) <- NULL
@@ -191,21 +191,25 @@ rownames(positive.regions) <- NULL
 ## save(positive.regions, file=positive.regions.RData)
 
 ## Save labels to bed file for viewing on UCSC.
-bed.gz <- file.path(project.dir, "all_labels.bed.gz")
-con <- gzfile(bed.gz, "w")
-header <- 
-  paste("track",
-        "visibility=pack",
-        "name=PeakSegJointLabels",
-        'description="Visually defined labels',
-        'in regions with and without peaks"',
-        "itemRgb=on")
-writeLines(header, con)
-write.table(bed, con,
+all_labels.bed <- file.path(project.dir, "all_labels.bed")
+## con <- file(all_labels.bed, "w")
+## header <- 
+##   paste("track",
+##         "visibility=pack",
+##         "name=PeakSegJointLabels",
+##         'description="Visually defined labels',
+##         'in regions with and without peaks"',
+##         "itemRgb=on")
+## writeLines(header, con)
+## write.table(bed, con,
+##             row.names=FALSE,
+##             col.names=FALSE,
+##             quote=FALSE)
+## close(con)
+write.table(bed, all_labels.bed,
             row.names=FALSE,
             col.names=FALSE,
             quote=FALSE)
-close(con)
 
 limits.by.chrom <- split(chunk.limits, chunk.limits$chrom)
 for(chrom in names(limits.by.chrom)){

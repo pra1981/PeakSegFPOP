@@ -51,10 +51,13 @@ for(problem.dir in problem.dir.vec){
 ## penalty function for joint peak prediction.
 PeakSegJoint::problem.joint.targets.train(set.dir)
 
-## Joint prediction.
-joint.dir.vec <- Sys.glob(file.path(
-  set.dir, "problems", "*", "jointProblems", "*"))
-mclapply.or.stop(joint.dir.vec, PeakSegJoint::problem.joint.predict)
+## Joint prediction, new job scripts.
+job.sh.vec <- Sys.glob(file.path(
+  set.dir, "jobs", "*", "jobPeaks.sh"))
+for(job.sh in job.sh.vec){
+  job.cmd <- paste("bash", job.sh)
+  system.or.stop(job.cmd)
+}
 
 ## Summarize peak predictions on a web page.
 peaks.tsv.sh <- file.path(set.dir, "peaks_matrix.tsv.sh")

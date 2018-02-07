@@ -1,14 +1,5 @@
-## Edit the following definition to reflect your cluster
-## configuration.
-PBS.header <- "#!/bin/bash
-#PBS -l nodes=1:ppn=4
-#PBS -l walltime=24:00:00
-#PBS -A bws-221-ae
-#PBS -m ae
-#PBS -M tdhock5@gmail.com
-#PBS -V"
-
 arg.vec <- "test/demo/problems/chr10:38868835-39154935"
+arg.vec <- "test/demo/problems/chr10:18024675-38818835"
 
 arg.vec <- commandArgs(trailingOnly=TRUE)
 
@@ -16,6 +7,15 @@ if(length(arg.vec) != 1){
   stop("usage: Rscript create_problems_joint.R project/problems/problemID")
 }
 prob.dir <- arg.vec[1] #dont need normalizePath.
+
+jointProblems.bed.sh <- file.path(prob.dir, "jointProblems.bed.sh")
+PBS.header <- if(file.exists(jointProblems.bed.sh)){
+  sh.lines <- readLines(jointProblems.bed.sh)
+  pbs.lines <- grep("^#", sh.lines, value=TRUE)
+  paste(pbs.lines, collapse="\n")
+}else{
+  "#!/bin/bash"
+}
 
 Rscript <- function(...){
   code <- sprintf(...)
@@ -33,11 +33,21 @@ ann.colors <-
     peaks="#a445ee")
 library(data.table)
 library(PeakSegJoint)#for clusterPeaks
+library(namedCapture)
 
 probs.dir <- dirname(prob.dir)
 data.dir <- dirname(probs.dir)
 samples.dir <- file.path(data.dir, "samples")
 problem.name <- basename(prob.dir)
+problem.bed.glob <- file.path(
+  samples.dir, "*", "*", "problems", problem.name, "problem.bed")
+problem.bed.vec <- Sys.glob(problem.bed.glob)
+if(length(problem.bed.vec)==0){
+  stop("no ", problem.bed.glob, " files")
+}
+separate.problem <- fread(problem.bed.vec[1])
+setnames(separate.problem, c("chrom", "chromStart", "chromEnd"))
+
 peaks.glob <- file.path(
   samples.dir, "*", "*", "problems", problem.name, "peaks.bed")
 peaks.bed.vec <- Sys.glob(peaks.glob)
@@ -62,23 +72,20 @@ for(sample.i in seq_along(peaks.bed.vec)){
   })
 }
 peaks <- do.call(rbind, peaks.list)
+##load("weird.peaks.RData")
 problems.list <- if(is.data.frame(peaks) && 0 < nrow(peaks)){
-  all.clustered <- clusterPeaks(peaks)
-  some.peaks <- data.table(all.clustered)[, {
-    sample.path <- paste0(sample.id, "/", sample.group)
-    peaks.per.sample <- table(sample.path)
-    peak.counts <- table(peaks.per.sample)
-    most.frequent.peaks <- as.numeric(names(peak.counts)[which.max(peak.counts)])
-    some.samples <- names(peaks.per.sample)[most.frequent.peaks <= peaks.per.sample]
-    .SD[sample.path %in% some.samples,]
-  }, by=cluster]
-  some.clustered <- clusterPeaks(some.peaks)
-  clusters <- data.table(some.clustered)[, list(
+  multi.clustered <- multiClusterPeaks(peaks)
+  overlap <- data.table(multi.clustered)[, list(
+    chromStart=as.integer(median(chromStart)),
+    chromEnd=as.integer(median(chromEnd))
+  ), by=cluster]
+  clustered <- clusterPeaks(overlap)
+  clusters <- data.table(clustered)[, list(
     clusterStart=min(chromStart),
     clusterEnd=max(chromEnd)
     ), by=cluster]
   clusters[, clusterStart1 := clusterStart + 1L]
-  setkey(clusters, clusterStart1, clusterEnd)
+  setkey(clusters, clusterStart1, clusterEnd)#for join with labels later.
   cat(nrow(peaks), "total peaks form",
       nrow(clusters), "overlapping peak clusters.\n")
   list(
@@ -132,13 +139,20 @@ problems <- do.call(rbind, problems.list)
 if(is.data.table(problems) && 0 < nrow(problems)){
   setkey(problems, clusterStart, clusterEnd)
   problems[, bases := clusterEnd - clusterStart]
-  mid.between.problems <- problems[, as.integer((clusterEnd[-.N]+clusterStart[-1])/2)]
+  mid.between.problems <- problems[, as.integer(
+    (clusterEnd[-.N]+clusterStart[-1])/2)]
   problems[, mid.before := c(NA_integer_, mid.between.problems)]
   problems[, mid.after := c(mid.between.problems, NA_integer_)]
   problems[, problemStart := as.integer(clusterStart-bases)]
   problems[, problemEnd := as.integer(clusterEnd+bases)]
   problems[problemStart < mid.before, problemStart := mid.before]
   problems[mid.after < problemEnd, problemEnd := mid.after]
+  problems[
+    problemStart < separate.problem$chromStart,
+    problemStart := separate.problem$chromStart]
+  problems[
+    separate.problem$chromEnd < problemEnd,
+    problemEnd := separate.problem$chromEnd]
   chrom <- peaks$chrom[1]
   problem.info <- problems[, data.table(
     problemStart,
@@ -206,7 +220,7 @@ if(is.data.table(problems) && 0 < nrow(problems)){
     ggplot()+
       theme_bw()+
       theme(panel.margin=grid::unit(0, "lines"))+
-      facet_grid(sample.id ~ ., scales="free")+
+      facet_grid(sample.id + sample.group ~ ., scales="free")+
       scale_fill_manual(values=ann.colors)+
       geom_tallrect(aes(
         xmin=labelStart/1e3,
@@ -292,14 +306,17 @@ if(is.data.table(problems) && 0 < nrow(problems)){
 ")
     writeLines(script.txt, sh.file)
   }
-
+  ## Sanity checks -- make sure no joint problems overlap each other,
+  ## or are outside the separate problem.
+  stopifnot(separate.problem$chromStart <= problem.info$problemStart)
+  stopifnot(problem.info$problemEnd <= separate.problem$chromEnd)
+  problem.info[, stopifnot(problemEnd[-.N] <= problemStart[-1])]
   cat(
     "Creating ", nrow(problem.info),
     " joint segmentation problems for ", problem.name,
     "\n", sep="")
   library(parallel)
   nothing <- lapply(1:nrow(problem.info), makeProblem)
-
   write.table(
     problem.info[, .(chrom, problemStart, problemEnd)],
     paste0(jointProblems, ".bed"),

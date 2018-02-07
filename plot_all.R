@@ -11,6 +11,11 @@ library(namedCapture)
 library(data.table)
 library(coseg)
 
+## The UCSC links in the HTML tables will be zoomed out from the peak
+## this number of times.
+zoom.out.times <- 10
+zoom.factor <- (zoom.out.times-1)/2
+
 if(length(arg.vec) != 1){
   stop("usage: Rscript plot_all.R project_dir")
 }
@@ -29,18 +34,26 @@ orderChrom <- function(chrom.vec, ...){
     print(value.vec[did.not.match])
     stop("chroms did not match ", chr.pattern)
   }
-  rank.vec <- order(
+  ord.vec <- order(
     suppressWarnings(as.numeric(chr.mat[, "before"])),
     chr.mat[, "before"],
     chr.mat[, "after"])
-  names(rank.vec) <- value.vec
+  rank.vec <- seq_along(value.vec)
+  names(rank.vec) <- value.vec[ord.vec]
   order(rank.vec[chrom.vec], ...)
 } 
+factorChrom <- function(chrom.vec){
+  u.vec <- unique(chrom.vec)
+  ord.vec <- u.vec[orderChrom(u.vec)]
+  factor(chrom.vec, ord.vec)
+}
 
 ## Plot each labeled chunk.
 chunk.dir.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "chunks", "*"))
-mclapply.or.stop(chunk.dir.vec, function(chunk.dir){
+LAPPLY <- lapply
+LAPPLY <- mclapply.or.stop
+LAPPLY(chunk.dir.vec, function(chunk.dir){
   PeakSegJoint::problem.joint.plot(chunk.dir)
 })
 
@@ -60,84 +73,115 @@ problems[, problem.name := sprintf(
   "%s:%d-%d", chrom, problemStart, problemEnd)]
 problems[, separate.problem := factor(problem.name, problem.name)]
 
-loss.tsv.vec <- Sys.glob(file.path(
-  set.dir, "problems", "*", "jointProblems", "*", "loss.tsv"))
+joint.glob <- file.path(
+  set.dir, "jobs", "*")
+jobPeaks.RData.dt <- data.table(
+  jobPeaks.RData=Sys.glob(file.path(joint.glob, "jobPeaks.RData")))
+if(nrow(jobPeaks.RData.dt)==0){
+  stop(
+    "no predicted joint peaks found; to do joint peak prediction run ",
+    file.path(joint.glob, "jobPeaks.sh"))
+}
 cat(
   "Reading predicted peaks in",
-  length(loss.tsv.vec),
-  "joint problems.\n",
+  nrow(jobPeaks.RData.dt),
+  "jobPeaks.RData files.\n",
   sep=" ")
+##load all jobPeaks files.
+jobPeaks <- jobPeaks.RData.dt[, {
+  load(jobPeaks.RData)
+  jobPeaks
+}, by=jobPeaks.RData]
+jobPeaks[, peak.name := sprintf("%s:%d-%d", chrom, peakStart, peakEnd)]
+
+## Count total samples using directories.
 sample.dir.vec <- Sys.glob(file.path(set.dir, "samples", "*", "*"))
 sample.path.vec <- sub(".*samples/", "", sample.dir.vec)
 sample.group.tab <- table(sub("/.*", "", sample.path.vec))
-sample.group.counts <- data.table(
+sample.group.totals <- data.table(
   sample.group=names(sample.group.tab),
   samples.total=as.integer(sample.group.tab))
-setkey(sample.group.counts, sample.group)
-joint.peaks.dt.list <- list()
-input.pred.list <- list()
-for(loss.tsv in loss.tsv.vec){
-  loss.diff <- scan(loss.tsv, quiet=TRUE)
-  joint.prob.dir <- dirname(loss.tsv)
-  jointProblems.dir <- dirname(joint.prob.dir)
-  prob.dir <- dirname(jointProblems.dir)
-  prob.peaks <- fread(file.path(joint.prob.dir, "peaks.bed"))
-  setnames(prob.peaks, c(
-    "chrom", "peakStart", "peakEnd", "sample.path", "mean"))
-  prob.peaks[, sample.id := sub(".*/", "", sample.path)]
-  prob.peaks[, sample.group := sub("/.*", "", sample.path)]
-  prob.peaks[, peak.name := sprintf("%s:%d-%d", chrom, peakStart, peakEnd)]
-  group.dt <- prob.peaks[, list(
-    samples.with.peaks=.N
-    ), by=sample.group]
-  setkey(group.dt, sample.group)
-  all.group.counts <- group.dt[sample.group.counts]
-  all.group.counts[is.na(samples.with.peaks), samples.with.peaks := 0L]
-  all.group.counts[, samples.without.peaks := samples.total - samples.with.peaks]
-  all.group.counts[, samples.prop := samples.with.peaks / samples.total]
-  count.mat <- all.group.counts[, rbind(samples.with.peaks, samples.without.peaks)]
-  exact <- fisher.test(count.mat)
-  ##group.ord <- all.group.counts[order(samples.prop),]
-  group.ord <- all.group.counts[order(sample.group), list(
-    groups=paste(sample.group, collapse=",")
-    ), by=samples.prop][order(samples.prop),]
-  group.vec <- group.dt[order(sample.group), paste0(
-    sample.group, ":", samples.with.peaks)]
-  n.Input <- sum(prob.peaks$sample.group=="Input")
-  separate.problem <- factor(basename(prob.dir), problems$problem.name)
-  most1 <- group.ord[.N,]
-  least1 <- group.ord[1,]
-  if(nrow(group.ord)==1){
-    most2 <- least2 <- data.table(samples.prop=NA, groups=NA)
-  }else{
-    most2 <- group.ord[.N-1,]
-    least2 <- group.ord[2,]
-  }
-  input.pred.list[[loss.tsv]] <- data.table(
-    prob.peaks[1, .(chrom, peakStart, peakEnd, peak.name)],
-    n.Input,
-    n.samples=nrow(prob.peaks),
-    n.groups=nrow(group.dt),
-    most.freq.group=most1$groups,
-    most.freq.prop=most1$samples.prop,
-    most.next.group=most2$groups,
-    most.next.prop=most2$samples.prop,
-    least.freq.group=least1$groups,
-    least.freq.prop=least1$samples.prop,
-    least.next.group=least2$groups,
-    least.next.prop=least2$samples.prop,
-    exact.pvalue=exact$p.value,
-    loss.diff,
-    sample.counts=paste(group.vec, collapse="/"),
-    separate.problem,
-    joint.problem=basename(joint.prob.dir))
-  joint.peaks.dt.list[[loss.tsv]] <- data.table(
-    separate.problem, prob.peaks)
+setkey(sample.group.totals, sample.group)
+
+joint.peaks.dt <- jobPeaks[, {
+  mean.vec <- means[[1]]
+  list(
+    separate.problem=problem.name,
+    sample.path=names(mean.vec),
+    mean=as.double(mean.vec),
+    sample.id=sub(".*/", "", names(mean.vec)),
+    sample.group=sub("/.*", "", names(mean.vec)),
+    peakBases=peakEnd-peakStart)
+}, by=list(chrom, peakStart, peakEnd, peak.name)]
+
+group.counts <- joint.peaks.dt[, {
+  tab <- sort(table(sample.group))
+  nonzero <- tab[tab!=0]
+  list(
+    n.Input=sum(sample.group=="Input"),
+    n.samples=.N,
+    n.groups=length(tab),
+    sample.counts=paste(paste0(
+      names(nonzero), ":", nonzero), collapse=","))
+  }, by=list(chrom, peakStart, peakEnd, peak.name, peakBases)]
+
+group.counts.wide <- dcast(
+  joint.peaks.dt, chrom + peakStart + peakEnd + peak.name ~ sample.group, length,
+  value.var="peakBases")#to avoid message.
+group.counts.mat <- as.matrix(
+  group.counts.wide[, sample.group.totals$sample.group, with=FALSE])
+rownames(group.counts.mat) <- group.counts.wide$peak.name
+
+group.prop.mat <- group.counts.mat / matrix(
+  sample.group.totals$samples.total,
+  nrow(group.counts.mat),
+  ncol(group.counts.mat),
+  byrow=TRUE)
+
+group.prop.tall <- melt(data.table(
+  group.counts.wide[,list(chrom, peakStart, peakEnd)],
+  group.prop.mat),
+  id.vars=c("chrom", "peakStart", "peakEnd"),
+  variable.name="sample.group",
+  value.name="samples.prop")
+setkey(group.prop.tall, chrom, peakStart, peakEnd, samples.prop)
+group.prop.groups <- group.prop.tall[, list(
+  groups=paste(sample.group, collapse=",")
+), by=list(chrom, peakStart, peakEnd, samples.prop)]
+
+most.least <- group.prop.groups[, data.table(
+  most.freq.group=groups[.N],
+  most.freq.prop=samples.prop[.N],
+  most.next.group=if(.N==1)NA_character_ else groups[.N-1],
+  most.next.prop=if(.N==1)NA_real_ else samples.prop[.N-1],
+  least.freq.group=groups[1],
+  least.freq.prop=samples.prop[1],
+  least.next.group=if(.N==1)NA_character_ else groups[2],
+  least.next.prop=if(.N==1)NA_real_ else samples.prop[2]
+), by=list(chrom, peakStart, peakEnd)]
+
+input.pred <- most.least[group.counts, on=list(chrom, peakStart, peakEnd)]
+getPvalue <- function(samples.with.peaks, fun){
+  count.mat <- rbind(
+    samples.with.peaks,
+    sample.group.totals$samples.total-samples.with.peaks)
+  tryCatch({
+    exact <- suppressWarnings(fun(count.mat))
+    exact$p.value
+  }, error=function(e){
+    NA_real_
+  })
 }
-joint.peaks.dt <- do.call(rbind, joint.peaks.dt.list)
-input.pred <- do.call(rbind, input.pred.list)[orderChrom(chrom, peakStart),]
+if(FALSE){
+  input.pred[, fisher.pvalue := apply(
+    group.counts.mat[peak.name,], 1, getPvalue, fisher.test)]
+}
+input.pred[, chisq.pvalue := apply(
+  group.counts.mat[peak.name,], 1, getPvalue, chisq.test)]
+setkey(jobPeaks, peak.name)
+input.pred[, loss.diff := jobPeaks[input.pred$peak.name, loss.diff] ]
+input.pred[, separate.problem := jobPeaks[input.pred$peak.name, problem.name] ]
 input.pred[, peakBases := peakEnd - peakStart]
-joint.peaks.dt[, peakBases := peakEnd - peakStart]
 peak.mat <- matrix(
   FALSE,
   length(sample.path.vec),
@@ -147,12 +191,24 @@ peak.mat <- matrix(
     peak=input.pred$peak.name))
 i.mat <- joint.peaks.dt[, cbind(sample.path, peak.name)]
 peak.mat[i.mat] <- TRUE
-d.mat <- dist(peak.mat, "manhattan")
-tree <- hclust(d.mat, method="average")
-##plot(tree, hang=-1)
+
+## Save samples/groupID/sampleID/joint_peaks.bedGraph files.
+setkey(joint.peaks.dt, sample.path, chrom, peakStart, peakEnd)
+out.path.vec <- unique(joint.peaks.dt$sample.path)
+joint.peaks.dt[, mean.str := sprintf("%.2f", mean)]
+for(out.path in out.path.vec){
+  sample.peaks <- joint.peaks.dt[out.path]
+  out.file <- file.path(set.dir, "samples", out.path, "joint_peaks.bedGraph")
+  fwrite(
+    sample.peaks[, .(chrom, peakStart, peakEnd, mean.str)],
+    out.file,
+    sep="\t",
+    col.names=FALSE,
+    quote=FALSE)
+}
 
 specific.html.list <- list()
-for(sg in sample.group.counts$sample.group){
+for(sg in sample.group.totals$sample.group){
   specific.html.list[[sg]] <- sprintf(
     '<h3>%s</h3>', sg)
   group.peak.list <- list(
@@ -160,12 +216,14 @@ for(sg in sample.group.counts$sample.group){
       most.freq.group==sg &
       most.freq.prop==1 &
       most.next.prop==0,][order(-loss.diff), .(
-        peak.name, loss.diff, samples=sample.counts, chrom, peakStart, peakEnd, peakBases)],
+        peak.name, loss.diff, samples=sample.counts,
+        chrom, peakStart, peakEnd, peakBases)],
     least=input.pred[
       least.freq.group==sg &
       least.freq.prop==0 &
       least.next.prop==1,][order(-loss.diff), .(
-        peak.name, loss.diff, samples=least.next.group, chrom, peakStart, peakEnd, peakBases)])
+        peak.name, loss.diff, samples=least.next.group,
+        chrom, peakStart, peakEnd, peakBases)])
   for(most.or.least in names(group.peak.list)){
     group.peaks <- group.peak.list[[most.or.least]]
     pre.msg <- paste0(
@@ -182,12 +240,16 @@ for(sg in sample.group.counts$sample.group){
       paste0(
         pre.msg,
         " predicted to have no peaks in any ",
-        sg, " samples, and at least one other group with peaks in all samples.</p>")
+        sg, " samples, and at least one other",
+        " group with peaks in all samples.</p>")
     }
     tab <- if(nrow(group.peaks)){
-      group.peaks[, peak := sprintf({
-        '<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d">%s</a>'
-      }, chrom, peakStart-peakBases, peakEnd+peakBases, peak.name)]
+      group.peaks[, peak := sprintf('
+<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d">%s</a>
+', chrom,
+as.integer(peakStart-peakBases*zoom.factor),
+as.integer(peakEnd+peakBases*zoom.factor),
+peak.name)]
       xt <- xtable(group.peaks[, .(peak, peakBases, loss.diff, samples)])
       print(
         xt, type="html", sanitize.text.function=identity)
@@ -229,202 +291,176 @@ if(nrow(input.labels)){
   input.pred[, specificity := "unknown"]
 }
 
-gg.tree <- dendro_data(tree)
-gg.tree$labels$sample.path <- gg.tree$labels$label
-gg.tree$labels$sample.group <- sub("/.*", "", gg.tree$labels$label)
-gg.tree$labels$sample.id <- sub(".*/", "", gg.tree$labels$label)
-rownames(gg.tree$labels) <- gg.tree$labels$label
-max.dist <- max(gg.tree$segments$y)
-max.dist.neg <- -max.dist*3
-problems[, dist := (.N:1)*max.dist.neg/.N]
-problem.width <- diff(problems$dist[1:2])/2
-setkey(problems, separate.problem)
-sample.problem.peaks <- joint.peaks.dt[, list(
-  peaks=.N
-), by=.(sample.path, separate.problem)]
-setkey(sample.problem.peaks, separate.problem)
-problem.peak.show <- problems[sample.problem.peaks]
-problem.peak.show[, sample.pos := gg.tree$labels[paste(sample.path), "x"]]
-group.means <- data.table(gg.tree$labels)[, list(
-  mean.x=mean(x)
-), by=sample.group]
-peak.samples.counts <- sample.problem.peaks[, list(
-  samples=.N,
-  peak.samples=sum(peaks)
-  ), by=separate.problem]
-peaks.counts <- input.pred[, list(peaks=.N), by=separate.problem]
-problems[, peaks := 0L]
-problems[, samples := 0L]
-problems[, peak.samples := 0L]
-problems[peaks.counts, peaks := peaks.counts$peaks]
-problems[peak.samples.counts, peak.samples := peak.samples.counts$peak.samples]
-problems[peak.samples.counts, samples := peak.samples.counts$samples]
+if(FALSE){
+  load("plot_all.RData")
+}
+
+edge <- function(x){
+  r <- range(input.pred[[x]])
+  l <- 36
+  e <- seq(r[1], r[2], l=l)
+  L <- list()
+  L[[paste0(x, ".i")]] <- 1:(l-1)
+  start <- e[-l]
+  L[[paste0(x, ".start")]] <- start
+  end <- e[-1]
+  L[[paste0(x, ".end")]] <- end
+  mid <- (start+end)/2
+  L[[paste0(x, ".mid")]] <- mid
+  L[[paste0(x, ".label")]] <- 10^mid
+    ##sprintf("%d-%d", ceiling(10^start), floor(10^end))
+  do.call(data.table, L)
+}
+input.pred[, log10.bases := log10(peakBases)]
+input.pred[, log10.samples := log10(n.samples)]
+bases.dt <- edge("log10.bases")
+samples.dt <- edge("log10.samples")
+samples.dt
+grid.dt <- data.table(expand.grid(
+  log10.bases.i=1:nrow(bases.dt),
+  log10.samples.i=1:nrow(samples.dt)))[samples.dt, on=list(
+    log10.samples.i)][bases.dt, on=list(log10.bases.i)]
+
+join.dt <- grid.dt[input.pred, on=list(
+  log10.bases.start <= log10.bases,
+  log10.bases.end >= log10.bases,
+  log10.samples.start <= log10.samples,
+  log10.samples.end >= log10.samples)]
+stopifnot(nrow(join.dt)==nrow(input.pred))
+
+join.counts <- join.dt[, list(
+  count=.N
+), by=list(
+  log10.bases.label, log10.bases.mid,
+  log10.samples.label, log10.samples.mid)]
+join.biggest <- join.counts[, {
+  .SD[which.max(count)]
+}, by=list(log10.samples.mid)]
 
 ggplot()+
-  theme_grey()+
+  theme_bw()+
   geom_tile(aes(
-    dist, sample.pos, fill=peaks),
-    data=problem.peak.show)+
-  scale_color_discrete(
-    breaks=group.means[order(-mean.x), sample.group])+
-  scale_fill_continuous(
-    low="white", high="red")+
-  geom_segment(aes(
-    y, x, yend=xend, xend=yend),
-    data=gg.tree$segments)+
-  geom_text(aes(
-    y, x, label=sample.id, color=sample.group),
-    hjust=0,
-    vjust=-0.5, 
-    data=gg.tree$labels)+
-  scale_x_continuous(
-    "separate problem / number of peaks")+
-  scale_y_continuous("sample", breaks=NULL)
+    log10.bases.label, log10.samples.label, fill=log10(count)),
+    data=join.counts)+
+  scale_fill_gradient(low="grey90", high="red")+
+  scale_x_log10()+
+  scale_y_log10()
 
 ggplot()+
-  scale_fill_continuous(low="white", high="black")+
+  theme_bw()+
+  geom_tile(aes(
+    log10.bases.mid, log10.samples.mid, fill=log10(count)),
+    data=join.counts)+
   geom_point(aes(
-    peakStart/1e3, chrom, color=specificity, fill=log10(loss.diff)),
+    log10.bases.mid, log10.samples.mid),
+    data=join.biggest,
     shape=21,
-    data=input.pred)
+    fill=NA,
+    color="black")+
+  scale_fill_gradient(low="grey90", high="red")
 
-n.samples <- nrow(gg.tree$labels)
-h.pixels <- (n.samples+5)*15
-chrom.limits <- problems[, list(
-  min.dist=min(dist),
-  max.dist=max(dist)
-), by=chrom]
-vline.dt <- chrom.limits[, data.table(
-  dist=unique(c(min.dist-problem.width, max.dist+problem.width)))]
+ggplot()+
+  geom_histogram(aes(
+    peakBases),
+    data=input.pred)+
+  scale_x_log10()
+
+chrom.boxes <- input.pred[, {
+  m <- max(peakEnd)
+  box.size <- 1e7
+  n.boxes <- ceiling(m/box.size)
+  data.table(e=(0:n.boxes)*box.size)[, data.table(
+    min.peakEnd=e[-.N],
+    max.peakEnd=e[-1]
+    )]
+}, by=list(chrom)]
+chrom.boxes[, mid.peakEnd := (min.peakEnd+max.peakEnd)/2]
+chrom.boxes[, chrom.box := paste0(
+  chrom, ":", scales::comma(min.peakEnd), "-", scales::comma(max.peakEnd))]
+peak.boxes <- chrom.boxes[input.pred, on=list(
+  chrom,
+  min.peakEnd <= peakEnd,
+  max.peakEnd >= peakEnd)]
+stopifnot(nrow(peak.boxes)==nrow(input.pred))
+peak.box.counts <- peak.boxes[, list(
+  count=.N,
+  some.input=sum(0 < n.Input)
+), by=list(chrom, mid.peakEnd, chrom.box)]
+peak.box.counts[, chrom.fac := factorChrom(chrom)]
+
+getLim <- function(x){
+  f <- x[is.finite(x)]
+  if(length(f))range(f) else range(x)
+}
+ggplot()+
+  scale_fill_continuous(
+    low="grey90", high="blue", na.value="white",
+    limits=getLim(log10(peak.box.counts$some.input)))+
+  geom_tile(aes(
+    mid.peakEnd/1e6, chrom.fac, fill=log10(some.input)),
+    data=peak.box.counts)+
+  scale_x_continuous(
+    "position on chromosome (mega bases)")+
+  scale_y_discrete("chromosome")
+
+## TODO: PCA plot? too slow/memory intensive.
+## pca <- princomp(peak.mat)
+
+h.pixels <- (length(unique(peak.box.counts$chrom))+5)*15
 viz <- list(
-  title="PeakSegFPOP + PeakSegJoint predictions",
-  tree=ggplot()+
-    geom_text(aes(
-      min.dist-problem.width, n.samples+0.5,
-      label=sub("chr", "", chrom)),
-      size=11,
-      hjust=0,
-      data=chrom.limits)+
-    coord_cartesian(
-      xlim=c(max.dist.neg-problem.width, max.dist),
-      ylim=c(0.5, n.samples+1.5),
-      expand=FALSE)+
-    geom_vline(aes(
-      xintercept=dist),
-      size=0.25,
-      data=vline.dt)+
-    theme_grey()+
-    theme_animint(width=1000, height=h.pixels)+
-    geom_tallrect(aes(
-      xmin=dist-problem.width,
-      xmax=dist+problem.width,
-      clickSelects=separate.problem),
-      alpha=0.5,
-      size=0.5,
-      data=problems)+
-    geom_tile(aes(
-      dist, sample.pos, fill=peaks,
-      clickSelects=separate.problem,
-      tooltip=paste0(
-        peaks, " peak",
-        ifelse(peaks==1, "", "s"),
-        " for ", sample.path,
-        " in ", separate.problem
-      )),
-      size=0.5,
-      data=problem.peak.show)+
-    scale_color_discrete(
-      breaks=group.means[order(-mean.x), sample.group])+
-    scale_fill_continuous(
-      low="white", high="red",
-      breaks=sort(
-        unique(as.integer(quantile(problem.peak.show$peaks))),
-        decreasing=TRUE))+
-    geom_segment(aes(
-      y, x, yend=xend, xend=yend),
-      size=1,
-      data=gg.tree$segments)+
-    geom_text(aes(
-      y, x,
-      key=sample.path,
-      label=sample.id, color=sample.group),
-      hjust=0,
-      size=11,
-      data=gg.tree$labels)+
-    geom_point(aes(
-      y, x,
-      key=sample.path,
-      color=sample.group),
-      data=gg.tree$labels)+
-    scale_x_continuous(
-      paste(
-        "Left heatmap: select genomic region (separate segmentation problem),",
-        "Right tree: distance = number of peaks different"),
-      breaks=unique(as.integer(seq(0, max.dist, l=6)))
-    )+
-    scale_y_continuous("sample", breaks=NULL),
   genome=ggplot()+
-    theme_grey()+
-    theme_animint(
-      width=1000,
-      height=h.pixels,
-      update_axes=c("x"))+
-    geom_vline(aes(
-      showSelected=separate.problem,
-      xintercept=peakStart/1e3,
-      color=loss.diff,
-      linetype=specificity),
-      size=3,
-      data=input.pred)+
-    geom_tallrect(aes(
-      xmin=problemStart/1e3,
-      xmax=problemEnd/1e3,
-      showSelected=separate.problem,
+    theme_bw()+
+    theme_animint(height=h.pixels)+
+    scale_fill_continuous(
+      low="grey90", high="red")+
+    geom_tile(aes(
+      mid.peakEnd/1e6, chrom.fac,
+      clickSelects=chrom.box,
       tooltip=paste(
-        "click to zoom to problem",
-        separate.problem),
-      href=paste0(
-        "http://genome.ucsc.edu/cgi-bin/hgTracks?position=",
-        separate.problem)),
-      fill="white",
-      color=NA,
-      alpha=0.5,
-      data=problems)+
-    ## geom_vline(aes(
-    ##   showSelected=separate.problem,
-    ##   xintercept=peakStart/1e3,
-    ##   size=loss.diff,
-    ##   tooltip=paste(
-    ##     "click to zoom to peak",
-    ##     peak.name,
-    ##     sample.counts,
-    ##     "Poisson loss difference over model with no peaks = ",
-    ##     loss.diff),
-    ##   href=sprintf(
-    ##     "http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d",
-    ##     chrom, peakStart-peakBases, peakEnd+peakBases),
-    ##   linetype=specificity),
-    ##   color="grey",
-    ##   data=input.pred)+
-    ## scale_size_continuous(range=c(1, 9))+
-    scale_linetype_manual(values=c(
-      specific="solid",
-      "non-specific"="dotted",
-      unknown="dashed"
-    ))+
-    guides(fill="none")+
-    scale_color_continuous(
-      low="white", high="red")+
-    scale_x_continuous("position on chromosome (kb = kilo bases)")+
-    scale_y_discrete("sample"),
-    ## geom_segment(aes(
-    ##   peakStart/1e3, sample.path,
-    ##   xend=peakEnd/1e3, yend=sample.path,
-    ##   color=sample.group,
-    ##   showSelected2=sample.group,
-    ##   showSelected=separate.problem),
-    ##   data=joint.peaks.dt)+
-  selector.types=list())
+        count, "peaks in", chrom.box),
+      fill=log10(count)),
+      data=peak.box.counts)+
+    scale_x_continuous(
+      "position on chromosome (mega bases)")+
+    scale_y_discrete("chromosome"),
+  peakSize=ggplot()+
+    scale_fill_continuous(
+      low="grey90", high="blue", na.value="white",
+      limits=getLim(log10(peak.box.counts$some.input)))+
+    xlab("")+
+    geom_point(aes(
+      xval, log10(n.samples),
+      key=peak.name,
+      tooltip=paste(
+        n.samples, "samples with a",
+        peakBases, "bp peak on",
+        peak.name,
+        ifelse(
+          n.Input==0, "",
+          paste("including", n.Input, "Input")),
+        sample.counts),
+      fill=log10(n.Input),
+      href=sprintf(
+        "http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d",
+        chrom,
+        as.integer(peakStart-peakBases*zoom.factor),
+        as.integer(min.peakEnd+peakBases*zoom.factor)),
+      showSelected=chrom.box),
+      size=4,
+      validate_params=FALSE,
+      chunk_vars=c("chrom.box"),
+      data=peak.boxes[, rbind(
+        data.table(peak.boxes, x="log10(bases)", xval=log10(peakBases)),
+        data.table(
+          peak.boxes,
+          x="relative position (mega bases)",
+          xval=(peakStart-mid.peakEnd)/1e6))])+
+    theme_bw()+
+    facet_grid(. ~ x, scales="free")+
+    theme(panel.margin=grid::unit(0, "lines"))+
+    theme_animint(width=600, height=h.pixels))
+
+animint2dir(viz, file.path(set.dir, "figure-genome"))
 
 figure.png.vec <- Sys.glob(file.path(
   set.dir, "problems", "*", "chunks", "*", "figure-predictions-zoomout.png"))
@@ -468,41 +504,11 @@ if(0 == length(figure.png.vec)){
   chunk.counts <- chunk.info[, list(chunks=.N), by=separate.problem]
   problems[, labeled.chunks := 0L]
   setkey(chunk.counts, separate.problem)
+  setkey(problems, separate.problem)
   problems[chunk.counts, labeled.chunks := chunk.counts$chunks]
-  viz$genome <- viz$genome+
-    geom_tallrect(aes(
-      xmin=chunk.chromStart/1e3,
-      xmax=chunk.chromEnd/1e3,
-      tooltip=paste(
-        "click to plot chunk",
-        chunk.problem),
-      href=file.path("..", zoomin.png),
-      showSelected=separate.problem),
-      color=NA,
-      alpha=0.2,
-      fill="yellow",
-      data=chunk.info)
   chunks.xt <- xtable(chunk.info[, .(chunk, image)])
   chunks.html <- print(chunks.xt, type="html", sanitize.text.function=identity)
 }
-
-viz$genome <- viz$genome+
-  geom_point(aes(
-    peakStart/1e3, sample.path,
-    fill=sample.group,
-    key=paste(chrom, peakStart, sample.path),
-    tooltip=paste(
-      "click to zoom to peak",
-      peak.name),
-    href=sprintf(
-      "http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s:%d-%d",
-      chrom, peakStart-peakBases, peakEnd+peakBases),
-    showSelected2=sample.group,
-    showSelected=separate.problem),
-    color="black",
-    size=3.5,
-    data=joint.peaks.dt)
-animint2dir(viz, file.path(set.dir, "figure-genome"))
 
 label.counts <- all.labels[, list(
   samples=.N
@@ -526,8 +532,20 @@ problems[, problem := sprintf({
   '<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?position=%s">%s</a>'
 }, separate.problem, separate.problem)]
 
-problems.xt <- xtable(problems[, .(problem, samples, peaks, peak.samples, labeled.chunks, labeled.regions, labels)])
-problems.html <- print(problems.xt, type="html", sanitize.text.function=identity)
+## add peaks, peak.samples, samples
+separate.counts <- input.pred[, list(
+  peak.regions=.N,
+  peak.samples=sum(n.samples)
+), by=list(separate.problem)]
+setkey(separate.counts, separate.problem)
+problems.out <- separate.counts[problems]
+
+problems.xt <- xtable(problems.out[, list(
+  problem,
+  peak.regions, peak.samples,
+  labeled.chunks, labeled.regions, labels)])
+problems.html <- print(
+  problems.xt, type="html", sanitize.text.function=identity)
 html.vec <- c(
   '<title>PeakSegFPOP + PeakSegJoint predictions</title>',
   '<h2>Output: predicted peaks</h2>',
@@ -535,7 +553,7 @@ html.vec <- c(
   sprintf('<li>
 %d genomic regions were found to have
 at least one sample with a peak
-(<a href="peaks_summary.bigBed">peaks_summary.bigBed</a>,
+(<a href="hub.txt">track hub</a>,
  <a href="peaks_summary.tsv">peaks_summary.tsv</a>).
 </li>', nrow(input.pred)),
   sprintf('<li>
@@ -543,9 +561,10 @@ at least one sample with a peak
 (<a href="peaks_matrix.tsv">peaks_matrix.tsv</a>).
 </li>',
     nrow(joint.peaks.dt),
-    length(unique(sample.problem.peaks$sample.path))),
+    length(sample.path.vec)),
   '<li>
-<a href="figure-genome/index.html">Interactive heatmap, cluster tree, peak predictions</a>.
+<a href="figure-genome/index.html">Interactive
+heatmap and scatterplot of predictions</a>.
 </li>',
   '</ul>',
   '<h2>Input: labeled genomic windows</h2>',
@@ -564,7 +583,7 @@ at least one sample with a peak
   )
 writeLines(html.vec, file.path(set.dir, "index.html"))
 
-## Write peaks_summary.bigBed 
+## Write peaks_summary.bed
 peak.mat.dt <- data.table(
   peak=colnames(peak.mat),
   ifelse(t(peak.mat), 1, 0))
@@ -577,26 +596,15 @@ fwrite(
   file.path(set.dir, "peaks_summary.tsv"),
   sep="\t")
 peaks.bed <- file.path(set.dir, "peaks_summary.bed")
-bed.dt <- input.pred[, .(chrom, peakStart, peakEnd, sample.counts)]
+bed.dt <- input.pred[specificity != "non-specific",]
+max.samples <- max(bed.dt$n.samples)
+bed.dt[, score := as.integer((n.samples/max.samples)*1000) ]
 fwrite(
-  bed.dt,
+  bed.dt[, .(
+    chrom, peakStart, peakEnd,
+    substr(sample.counts, 1, 255),#max characters in bigBed name.
+    score)],
   peaks.bed,
   sep="\t",
   col.names=FALSE)
-sizes.dt <- problems[, list(chromEnd=max(problemEnd)), by=chrom]
-sizes.tsv <- file.path(set.dir, "chrom_sizes.tsv")
-fwrite(
-  sizes.dt,
-  sizes.tsv,
-  sep="\t",
-  col.names=FALSE)
-cmd <- paste(
-  "bedToBigBed",
-  peaks.bed, sizes.tsv,
-  file.path(set.dir, "peaks_summary.bigBed"))
-status <- system(cmd)
-if(status != 0){
-  stop("error code ", status, " for command\n", cmd)
-}
-## TODO: labels.bigBed and track hub.
 

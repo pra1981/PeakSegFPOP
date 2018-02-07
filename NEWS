@@ -1,6 +1,62 @@
 TODOs
 
-Output track hub... how to define reference genome?
+if input bigWigs are normalized (non-count) coverage, then display of
+peaks on the multiWig tracks does not work (they are higher than the
+low normalized coverage). TODO warn/error or make other bigWigs?
+
+hg19_problems_optimized.bed file with biggest problems that have been
+cut into several smaller pieces (the overall time complexity is linear
+in the max problem size). For example current hg19_problems.bed has 76
+problems bigger than 10e6 bases. In a few hours we could probably
+convert them to about 290 problems which are all less than 10e6
+bases. This would result in about a 10x speedup, since the current max
+problem size is 114,547,721 = 100e6 bases.
+
+problems[10e6 < bases, sum((bases %/% 10e6)+1)]
+
+2017.05.08
+
+Why did H3K4me3_TDH_other pipeline predict these two overlapping
+(almost identical) peaks? Because we did not delete one of the two
+chr4 problems, after changing the definition (chr4:75452279-191044276
+-> chr4:75452279-190000000).
+
+chr4    76597015        76599341        31.13
+chr4    76597018        76599340        31.11
+
+Now create_problems_all.R deletes old problems/* and
+samples/*/*/problems/* directories (which are not present in the
+current problems.bed file).
+
+penaltyLearning used for both separate and joint model.
+
+predicted joint peaks in projectID/jobs/*/jobPeaks.sh files instead of
+projectID/problems/*/peaks.bed.sh files -- more equal run time in
+different jobs. 
+
+plot_all.R creates a heatmap of peak counts over the genome, rather
+than in the cluster tree (which was not so informative).
+
+do not compute fisher test pvalue for large data sets.
+
+now only need to specify PBS header in one file, create_problems_all.R
+
+chunk plots show geom_rect for coverage, instead of geom_step which
+stops with an error if there is only 1 data row in a panel.
+
+plot_all.R should read problems/*/peaks.bed files (not too many)
+rather than problems/*/jointProblems/*/peaks.bed files (way too many),
+but the problem was that we need to read the likelihood for each peak
+--- solved by saving predicted peaks to a data.table with a list
+column for sample.
+
+2017.02.28
+
+create_track_hub.R creates multiWigs to display coverage overlaid with
+peak predictions on the UCSC genome browser.
+
+Various updates to coseg + PeakSegJoint (infeasible models allowed,
+peak size model).
 
 2016.11.01
 

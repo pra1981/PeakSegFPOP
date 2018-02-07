@@ -38,5 +38,11 @@ problems <- gap[, {
   data.table(problemStart, problemEnd)[problemStart < problemEnd,]
 }, by=chrom]
 
-write.table(problems, problems.bed, sep="\t", quote=FALSE,
+out <- problems[, list(
+  chrom,
+  sprintf("%d", problemStart),
+  sprintf("%d", problemEnd)
+  )]
+
+write.table(out, problems.bed, sep="\t", quote=FALSE,
             row.names=FALSE, col.names=FALSE)
