@@ -1,0 +1,6 @@
+system("echo echo before open > write-same-file-test.txt")
+f <- file("write-same-file-test.txt", "a")
+system("echo echo after open >> write-same-file-test.txt")
+writeLines("R writeLines", f)
+close(f)
+system("echo echo after close >> write-same-file-test.txt")
